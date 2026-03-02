@@ -1,0 +1,52 @@
+# ============================================================
+# Step 1 – Single-op solvability baseline
+# ============================================================
+
+# ----- Simulation timing -----
+dt:       1.0    # ms per timestep
+win_len:  40     # input window per trial (timesteps)
+read_len: 10     # readout window (timesteps)
+gap_len:  0      # gap between slots (only relevant for K>1)
+# Total trial length = win_len + read_len = 50 ms
+
+# ----- Network -----
+n_input:         2       # A, B channels (use 4 for A,¬A,B,¬B)
+hidden_size:     50
+d_max:           49      # max delay index  (effective: 1..50 ms)
+lif_tau_m:       10.0
+lif_threshold:   1.0
+lif_reset:       0.0
+lif_refractory:  2
+surrogate_beta:  4.0
+delay_param_type: sigmoid   # or 'direct'
+use_output_layer: false
+readout_source:   hidden
+
+# ----- Training -----
+train_mode:    weights_and_delays  # weights_only | delays_only | weights_and_delays
+lr_w:          1.0e-3
+lr_d:          1.0e-3
+lr_readout:    1.0e-3
+batch_size:    256
+epochs:        200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip:     1.0
+
+# ----- Rate coding -----
+r_on:   400.0   # Hz (A=1 or B=1 firing rate)
+r_off:   10.0   # Hz (A=0 or B=0)
+
+# ----- Dataset -----
+ops_list:  [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+op_name:   NAND    # single op for one-off run; overridden in sweep
+n_train:   4000
+n_val:     1000
+n_test:    1000
+seed:      42
+
+# ----- Sweep configuration (used by run_step1.py --sweep) -----
+sweep:
+  ops:          [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+  train_modes:  [weights_only, delays_only, weights_and_delays]
+  hidden_sizes: [10, 20, 50]

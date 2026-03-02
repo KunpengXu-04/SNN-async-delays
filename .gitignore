@@ -1,0 +1,14 @@
+# Model checkpoints (binary, regeneratable)
+*.pt
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE / editor
+.vscode/
+.idea/
+
+# Claude Code internal
+.claude/

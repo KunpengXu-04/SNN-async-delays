@@ -1,0 +1,866 @@
+[
+  {
+    "accuracy": 0.8930000066757202,
+    "per_query_acc": [
+      0.8930000066757202
+    ],
+    "mean_hidden_spikes": 6.056000232696533,
+    "throughput_K_per_spk": 0.1651254890316828,
+    "K": 1,
+    "op": "AND",
+    "train_mode": "weights_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.9300000071525574,
+    "per_query_acc": [
+      0.9300000071525574
+    ],
+    "mean_hidden_spikes": 13.746999740600586,
+    "throughput_K_per_spk": 0.07274314533131078,
+    "K": 1,
+    "op": "AND",
+    "train_mode": "weights_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.9399999976158142,
+    "per_query_acc": [
+      0.9399999976158142
+    ],
+    "mean_hidden_spikes": 26.32200050354004,
+    "throughput_K_per_spk": 0.03799103338917991,
+    "K": 1,
+    "op": "AND",
+    "train_mode": "weights_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.7839999794960022,
+    "per_query_acc": [
+      0.7839999794960022
+    ],
+    "mean_hidden_spikes": 0.27399998903274536,
+    "throughput_K_per_spk": 3.6496351825783884,
+    "K": 1,
+    "op": "AND",
+    "train_mode": "delays_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.8809999823570251,
+    "per_query_acc": [
+      0.8809999823570251
+    ],
+    "mean_hidden_spikes": 1.5269999504089355,
+    "throughput_K_per_spk": 0.6548788686811658,
+    "K": 1,
+    "op": "AND",
+    "train_mode": "delays_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.8600000143051147,
+    "per_query_acc": [
+      0.8600000143051147
+    ],
+    "mean_hidden_spikes": 2.125999927520752,
+    "throughput_K_per_spk": 0.4703669022068859,
+    "K": 1,
+    "op": "AND",
+    "train_mode": "delays_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.9620000123977661,
+    "per_query_acc": [
+      0.9620000123977661
+    ],
+    "mean_hidden_spikes": 4.413000106811523,
+    "throughput_K_per_spk": 0.22660321228102553,
+    "K": 1,
+    "op": "AND",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.9850000143051147,
+    "per_query_acc": [
+      0.9850000143051147
+    ],
+    "mean_hidden_spikes": 11.960000038146973,
+    "throughput_K_per_spk": 0.0836120398670948,
+    "K": 1,
+    "op": "AND",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.9879999756813049,
+    "per_query_acc": [
+      0.9879999756813049
+    ],
+    "mean_hidden_spikes": 23.340999603271484,
+    "throughput_K_per_spk": 0.04284306657799864,
+    "K": 1,
+    "op": "AND",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.8560000061988831,
+    "per_query_acc": [
+      0.8560000061988831
+    ],
+    "mean_hidden_spikes": 20.172000885009766,
+    "throughput_K_per_spk": 0.04957366429341776,
+    "K": 1,
+    "op": "OR",
+    "train_mode": "weights_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.8880000114440918,
+    "per_query_acc": [
+      0.8880000114440918
+    ],
+    "mean_hidden_spikes": 28.80500030517578,
+    "throughput_K_per_spk": 0.03471619473721431,
+    "K": 1,
+    "op": "OR",
+    "train_mode": "weights_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.8970000147819519,
+    "per_query_acc": [
+      0.8970000147819519
+    ],
+    "mean_hidden_spikes": 67.23400115966797,
+    "throughput_K_per_spk": 0.014873426878540073,
+    "K": 1,
+    "op": "OR",
+    "train_mode": "weights_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.7559999823570251,
+    "per_query_acc": [
+      0.7559999823570251
+    ],
+    "mean_hidden_spikes": 0.28299999237060547,
+    "throughput_K_per_spk": 3.5335689998550954,
+    "K": 1,
+    "op": "OR",
+    "train_mode": "delays_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.7559999823570251,
+    "per_query_acc": [
+      0.7559999823570251
+    ],
+    "mean_hidden_spikes": 1.843000054359436,
+    "throughput_K_per_spk": 0.5425935813917085,
+    "K": 1,
+    "op": "OR",
+    "train_mode": "delays_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.7559999823570251,
+    "per_query_acc": [
+      0.7559999823570251
+    ],
+    "mean_hidden_spikes": 2.507999897003174,
+    "throughput_K_per_spk": 0.39872409930913744,
+    "K": 1,
+    "op": "OR",
+    "train_mode": "delays_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.9649999737739563,
+    "per_query_acc": [
+      0.9649999737739563
+    ],
+    "mean_hidden_spikes": 18.804000854492188,
+    "throughput_K_per_spk": 0.05318017201435644,
+    "K": 1,
+    "op": "OR",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.9779999852180481,
+    "per_query_acc": [
+      0.9779999852180481
+    ],
+    "mean_hidden_spikes": 26.680999755859375,
+    "throughput_K_per_spk": 0.037479854921118216,
+    "K": 1,
+    "op": "OR",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.9860000014305115,
+    "per_query_acc": [
+      0.9860000014305115
+    ],
+    "mean_hidden_spikes": 41.0989990234375,
+    "throughput_K_per_spk": 0.024331492828565743,
+    "K": 1,
+    "op": "OR",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.7850000262260437,
+    "per_query_acc": [
+      0.7850000262260437
+    ],
+    "mean_hidden_spikes": 4.75600004196167,
+    "throughput_K_per_spk": 0.2102607214417807,
+    "K": 1,
+    "op": "XOR",
+    "train_mode": "weights_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.8130000233650208,
+    "per_query_acc": [
+      0.8130000233650208
+    ],
+    "mean_hidden_spikes": 6.428999900817871,
+    "throughput_K_per_spk": 0.15554518827613983,
+    "K": 1,
+    "op": "XOR",
+    "train_mode": "weights_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.8259999752044678,
+    "per_query_acc": [
+      0.8259999752044678
+    ],
+    "mean_hidden_spikes": 15.37399959564209,
+    "throughput_K_per_spk": 0.0650448826786401,
+    "K": 1,
+    "op": "XOR",
+    "train_mode": "weights_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.5339999794960022,
+    "per_query_acc": [
+      0.5339999794960022
+    ],
+    "mean_hidden_spikes": 0.2619999945163727,
+    "throughput_K_per_spk": 3.816793973014793,
+    "K": 1,
+    "op": "XOR",
+    "train_mode": "delays_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.6240000128746033,
+    "per_query_acc": [
+      0.6240000128746033
+    ],
+    "mean_hidden_spikes": 1.6100000143051147,
+    "throughput_K_per_spk": 0.6211180069036246,
+    "K": 1,
+    "op": "XOR",
+    "train_mode": "delays_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.6019999980926514,
+    "per_query_acc": [
+      0.6019999980926514
+    ],
+    "mean_hidden_spikes": 2.5820000171661377,
+    "throughput_K_per_spk": 0.38729666667374596,
+    "K": 1,
+    "op": "XOR",
+    "train_mode": "delays_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.8600000143051147,
+    "per_query_acc": [
+      0.8600000143051147
+    ],
+    "mean_hidden_spikes": 4.986000061035156,
+    "throughput_K_per_spk": 0.20056156994759192,
+    "K": 1,
+    "op": "XOR",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.902999997138977,
+    "per_query_acc": [
+      0.902999997138977
+    ],
+    "mean_hidden_spikes": 7.790999889373779,
+    "throughput_K_per_spk": 0.12835322990620365,
+    "K": 1,
+    "op": "XOR",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.9319999814033508,
+    "per_query_acc": [
+      0.9319999814033508
+    ],
+    "mean_hidden_spikes": 19.718000411987305,
+    "throughput_K_per_spk": 0.05071508160594534,
+    "K": 1,
+    "op": "XOR",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.7689999938011169,
+    "per_query_acc": [
+      0.7689999938011169
+    ],
+    "mean_hidden_spikes": 3.9619998931884766,
+    "throughput_K_per_spk": 0.2523977857039354,
+    "K": 1,
+    "op": "XNOR",
+    "train_mode": "weights_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.8330000042915344,
+    "per_query_acc": [
+      0.8330000042915344
+    ],
+    "mean_hidden_spikes": 8.831999778747559,
+    "throughput_K_per_spk": 0.11322464051757565,
+    "K": 1,
+    "op": "XNOR",
+    "train_mode": "weights_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.8130000233650208,
+    "per_query_acc": [
+      0.8130000233650208
+    ],
+    "mean_hidden_spikes": 16.42099952697754,
+    "throughput_K_per_spk": 0.06089763283636491,
+    "K": 1,
+    "op": "XNOR",
+    "train_mode": "weights_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.5170000195503235,
+    "per_query_acc": [
+      0.5170000195503235
+    ],
+    "mean_hidden_spikes": 0.3140000104904175,
+    "throughput_K_per_spk": 3.1847132693981792,
+    "K": 1,
+    "op": "XNOR",
+    "train_mode": "delays_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.6169999837875366,
+    "per_query_acc": [
+      0.6169999837875366
+    ],
+    "mean_hidden_spikes": 1.5750000476837158,
+    "throughput_K_per_spk": 0.6349206156981752,
+    "K": 1,
+    "op": "XNOR",
+    "train_mode": "delays_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.6069999933242798,
+    "per_query_acc": [
+      0.6069999933242798
+    ],
+    "mean_hidden_spikes": 2.5820000171661377,
+    "throughput_K_per_spk": 0.38729666667374596,
+    "K": 1,
+    "op": "XNOR",
+    "train_mode": "delays_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.8460000157356262,
+    "per_query_acc": [
+      0.8460000157356262
+    ],
+    "mean_hidden_spikes": 4.804999828338623,
+    "throughput_K_per_spk": 0.20811655270043164,
+    "K": 1,
+    "op": "XNOR",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.9330000281333923,
+    "per_query_acc": [
+      0.9330000281333923
+    ],
+    "mean_hidden_spikes": 10.9350004196167,
+    "throughput_K_per_spk": 0.09144947065626657,
+    "K": 1,
+    "op": "XNOR",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.9520000219345093,
+    "per_query_acc": [
+      0.9520000219345093
+    ],
+    "mean_hidden_spikes": 19.615999221801758,
+    "throughput_K_per_spk": 0.050978794844596685,
+    "K": 1,
+    "op": "XNOR",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.8790000081062317,
+    "per_query_acc": [
+      0.8790000081062317
+    ],
+    "mean_hidden_spikes": 5.89300012588501,
+    "throughput_K_per_spk": 0.1696928523058228,
+    "K": 1,
+    "op": "NAND",
+    "train_mode": "weights_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.9179999828338623,
+    "per_query_acc": [
+      0.9179999828338623
+    ],
+    "mean_hidden_spikes": 10.138999938964844,
+    "throughput_K_per_spk": 0.09862905671366407,
+    "K": 1,
+    "op": "NAND",
+    "train_mode": "weights_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.9380000233650208,
+    "per_query_acc": [
+      0.9380000233650208
+    ],
+    "mean_hidden_spikes": 21.33099937438965,
+    "throughput_K_per_spk": 0.04688012888887975,
+    "K": 1,
+    "op": "NAND",
+    "train_mode": "weights_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.7860000133514404,
+    "per_query_acc": [
+      0.7860000133514404
+    ],
+    "mean_hidden_spikes": 0.24699999392032623,
+    "throughput_K_per_spk": 4.0485830956035,
+    "K": 1,
+    "op": "NAND",
+    "train_mode": "delays_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.8569999933242798,
+    "per_query_acc": [
+      0.8569999933242798
+    ],
+    "mean_hidden_spikes": 1.5490000247955322,
+    "throughput_K_per_spk": 0.6455777817899001,
+    "K": 1,
+    "op": "NAND",
+    "train_mode": "delays_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.8920000195503235,
+    "per_query_acc": [
+      0.8920000195503235
+    ],
+    "mean_hidden_spikes": 2.055000066757202,
+    "throughput_K_per_spk": 0.48661798905826986,
+    "K": 1,
+    "op": "NAND",
+    "train_mode": "delays_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.9359999895095825,
+    "per_query_acc": [
+      0.9359999895095825
+    ],
+    "mean_hidden_spikes": 4.965000152587891,
+    "throughput_K_per_spk": 0.20140986289371476,
+    "K": 1,
+    "op": "NAND",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.9649999737739563,
+    "per_query_acc": [
+      0.9649999737739563
+    ],
+    "mean_hidden_spikes": 8.420000076293945,
+    "throughput_K_per_spk": 0.11876484452956787,
+    "K": 1,
+    "op": "NAND",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.9890000224113464,
+    "per_query_acc": [
+      0.9890000224113464
+    ],
+    "mean_hidden_spikes": 20.66699981689453,
+    "throughput_K_per_spk": 0.04838631677842934,
+    "K": 1,
+    "op": "NAND",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.843999981880188,
+    "per_query_acc": [
+      0.843999981880188
+    ],
+    "mean_hidden_spikes": 10.472999572753906,
+    "throughput_K_per_spk": 0.0954836284536434,
+    "K": 1,
+    "op": "NOR",
+    "train_mode": "weights_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.9020000100135803,
+    "per_query_acc": [
+      0.9020000100135803
+    ],
+    "mean_hidden_spikes": 35.861000061035156,
+    "throughput_K_per_spk": 0.027885446537966242,
+    "K": 1,
+    "op": "NOR",
+    "train_mode": "weights_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.8970000147819519,
+    "per_query_acc": [
+      0.8970000147819519
+    ],
+    "mean_hidden_spikes": 69.07099914550781,
+    "throughput_K_per_spk": 0.01447785629817456,
+    "K": 1,
+    "op": "NOR",
+    "train_mode": "weights_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.7549999952316284,
+    "per_query_acc": [
+      0.7549999952316284
+    ],
+    "mean_hidden_spikes": 0.2919999957084656,
+    "throughput_K_per_spk": 3.42465758457889,
+    "K": 1,
+    "op": "NOR",
+    "train_mode": "delays_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.7559999823570251,
+    "per_query_acc": [
+      0.7559999823570251
+    ],
+    "mean_hidden_spikes": 1.7230000495910645,
+    "throughput_K_per_spk": 0.5803830361103816,
+    "K": 1,
+    "op": "NOR",
+    "train_mode": "delays_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.7559999823570251,
+    "per_query_acc": [
+      0.7559999823570251
+    ],
+    "mean_hidden_spikes": 2.5920000076293945,
+    "throughput_K_per_spk": 0.38580246800021634,
+    "K": 1,
+    "op": "NOR",
+    "train_mode": "delays_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.9409999847412109,
+    "per_query_acc": [
+      0.9409999847412109
+    ],
+    "mean_hidden_spikes": 9.687999725341797,
+    "throughput_K_per_spk": 0.10322048186935921,
+    "K": 1,
+    "op": "NOR",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.9860000014305115,
+    "per_query_acc": [
+      0.9860000014305115
+    ],
+    "mean_hidden_spikes": 26.03499984741211,
+    "throughput_K_per_spk": 0.03840983314234205,
+    "K": 1,
+    "op": "NOR",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.9850000143051147,
+    "per_query_acc": [
+      0.9850000143051147
+    ],
+    "mean_hidden_spikes": 39.65999984741211,
+    "throughput_K_per_spk": 0.02521432183175492,
+    "K": 1,
+    "op": "NOR",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.9100000262260437,
+    "per_query_acc": [
+      0.9100000262260437
+    ],
+    "mean_hidden_spikes": 10.187999725341797,
+    "throughput_K_per_spk": 0.09815469444041931,
+    "K": 1,
+    "op": "A_IMP_B",
+    "train_mode": "weights_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.9160000085830688,
+    "per_query_acc": [
+      0.9160000085830688
+    ],
+    "mean_hidden_spikes": 16.812000274658203,
+    "throughput_K_per_spk": 0.059481321892872176,
+    "K": 1,
+    "op": "A_IMP_B",
+    "train_mode": "weights_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.9179999828338623,
+    "per_query_acc": [
+      0.9179999828338623
+    ],
+    "mean_hidden_spikes": 27.499000549316406,
+    "throughput_K_per_spk": 0.03636495799935023,
+    "K": 1,
+    "op": "A_IMP_B",
+    "train_mode": "weights_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.7649999856948853,
+    "per_query_acc": [
+      0.7649999856948853
+    ],
+    "mean_hidden_spikes": 0.2930000126361847,
+    "throughput_K_per_spk": 3.412969136085637,
+    "K": 1,
+    "op": "A_IMP_B",
+    "train_mode": "delays_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.7599999904632568,
+    "per_query_acc": [
+      0.7599999904632568
+    ],
+    "mean_hidden_spikes": 1.7630000114440918,
+    "throughput_K_per_spk": 0.5672149707933861,
+    "K": 1,
+    "op": "A_IMP_B",
+    "train_mode": "delays_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.7680000066757202,
+    "per_query_acc": [
+      0.7680000066757202
+    ],
+    "mean_hidden_spikes": 2.635999917984009,
+    "throughput_K_per_spk": 0.37936268251661853,
+    "K": 1,
+    "op": "A_IMP_B",
+    "train_mode": "delays_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.949999988079071,
+    "per_query_acc": [
+      0.949999988079071
+    ],
+    "mean_hidden_spikes": 7.849999904632568,
+    "throughput_K_per_spk": 0.12738853657945445,
+    "K": 1,
+    "op": "A_IMP_B",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.9850000143051147,
+    "per_query_acc": [
+      0.9850000143051147
+    ],
+    "mean_hidden_spikes": 17.000999450683594,
+    "throughput_K_per_spk": 0.05882007130820718,
+    "K": 1,
+    "op": "A_IMP_B",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.9850000143051147,
+    "per_query_acc": [
+      0.9850000143051147
+    ],
+    "mean_hidden_spikes": 25.57200050354004,
+    "throughput_K_per_spk": 0.03910527062055883,
+    "K": 1,
+    "op": "A_IMP_B",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.8840000033378601,
+    "per_query_acc": [
+      0.8840000033378601
+    ],
+    "mean_hidden_spikes": 11.027999877929688,
+    "throughput_K_per_spk": 0.09067827448940201,
+    "K": 1,
+    "op": "B_IMP_A",
+    "train_mode": "weights_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.9049999713897705,
+    "per_query_acc": [
+      0.9049999713897705
+    ],
+    "mean_hidden_spikes": 14.4399995803833,
+    "throughput_K_per_spk": 0.06925207957474577,
+    "K": 1,
+    "op": "B_IMP_A",
+    "train_mode": "weights_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.9139999747276306,
+    "per_query_acc": [
+      0.9139999747276306
+    ],
+    "mean_hidden_spikes": 29.461000442504883,
+    "throughput_K_per_spk": 0.0339431786083289,
+    "K": 1,
+    "op": "B_IMP_A",
+    "train_mode": "weights_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.7509999871253967,
+    "per_query_acc": [
+      0.7509999871253967
+    ],
+    "mean_hidden_spikes": 0.28299999237060547,
+    "throughput_K_per_spk": 3.5335689998550954,
+    "K": 1,
+    "op": "B_IMP_A",
+    "train_mode": "delays_only",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.7689999938011169,
+    "per_query_acc": [
+      0.7689999938011169
+    ],
+    "mean_hidden_spikes": 1.8270000219345093,
+    "throughput_K_per_spk": 0.547345368360289,
+    "K": 1,
+    "op": "B_IMP_A",
+    "train_mode": "delays_only",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.7789999842643738,
+    "per_query_acc": [
+      0.7789999842643738
+    ],
+    "mean_hidden_spikes": 2.6670000553131104,
+    "throughput_K_per_spk": 0.37495312308218093,
+    "K": 1,
+    "op": "B_IMP_A",
+    "train_mode": "delays_only",
+    "hidden_size": 50
+  },
+  {
+    "accuracy": 0.9330000281333923,
+    "per_query_acc": [
+      0.9330000281333923
+    ],
+    "mean_hidden_spikes": 10.680000305175781,
+    "throughput_K_per_spk": 0.09363295612598216,
+    "K": 1,
+    "op": "B_IMP_A",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 10
+  },
+  {
+    "accuracy": 0.9639999866485596,
+    "per_query_acc": [
+      0.9639999866485596
+    ],
+    "mean_hidden_spikes": 14.263999938964844,
+    "throughput_K_per_spk": 0.07010656227418431,
+    "K": 1,
+    "op": "B_IMP_A",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 20
+  },
+  {
+    "accuracy": 0.9779999852180481,
+    "per_query_acc": [
+      0.9779999852180481
+    ],
+    "mean_hidden_spikes": 32.14699935913086,
+    "throughput_K_per_spk": 0.031107102371468007,
+    "K": 1,
+    "op": "B_IMP_A",
+    "train_mode": "weights_and_delays",
+    "hidden_size": 50
+  }
+]

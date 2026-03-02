@@ -1,0 +1,38 @@
+# Conda environment for the SNN async-delays project
+#
+# Create:
+#   conda env create -f environment.yaml
+# Activate:
+#   conda activate snn_async
+#
+# GPU note: replace 'cpuonly' with 'pytorch-cuda=12.1' (or match your CUDA version)
+# for GPU support. See https://pytorch.org/get-started/locally/
+
+name: snn_async
+
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.10
+  - pip
+
+  # ---- PyTorch (CPU build; swap the line below for GPU) ----
+  - pytorch::pytorch>=2.0
+  - pytorch::torchvision>=0.15
+  - pytorch::pytorch-cuda=12.1          # remove this line for GPU
+
+  # ---- Scientific stack ----
+  - numpy>=1.24
+  - matplotlib>=3.7
+  - pandas>=2.0
+
+  # ---- Utilities ----
+  - pyyaml>=6.0
+  - tqdm>=4.65
+
+  # ---- Pip extras (not in conda channels) ----
+  - pip:
+    - torch>=2.0.0   # ensures pip also sees torch if needed

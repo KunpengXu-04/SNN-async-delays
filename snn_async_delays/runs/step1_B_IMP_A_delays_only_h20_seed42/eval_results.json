@@ -1,0 +1,12 @@
+{
+  "accuracy": 0.7689999938011169,
+  "per_query_acc": [
+    0.7689999938011169
+  ],
+  "mean_hidden_spikes": 1.8270000219345093,
+  "throughput_K_per_spk": 0.547345368360289,
+  "K": 1,
+  "op": "B_IMP_A",
+  "train_mode": "delays_only",
+  "hidden_size": 20
+}

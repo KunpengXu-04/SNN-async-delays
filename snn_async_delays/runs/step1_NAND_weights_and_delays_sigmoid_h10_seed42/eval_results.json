@@ -1,0 +1,42 @@
+{
+  "accuracy": 0.9359999895095825,
+  "per_query_acc": [
+    0.9359999895095825
+  ],
+  "mean_hidden_spikes": 4.965000152587891,
+  "throughput_K_per_spk": 0.20140986289371476,
+  "ops_per_neuron_per_ms": 0.002,
+  "mean_active_hidden_fraction": 0.2849999964237213,
+  "binary_confusion": [
+    [
+      182,
+      56
+    ],
+    [
+      8,
+      754
+    ]
+  ],
+  "op_accuracy": {
+    "NAND": 0.9359999895095825
+  },
+  "op_confusions": {
+    "NAND": [
+      [
+        182,
+        56
+      ],
+      [
+        8,
+        754
+      ]
+    ]
+  },
+  "K": 1,
+  "op": "NAND",
+  "train_mode": "weights_and_delays",
+  "hidden_size": 10,
+  "delay_param_type": "sigmoid",
+  "delay_step": 1.0,
+  "fixed_delay_value": null
+}

@@ -1,55 +1,73 @@
 # ============================================================
-# Step 3 – Mixed ops, K queries per trial
+# Step 3 - Mixed ops, K queries per trial
 # ============================================================
 
 # ----- Simulation timing -----
-dt:       1.0
-win_len:  20
+dt: 1.0
+win_len: 20
 read_len: 10
-gap_len:  5
+gap_len: 5
 
 # ----- Network -----
-# n_input is set automatically: 2 + n_ops in the run script
-n_ops:           8       # must match length of ops_list
-hidden_size:     50
-d_max:           49
-lif_tau_m:       10.0
-lif_threshold:   1.0
-lif_reset:       0.0
-lif_refractory:  2
-surrogate_beta:  4.0
+# n_input is set automatically: 2 + n_ops in run_step3.py
+n_ops: 8
+hidden_size: 50
+d_max: 49
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
 delay_param_type: sigmoid
 use_output_layer: false
-readout_source:   hidden
+readout_source: hidden
 
 # ----- Training -----
-train_mode:    weights_and_delays
-lr_w:          1.0e-3
-lr_d:          1.0e-3
-lr_readout:    1.0e-3
-batch_size:    128
-epochs:        300
+train_mode: weights_and_delays
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 300
 spike_penalty: 0.0
 delay_penalty: 0.0
-grad_clip:     1.0
+grad_clip: 1.0
 
 # ----- Rate coding -----
-r_on:   400.0
-r_off:   10.0
+r_on: 400.0
+r_off: 10.0
 
 # ----- Dataset -----
-ops_list:  [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
-op_name:   null     # null = mixed ops (sampled uniformly per query)
-same_op:   false
-K:         3
-n_train:   8000
-n_val:     2000
-n_test:    2000
-seed:      42
+ops_list: [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+op_name: null
+same_op: false
+op_sampling: uniform        # uniform | hard_weighted
+hard_ops: [XOR, XNOR]
+hard_weight: 2.0
+K: 3
+n_train: 8000
+n_val: 2000
+n_test: 2000
+seed: 42
 
 # ----- Sweep configuration -----
 sweep:
-  K_values:          [1, 2, 3, 4, 5, 6]
-  train_modes:       [weights_only, delays_only, weights_and_delays]
-  hidden_sizes:      [50]
-  accuracy_threshold: 0.95
+  K_values: [1, 2, 3, 4, 5, 6]
+  hidden_sizes: [50]
+  accuracy_thresholds: [0.95, 0.90]
+  conditions:
+    - name: weights_only_d0_uniform
+      train_mode: weights_only
+      delay_param_type: sigmoid
+      fixed_delay_value: 0.0
+      op_sampling: uniform
+    - name: w_and_d_cont_uniform
+      train_mode: weights_and_delays
+      delay_param_type: sigmoid
+      op_sampling: uniform
+    - name: w_and_d_cont_hardweighted
+      train_mode: weights_and_delays
+      delay_param_type: sigmoid
+      op_sampling: hard_weighted
+      hard_ops: [XOR, XNOR]
+      hard_weight: 2.0

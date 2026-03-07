@@ -1,0 +1,42 @@
+{
+  "accuracy": 0.5920000076293945,
+  "per_query_acc": [
+    0.5920000076293945
+  ],
+  "mean_hidden_spikes": 15.812000274658203,
+  "throughput_K_per_spk": 0.06324310540284356,
+  "ops_per_neuron_per_ms": 0.0004,
+  "mean_active_hidden_fraction": 0.18613998591899872,
+  "binary_confusion": [
+    [
+      112,
+      406
+    ],
+    [
+      2,
+      480
+    ]
+  ],
+  "op_accuracy": {
+    "XNOR": 0.5920000076293945
+  },
+  "op_confusions": {
+    "XNOR": [
+      [
+        112,
+        406
+      ],
+      [
+        2,
+        480
+      ]
+    ]
+  },
+  "K": 1,
+  "op": "XNOR",
+  "train_mode": "weights_only",
+  "hidden_size": 50,
+  "delay_param_type": "sigmoid",
+  "delay_step": 1.0,
+  "fixed_delay_value": 0.0
+}

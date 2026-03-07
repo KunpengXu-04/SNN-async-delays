@@ -6,9 +6,9 @@ OPS_LIST (canonical order, used for one-hot op encoding in Step 3):
 
 Dataset variants
 ----------------
-Step 1  – BooleanDataset      : one (A,B) pair per sample, one op
-Step 2  – MultiQueryDataset   : K pairs per sample, same op (same_op=True)
-Step 3  – MultiQueryDataset   : K pairs per sample, mixed ops (same_op=False)
+Step 1  - BooleanDataset    : one (A,B) pair per sample, one op
+Step 2  - MultiQueryDataset : K pairs per sample, same op (same_op=True)
+Step 3  - MultiQueryDataset : K pairs per sample, mixed ops (same_op=False)
 """
 
 from __future__ import annotations
@@ -19,16 +19,15 @@ import torch
 from torch.utils.data import Dataset
 
 
-# ---------------------------------------------------------------------------
 OPS_LIST: List[str] = ["AND", "OR", "XOR", "XNOR", "NAND", "NOR", "A_IMP_B", "B_IMP_A"]
 
 _OPS = {
-    "AND":     lambda a, b: int(bool(a) and bool(b)),
-    "OR":      lambda a, b: int(bool(a) or  bool(b)),
-    "XOR":     lambda a, b: int(bool(a) != bool(b)),
-    "XNOR":    lambda a, b: int(bool(a) == bool(b)),
-    "NAND":    lambda a, b: int(not (bool(a) and bool(b))),
-    "NOR":     lambda a, b: int(not (bool(a) or  bool(b))),
+    "AND": lambda a, b: int(bool(a) and bool(b)),
+    "OR": lambda a, b: int(bool(a) or bool(b)),
+    "XOR": lambda a, b: int(bool(a) != bool(b)),
+    "XNOR": lambda a, b: int(bool(a) == bool(b)),
+    "NAND": lambda a, b: int(not (bool(a) and bool(b))),
+    "NOR": lambda a, b: int(not (bool(a) or bool(b))),
     "A_IMP_B": lambda a, b: int((not bool(a)) or bool(b)),
     "B_IMP_A": lambda a, b: int(bool(a) or (not bool(b))),
 }
@@ -38,7 +37,26 @@ def compute_label(op_name: str, A: int, B: int) -> int:
     return _OPS[op_name](A, B)
 
 
-# ---------------------------------------------------------------------------
+def _build_op_probs(
+    ops_list: List[str],
+    op_sampling: str,
+    hard_ops: Optional[List[str]],
+    hard_weight: float,
+) -> Optional[np.ndarray]:
+    if op_sampling == "uniform":
+        return None
+
+    if op_sampling != "hard_weighted":
+        raise ValueError(f"Unsupported op_sampling: {op_sampling}")
+
+    hard_ops = hard_ops or ["XOR", "XNOR"]
+    weights = np.ones(len(ops_list), dtype=np.float64)
+    for i, op in enumerate(ops_list):
+        if op in hard_ops:
+            weights[i] = float(hard_weight)
+    probs = weights / weights.sum()
+    return probs
+
 
 class BooleanDataset(Dataset):
     """
@@ -71,8 +89,8 @@ class BooleanDataset(Dataset):
             dtype=np.float32,
         )
 
-        self.A      = torch.from_numpy(A)
-        self.B      = torch.from_numpy(B)
+        self.A = torch.from_numpy(A)
+        self.B = torch.from_numpy(B)
         self.op_ids = torch.from_numpy(op_ids)
         self.labels = torch.from_numpy(labels)
         self.ops_list = ops_list
@@ -83,8 +101,6 @@ class BooleanDataset(Dataset):
     def __getitem__(self, idx):
         return self.A[idx], self.B[idx], self.op_ids[idx], self.labels[idx]
 
-
-# ---------------------------------------------------------------------------
 
 class MultiQueryDataset(Dataset):
     """
@@ -105,6 +121,9 @@ class MultiQueryDataset(Dataset):
         op_name: Optional[str] = "NAND",
         ops_list: List[str] = OPS_LIST,
         seed: int = 42,
+        op_sampling: str = "uniform",
+        hard_ops: Optional[List[str]] = None,
+        hard_weight: float = 2.0,
     ):
         rng = np.random.RandomState(seed)
         n_ops = len(ops_list)
@@ -113,26 +132,31 @@ class MultiQueryDataset(Dataset):
         B = rng.randint(0, 2, (n_samples, K)).astype(np.float32)
 
         if same_op:
-            assert op_name is not None, "op_name required when same_op=True"
-            op_idx  = ops_list.index(op_name)
-            op_ids  = np.full((n_samples, K), op_idx, dtype=np.int64)
+            if op_name is None:
+                raise ValueError("op_name required when same_op=True")
+            op_idx = ops_list.index(op_name)
+            op_ids = np.full((n_samples, K), op_idx, dtype=np.int64)
         else:
-            op_ids  = rng.randint(0, n_ops, (n_samples, K)).astype(np.int64)
+            probs = _build_op_probs(ops_list, op_sampling, hard_ops, hard_weight)
+            flat = rng.choice(np.arange(n_ops), size=n_samples * K, replace=True, p=probs)
+            op_ids = flat.reshape(n_samples, K).astype(np.int64)
 
         labels = np.array(
             [
-                [compute_label(ops_list[op_ids[s, k]], int(A[s, k]), int(B[s, k]))
-                 for k in range(K)]
+                [
+                    compute_label(ops_list[op_ids[s, k]], int(A[s, k]), int(B[s, k]))
+                    for k in range(K)
+                ]
                 for s in range(n_samples)
             ],
             dtype=np.float32,
         )
 
-        self.A      = torch.from_numpy(A)
-        self.B      = torch.from_numpy(B)
+        self.A = torch.from_numpy(A)
+        self.B = torch.from_numpy(B)
         self.op_ids = torch.from_numpy(op_ids)
         self.labels = torch.from_numpy(labels)
-        self.K      = K
+        self.K = K
         self.ops_list = ops_list
 
     def __len__(self):

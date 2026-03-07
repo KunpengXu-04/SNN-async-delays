@@ -1,55 +1,87 @@
 # ============================================================
-# Step 2 – Same op, K parallel queries per trial (temporal slots)
+# Step 2 - Same op, K parallel queries per trial
 # ============================================================
 
 # ----- Simulation timing -----
-dt:       1.0    # ms
-win_len:  20     # input window per slot
-read_len: 10     # readout window per slot
-gap_len:  5      # gap between slots
-# Slot length = 35 ms → for K=3: total trial = 105 ms
+dt: 1.0
+win_len: 20
+read_len: 10
+gap_len: 5
 
 # ----- Network -----
-n_input:         2
-hidden_size:     50
-d_max:           49
-lif_tau_m:       10.0
-lif_threshold:   1.0
-lif_reset:       0.0
-lif_refractory:  2
-surrogate_beta:  4.0
+n_input: 2
+hidden_size: 50
+d_max: 49
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
 delay_param_type: sigmoid
+# For quantized delays set condition.delay_param_type=quantized and delay_step
 use_output_layer: false
-readout_source:   hidden
+readout_source: hidden
 
 # ----- Training -----
-train_mode:    weights_and_delays
-lr_w:          1.0e-3
-lr_d:          1.0e-3
-lr_readout:    1.0e-3
-batch_size:    128
-epochs:        300
+train_mode: weights_and_delays
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 100
 spike_penalty: 0.0
 delay_penalty: 0.0
-grad_clip:     1.0
+grad_clip: 1.0
 
 # ----- Rate coding -----
-r_on:   400.0
-r_off:   10.0
+r_on: 400.0
+r_off: 10.0
 
 # ----- Dataset -----
-ops_list:  [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
-op_name:   NAND        # fixed op for Step 2
-same_op:   true
-K:         3           # queries per trial (single-run default)
-n_train:   8000
-n_val:     2000
-n_test:    2000
-seed:      42
+ops_list: [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+op_name: NAND
+same_op: true
+K: 3
+n_train: 4000
+n_val: 1000
+n_test: 1000
+seed: 42
 
 # ----- Sweep configuration -----
 sweep:
-  K_values:          [1, 2, 3, 4, 5, 6, 7, 8]
-  train_modes:       [weights_only, delays_only, weights_and_delays]
-  hidden_sizes:      [50]
-  accuracy_threshold: 0.95   # tau for max-K metric
+  K_values: [1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16]
+  hidden_sizes: [50]
+  accuracy_thresholds: [0.95, 0.90]
+  conditions:
+    - name: weights_only_d0
+      train_mode: weights_only
+      delay_param_type: sigmoid
+      fixed_delay_value: 0.0
+    - name: w_and_d_continuous
+      train_mode: weights_and_delays
+      delay_param_type: sigmoid
+    - name: w_and_d_quantized_step1
+      train_mode: weights_and_delays
+      delay_param_type: quantized
+      delay_step: 1.0
+    - name: w_and_d_quantized_step2
+      train_mode: weights_and_delays
+      delay_param_type: quantized
+      delay_step: 2.0
+    - name: w_and_d_quantized_step5
+      train_mode: weights_and_delays
+      delay_param_type: quantized
+      delay_step: 5.0
+
+# Optional quick sensitivity grid for separate runs (by manually overriding from CLI/config):
+# lif_tau_m in {5,10,20}, lif_refractory in {0,2}, d_max in {20,49}
+
+sensitivity:
+  lif_tau_m: [5.0, 10.0, 20.0]
+  lif_refractory: [0, 2]
+  d_max: [20, 49]
+  K_values: [1, 2, 4]
+  condition:
+    name: w_and_d_cont_sens
+    train_mode: weights_and_delays
+    delay_param_type: sigmoid

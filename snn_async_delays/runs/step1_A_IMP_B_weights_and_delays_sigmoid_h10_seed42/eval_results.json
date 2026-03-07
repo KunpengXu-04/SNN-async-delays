@@ -1,0 +1,42 @@
+{
+  "accuracy": 0.949999988079071,
+  "per_query_acc": [
+    0.949999988079071
+  ],
+  "mean_hidden_spikes": 7.849999904632568,
+  "throughput_K_per_spk": 0.12738853657945445,
+  "ops_per_neuron_per_ms": 0.002,
+  "mean_active_hidden_fraction": 0.35589998960494995,
+  "binary_confusion": [
+    [
+      226,
+      43
+    ],
+    [
+      7,
+      724
+    ]
+  ],
+  "op_accuracy": {
+    "A_IMP_B": 0.949999988079071
+  },
+  "op_confusions": {
+    "A_IMP_B": [
+      [
+        226,
+        43
+      ],
+      [
+        7,
+        724
+      ]
+    ]
+  },
+  "K": 1,
+  "op": "A_IMP_B",
+  "train_mode": "weights_and_delays",
+  "hidden_size": 10,
+  "delay_param_type": "sigmoid",
+  "delay_step": 1.0,
+  "fixed_delay_value": null
+}

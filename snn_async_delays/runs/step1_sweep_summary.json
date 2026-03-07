@@ -1,39 +1,129 @@
 [
   {
-    "accuracy": 0.8930000066757202,
+    "accuracy": 0.781000018119812,
     "per_query_acc": [
-      0.8930000066757202
+      0.781000018119812
     ],
-    "mean_hidden_spikes": 6.056000232696533,
-    "throughput_K_per_spk": 0.1651254890316828,
+    "mean_hidden_spikes": 9.331000328063965,
+    "throughput_K_per_spk": 0.10716964578732195,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.4147000014781952,
+    "binary_confusion": [
+      [
+        748,
+        14
+      ],
+      [
+        205,
+        33
+      ]
+    ],
+    "op_accuracy": {
+      "AND": 0.781000018119812
+    },
+    "op_confusions": {
+      "AND": [
+        [
+          748,
+          14
+        ],
+        [
+          205,
+          33
+        ]
+      ]
+    },
     "K": 1,
     "op": "AND",
     "train_mode": "weights_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.9300000071525574,
+    "accuracy": 0.7900000214576721,
     "per_query_acc": [
-      0.9300000071525574
+      0.7900000214576721
     ],
-    "mean_hidden_spikes": 13.746999740600586,
-    "throughput_K_per_spk": 0.07274314533131078,
+    "mean_hidden_spikes": 16.093000411987305,
+    "throughput_K_per_spk": 0.06213881652890055,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.32040002942085266,
+    "binary_confusion": [
+      [
+        740,
+        22
+      ],
+      [
+        188,
+        50
+      ]
+    ],
+    "op_accuracy": {
+      "AND": 0.7900000214576721
+    },
+    "op_confusions": {
+      "AND": [
+        [
+          740,
+          22
+        ],
+        [
+          188,
+          50
+        ]
+      ]
+    },
     "K": 1,
     "op": "AND",
     "train_mode": "weights_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.9399999976158142,
+    "accuracy": 0.800000011920929,
     "per_query_acc": [
-      0.9399999976158142
+      0.800000011920929
     ],
-    "mean_hidden_spikes": 26.32200050354004,
-    "throughput_K_per_spk": 0.03799103338917991,
+    "mean_hidden_spikes": 29.74799919128418,
+    "throughput_K_per_spk": 0.033615706171357854,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.2823599874973297,
+    "binary_confusion": [
+      [
+        745,
+        17
+      ],
+      [
+        183,
+        55
+      ]
+    ],
+    "op_accuracy": {
+      "AND": 0.800000011920929
+    },
+    "op_confusions": {
+      "AND": [
+        [
+          745,
+          17
+        ],
+        [
+          183,
+          55
+        ]
+      ]
+    },
     "K": 1,
     "op": "AND",
     "train_mode": "weights_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
     "accuracy": 0.7839999794960022,
@@ -42,10 +132,40 @@
     ],
     "mean_hidden_spikes": 0.27399998903274536,
     "throughput_K_per_spk": 3.6496351825783884,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.026900000870227814,
+    "binary_confusion": [
+      [
+        759,
+        3
+      ],
+      [
+        213,
+        25
+      ]
+    ],
+    "op_accuracy": {
+      "AND": 0.7839999794960022
+    },
+    "op_confusions": {
+      "AND": [
+        [
+          759,
+          3
+        ],
+        [
+          213,
+          25
+        ]
+      ]
+    },
     "K": 1,
     "op": "AND",
     "train_mode": "delays_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.8809999823570251,
@@ -54,10 +174,40 @@
     ],
     "mean_hidden_spikes": 1.5269999504089355,
     "throughput_K_per_spk": 0.6548788686811658,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.06255000084638596,
+    "binary_confusion": [
+      [
+        748,
+        14
+      ],
+      [
+        105,
+        133
+      ]
+    ],
+    "op_accuracy": {
+      "AND": 0.8809999823570251
+    },
+    "op_confusions": {
+      "AND": [
+        [
+          748,
+          14
+        ],
+        [
+          105,
+          133
+        ]
+      ]
+    },
     "K": 1,
     "op": "AND",
     "train_mode": "delays_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.8600000143051147,
@@ -66,10 +216,40 @@
     ],
     "mean_hidden_spikes": 2.125999927520752,
     "throughput_K_per_spk": 0.4703669022068859,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.03821999579668045,
+    "binary_confusion": [
+      [
+        667,
+        95
+      ],
+      [
+        45,
+        193
+      ]
+    ],
+    "op_accuracy": {
+      "AND": 0.8600000143051147
+    },
+    "op_confusions": {
+      "AND": [
+        [
+          667,
+          95
+        ],
+        [
+          45,
+          193
+        ]
+      ]
+    },
     "K": 1,
     "op": "AND",
     "train_mode": "delays_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9620000123977661,
@@ -78,10 +258,40 @@
     ],
     "mean_hidden_spikes": 4.413000106811523,
     "throughput_K_per_spk": 0.22660321228102553,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.2694999873638153,
+    "binary_confusion": [
+      [
+        752,
+        10
+      ],
+      [
+        28,
+        210
+      ]
+    ],
+    "op_accuracy": {
+      "AND": 0.9620000123977661
+    },
+    "op_confusions": {
+      "AND": [
+        [
+          752,
+          10
+        ],
+        [
+          28,
+          210
+        ]
+      ]
+    },
     "K": 1,
     "op": "AND",
     "train_mode": "weights_and_delays",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9850000143051147,
@@ -90,10 +300,40 @@
     ],
     "mean_hidden_spikes": 11.960000038146973,
     "throughput_K_per_spk": 0.0836120398670948,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.3321000039577484,
+    "binary_confusion": [
+      [
+        761,
+        1
+      ],
+      [
+        14,
+        224
+      ]
+    ],
+    "op_accuracy": {
+      "AND": 0.9850000143051147
+    },
+    "op_confusions": {
+      "AND": [
+        [
+          761,
+          1
+        ],
+        [
+          14,
+          224
+        ]
+      ]
+    },
     "K": 1,
     "op": "AND",
     "train_mode": "weights_and_delays",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9879999756813049,
@@ -102,46 +342,166 @@
     ],
     "mean_hidden_spikes": 23.340999603271484,
     "throughput_K_per_spk": 0.04284306657799864,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.26100000739097595,
+    "binary_confusion": [
+      [
+        758,
+        4
+      ],
+      [
+        8,
+        230
+      ]
+    ],
+    "op_accuracy": {
+      "AND": 0.9879999756813049
+    },
+    "op_confusions": {
+      "AND": [
+        [
+          758,
+          4
+        ],
+        [
+          8,
+          230
+        ]
+      ]
+    },
     "K": 1,
     "op": "AND",
     "train_mode": "weights_and_delays",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
-    "accuracy": 0.8560000061988831,
+    "accuracy": 0.7559999823570251,
     "per_query_acc": [
-      0.8560000061988831
+      0.7559999823570251
     ],
-    "mean_hidden_spikes": 20.172000885009766,
-    "throughput_K_per_spk": 0.04957366429341776,
+    "mean_hidden_spikes": 0.3240000009536743,
+    "throughput_K_per_spk": 3.0864197440017307,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.031599998474121094,
+    "binary_confusion": [
+      [
+        0,
+        244
+      ],
+      [
+        0,
+        756
+      ]
+    ],
+    "op_accuracy": {
+      "OR": 0.7559999823570251
+    },
+    "op_confusions": {
+      "OR": [
+        [
+          0,
+          244
+        ],
+        [
+          0,
+          756
+        ]
+      ]
+    },
     "K": 1,
     "op": "OR",
     "train_mode": "weights_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.8880000114440918,
+    "accuracy": 0.7559999823570251,
     "per_query_acc": [
-      0.8880000114440918
+      0.7559999823570251
     ],
-    "mean_hidden_spikes": 28.80500030517578,
-    "throughput_K_per_spk": 0.03471619473721431,
+    "mean_hidden_spikes": 3.1059999465942383,
+    "throughput_K_per_spk": 0.321957507145649,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.10275000333786011,
+    "binary_confusion": [
+      [
+        0,
+        244
+      ],
+      [
+        0,
+        756
+      ]
+    ],
+    "op_accuracy": {
+      "OR": 0.7559999823570251
+    },
+    "op_confusions": {
+      "OR": [
+        [
+          0,
+          244
+        ],
+        [
+          0,
+          756
+        ]
+      ]
+    },
     "K": 1,
     "op": "OR",
     "train_mode": "weights_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.8970000147819519,
+    "accuracy": 0.7559999823570251,
     "per_query_acc": [
-      0.8970000147819519
+      0.7559999823570251
     ],
-    "mean_hidden_spikes": 67.23400115966797,
-    "throughput_K_per_spk": 0.014873426878540073,
+    "mean_hidden_spikes": 2.9670000076293945,
+    "throughput_K_per_spk": 0.33704078106794166,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.04496000334620476,
+    "binary_confusion": [
+      [
+        0,
+        244
+      ],
+      [
+        0,
+        756
+      ]
+    ],
+    "op_accuracy": {
+      "OR": 0.7559999823570251
+    },
+    "op_confusions": {
+      "OR": [
+        [
+          0,
+          244
+        ],
+        [
+          0,
+          756
+        ]
+      ]
+    },
     "K": 1,
     "op": "OR",
     "train_mode": "weights_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
     "accuracy": 0.7559999823570251,
@@ -150,10 +510,40 @@
     ],
     "mean_hidden_spikes": 0.28299999237060547,
     "throughput_K_per_spk": 3.5335689998550954,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.027900001034140587,
+    "binary_confusion": [
+      [
+        0,
+        244
+      ],
+      [
+        0,
+        756
+      ]
+    ],
+    "op_accuracy": {
+      "OR": 0.7559999823570251
+    },
+    "op_confusions": {
+      "OR": [
+        [
+          0,
+          244
+        ],
+        [
+          0,
+          756
+        ]
+      ]
+    },
     "K": 1,
     "op": "OR",
     "train_mode": "delays_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.7559999823570251,
@@ -162,10 +552,40 @@
     ],
     "mean_hidden_spikes": 1.843000054359436,
     "throughput_K_per_spk": 0.5425935813917085,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.06810000538825989,
+    "binary_confusion": [
+      [
+        0,
+        244
+      ],
+      [
+        0,
+        756
+      ]
+    ],
+    "op_accuracy": {
+      "OR": 0.7559999823570251
+    },
+    "op_confusions": {
+      "OR": [
+        [
+          0,
+          244
+        ],
+        [
+          0,
+          756
+        ]
+      ]
+    },
     "K": 1,
     "op": "OR",
     "train_mode": "delays_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.7559999823570251,
@@ -174,10 +594,40 @@
     ],
     "mean_hidden_spikes": 2.507999897003174,
     "throughput_K_per_spk": 0.39872409930913744,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.039239998906850815,
+    "binary_confusion": [
+      [
+        0,
+        244
+      ],
+      [
+        0,
+        756
+      ]
+    ],
+    "op_accuracy": {
+      "OR": 0.7559999823570251
+    },
+    "op_confusions": {
+      "OR": [
+        [
+          0,
+          244
+        ],
+        [
+          0,
+          756
+        ]
+      ]
+    },
     "K": 1,
     "op": "OR",
     "train_mode": "delays_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9649999737739563,
@@ -186,10 +636,40 @@
     ],
     "mean_hidden_spikes": 18.804000854492188,
     "throughput_K_per_spk": 0.05318017201435644,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.5913000702857971,
+    "binary_confusion": [
+      [
+        244,
+        0
+      ],
+      [
+        35,
+        721
+      ]
+    ],
+    "op_accuracy": {
+      "OR": 0.9649999737739563
+    },
+    "op_confusions": {
+      "OR": [
+        [
+          244,
+          0
+        ],
+        [
+          35,
+          721
+        ]
+      ]
+    },
     "K": 1,
     "op": "OR",
     "train_mode": "weights_and_delays",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9779999852180481,
@@ -198,10 +678,40 @@
     ],
     "mean_hidden_spikes": 26.680999755859375,
     "throughput_K_per_spk": 0.037479854921118216,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.4228500425815582,
+    "binary_confusion": [
+      [
+        244,
+        0
+      ],
+      [
+        22,
+        734
+      ]
+    ],
+    "op_accuracy": {
+      "OR": 0.9779999852180481
+    },
+    "op_confusions": {
+      "OR": [
+        [
+          244,
+          0
+        ],
+        [
+          22,
+          734
+        ]
+      ]
+    },
     "K": 1,
     "op": "OR",
     "train_mode": "weights_and_delays",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9860000014305115,
@@ -210,46 +720,166 @@
     ],
     "mean_hidden_spikes": 41.0989990234375,
     "throughput_K_per_spk": 0.024331492828565743,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.3306400179862976,
+    "binary_confusion": [
+      [
+        244,
+        0
+      ],
+      [
+        14,
+        742
+      ]
+    ],
+    "op_accuracy": {
+      "OR": 0.9860000014305115
+    },
+    "op_confusions": {
+      "OR": [
+        [
+          244,
+          0
+        ],
+        [
+          14,
+          742
+        ]
+      ]
+    },
     "K": 1,
     "op": "OR",
     "train_mode": "weights_and_delays",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
-    "accuracy": 0.7850000262260437,
+    "accuracy": 0.5550000071525574,
     "per_query_acc": [
-      0.7850000262260437
+      0.5550000071525574
     ],
-    "mean_hidden_spikes": 4.75600004196167,
-    "throughput_K_per_spk": 0.2102607214417807,
+    "mean_hidden_spikes": 4.256999969482422,
+    "throughput_K_per_spk": 0.23490721333540035,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.21810001134872437,
+    "binary_confusion": [
+      [
+        480,
+        2
+      ],
+      [
+        443,
+        75
+      ]
+    ],
+    "op_accuracy": {
+      "XOR": 0.5550000071525574
+    },
+    "op_confusions": {
+      "XOR": [
+        [
+          480,
+          2
+        ],
+        [
+          443,
+          75
+        ]
+      ]
+    },
     "K": 1,
     "op": "XOR",
     "train_mode": "weights_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.8130000233650208,
+    "accuracy": 0.546999990940094,
     "per_query_acc": [
-      0.8130000233650208
+      0.546999990940094
     ],
-    "mean_hidden_spikes": 6.428999900817871,
-    "throughput_K_per_spk": 0.15554518827613983,
+    "mean_hidden_spikes": 4.875999927520752,
+    "throughput_K_per_spk": 0.20508613922569507,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.13464999198913574,
+    "binary_confusion": [
+      [
+        478,
+        4
+      ],
+      [
+        449,
+        69
+      ]
+    ],
+    "op_accuracy": {
+      "XOR": 0.546999990940094
+    },
+    "op_confusions": {
+      "XOR": [
+        [
+          478,
+          4
+        ],
+        [
+          449,
+          69
+        ]
+      ]
+    },
     "K": 1,
     "op": "XOR",
     "train_mode": "weights_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.8259999752044678,
+    "accuracy": 0.5950000286102295,
     "per_query_acc": [
-      0.8259999752044678
+      0.5950000286102295
     ],
-    "mean_hidden_spikes": 15.37399959564209,
-    "throughput_K_per_spk": 0.0650448826786401,
+    "mean_hidden_spikes": 15.140000343322754,
+    "throughput_K_per_spk": 0.06605019665280479,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.16741998493671417,
+    "binary_confusion": [
+      [
+        478,
+        4
+      ],
+      [
+        401,
+        117
+      ]
+    ],
+    "op_accuracy": {
+      "XOR": 0.5950000286102295
+    },
+    "op_confusions": {
+      "XOR": [
+        [
+          478,
+          4
+        ],
+        [
+          401,
+          117
+        ]
+      ]
+    },
     "K": 1,
     "op": "XOR",
     "train_mode": "weights_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
     "accuracy": 0.5339999794960022,
@@ -258,10 +888,40 @@
     ],
     "mean_hidden_spikes": 0.2619999945163727,
     "throughput_K_per_spk": 3.816793973014793,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.02590000070631504,
+    "binary_confusion": [
+      [
+        16,
+        466
+      ],
+      [
+        0,
+        518
+      ]
+    ],
+    "op_accuracy": {
+      "XOR": 0.5339999794960022
+    },
+    "op_confusions": {
+      "XOR": [
+        [
+          16,
+          466
+        ],
+        [
+          0,
+          518
+        ]
+      ]
+    },
     "K": 1,
     "op": "XOR",
     "train_mode": "delays_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.6240000128746033,
@@ -270,10 +930,40 @@
     ],
     "mean_hidden_spikes": 1.6100000143051147,
     "throughput_K_per_spk": 0.6211180069036246,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.06395000219345093,
+    "binary_confusion": [
+      [
+        176,
+        306
+      ],
+      [
+        70,
+        448
+      ]
+    ],
+    "op_accuracy": {
+      "XOR": 0.6240000128746033
+    },
+    "op_confusions": {
+      "XOR": [
+        [
+          176,
+          306
+        ],
+        [
+          70,
+          448
+        ]
+      ]
+    },
     "K": 1,
     "op": "XOR",
     "train_mode": "delays_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.6019999980926514,
@@ -282,10 +972,40 @@
     ],
     "mean_hidden_spikes": 2.5820000171661377,
     "throughput_K_per_spk": 0.38729666667374596,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.04027999937534332,
+    "binary_confusion": [
+      [
+        136,
+        346
+      ],
+      [
+        52,
+        466
+      ]
+    ],
+    "op_accuracy": {
+      "XOR": 0.6019999980926514
+    },
+    "op_confusions": {
+      "XOR": [
+        [
+          136,
+          346
+        ],
+        [
+          52,
+          466
+        ]
+      ]
+    },
     "K": 1,
     "op": "XOR",
     "train_mode": "delays_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.8600000143051147,
@@ -294,10 +1014,40 @@
     ],
     "mean_hidden_spikes": 4.986000061035156,
     "throughput_K_per_spk": 0.20056156994759192,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.24540001153945923,
+    "binary_confusion": [
+      [
+        457,
+        25
+      ],
+      [
+        115,
+        403
+      ]
+    ],
+    "op_accuracy": {
+      "XOR": 0.8600000143051147
+    },
+    "op_confusions": {
+      "XOR": [
+        [
+          457,
+          25
+        ],
+        [
+          115,
+          403
+        ]
+      ]
+    },
     "K": 1,
     "op": "XOR",
     "train_mode": "weights_and_delays",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.902999997138977,
@@ -306,10 +1056,40 @@
     ],
     "mean_hidden_spikes": 7.790999889373779,
     "throughput_K_per_spk": 0.12835322990620365,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.18930001556873322,
+    "binary_confusion": [
+      [
+        463,
+        19
+      ],
+      [
+        78,
+        440
+      ]
+    ],
+    "op_accuracy": {
+      "XOR": 0.902999997138977
+    },
+    "op_confusions": {
+      "XOR": [
+        [
+          463,
+          19
+        ],
+        [
+          78,
+          440
+        ]
+      ]
+    },
     "K": 1,
     "op": "XOR",
     "train_mode": "weights_and_delays",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9319999814033508,
@@ -318,46 +1098,166 @@
     ],
     "mean_hidden_spikes": 19.718000411987305,
     "throughput_K_per_spk": 0.05071508160594534,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.20179998874664307,
+    "binary_confusion": [
+      [
+        462,
+        20
+      ],
+      [
+        48,
+        470
+      ]
+    ],
+    "op_accuracy": {
+      "XOR": 0.9319999814033508
+    },
+    "op_confusions": {
+      "XOR": [
+        [
+          462,
+          20
+        ],
+        [
+          48,
+          470
+        ]
+      ]
+    },
     "K": 1,
     "op": "XOR",
     "train_mode": "weights_and_delays",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
-    "accuracy": 0.7689999938011169,
+    "accuracy": 0.5270000100135803,
     "per_query_acc": [
-      0.7689999938011169
+      0.5270000100135803
     ],
-    "mean_hidden_spikes": 3.9619998931884766,
-    "throughput_K_per_spk": 0.2523977857039354,
+    "mean_hidden_spikes": 0.8790000081062317,
+    "throughput_K_per_spk": 1.137656417267228,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.07760000973939896,
+    "binary_confusion": [
+      [
+        517,
+        1
+      ],
+      [
+        472,
+        10
+      ]
+    ],
+    "op_accuracy": {
+      "XNOR": 0.5270000100135803
+    },
+    "op_confusions": {
+      "XNOR": [
+        [
+          517,
+          1
+        ],
+        [
+          472,
+          10
+        ]
+      ]
+    },
     "K": 1,
     "op": "XNOR",
     "train_mode": "weights_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.8330000042915344,
+    "accuracy": 0.5799999833106995,
     "per_query_acc": [
-      0.8330000042915344
+      0.5799999833106995
     ],
-    "mean_hidden_spikes": 8.831999778747559,
-    "throughput_K_per_spk": 0.11322464051757565,
+    "mean_hidden_spikes": 7.552999973297119,
+    "throughput_K_per_spk": 0.13239772322724752,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.21605001389980316,
+    "binary_confusion": [
+      [
+        102,
+        416
+      ],
+      [
+        4,
+        478
+      ]
+    ],
+    "op_accuracy": {
+      "XNOR": 0.5799999833106995
+    },
+    "op_confusions": {
+      "XNOR": [
+        [
+          102,
+          416
+        ],
+        [
+          4,
+          478
+        ]
+      ]
+    },
     "K": 1,
     "op": "XNOR",
     "train_mode": "weights_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.8130000233650208,
+    "accuracy": 0.5920000076293945,
     "per_query_acc": [
-      0.8130000233650208
+      0.5920000076293945
     ],
-    "mean_hidden_spikes": 16.42099952697754,
-    "throughput_K_per_spk": 0.06089763283636491,
+    "mean_hidden_spikes": 15.812000274658203,
+    "throughput_K_per_spk": 0.06324310540284356,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.18613998591899872,
+    "binary_confusion": [
+      [
+        112,
+        406
+      ],
+      [
+        2,
+        480
+      ]
+    ],
+    "op_accuracy": {
+      "XNOR": 0.5920000076293945
+    },
+    "op_confusions": {
+      "XNOR": [
+        [
+          112,
+          406
+        ],
+        [
+          2,
+          480
+        ]
+      ]
+    },
     "K": 1,
     "op": "XNOR",
     "train_mode": "weights_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
     "accuracy": 0.5170000195503235,
@@ -366,10 +1266,40 @@
     ],
     "mean_hidden_spikes": 0.3140000104904175,
     "throughput_K_per_spk": 3.1847132693981792,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.03070000186562538,
+    "binary_confusion": [
+      [
+        42,
+        476
+      ],
+      [
+        7,
+        475
+      ]
+    ],
+    "op_accuracy": {
+      "XNOR": 0.5170000195503235
+    },
+    "op_confusions": {
+      "XNOR": [
+        [
+          42,
+          476
+        ],
+        [
+          7,
+          475
+        ]
+      ]
+    },
     "K": 1,
     "op": "XNOR",
     "train_mode": "delays_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.6169999837875366,
@@ -378,10 +1308,40 @@
     ],
     "mean_hidden_spikes": 1.5750000476837158,
     "throughput_K_per_spk": 0.6349206156981752,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.06340000778436661,
+    "binary_confusion": [
+      [
+        447,
+        71
+      ],
+      [
+        312,
+        170
+      ]
+    ],
+    "op_accuracy": {
+      "XNOR": 0.6169999837875366
+    },
+    "op_confusions": {
+      "XNOR": [
+        [
+          447,
+          71
+        ],
+        [
+          312,
+          170
+        ]
+      ]
+    },
     "K": 1,
     "op": "XNOR",
     "train_mode": "delays_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.6069999933242798,
@@ -390,10 +1350,40 @@
     ],
     "mean_hidden_spikes": 2.5820000171661377,
     "throughput_K_per_spk": 0.38729666667374596,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.040059998631477356,
+    "binary_confusion": [
+      [
+        465,
+        53
+      ],
+      [
+        340,
+        142
+      ]
+    ],
+    "op_accuracy": {
+      "XNOR": 0.6069999933242798
+    },
+    "op_confusions": {
+      "XNOR": [
+        [
+          465,
+          53
+        ],
+        [
+          340,
+          142
+        ]
+      ]
+    },
     "K": 1,
     "op": "XNOR",
     "train_mode": "delays_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.8460000157356262,
@@ -402,10 +1392,40 @@
     ],
     "mean_hidden_spikes": 4.804999828338623,
     "throughput_K_per_spk": 0.20811655270043164,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.2578999996185303,
+    "binary_confusion": [
+      [
+        378,
+        140
+      ],
+      [
+        14,
+        468
+      ]
+    ],
+    "op_accuracy": {
+      "XNOR": 0.8460000157356262
+    },
+    "op_confusions": {
+      "XNOR": [
+        [
+          378,
+          140
+        ],
+        [
+          14,
+          468
+        ]
+      ]
+    },
     "K": 1,
     "op": "XNOR",
     "train_mode": "weights_and_delays",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9330000281333923,
@@ -414,10 +1434,40 @@
     ],
     "mean_hidden_spikes": 10.9350004196167,
     "throughput_K_per_spk": 0.09144947065626657,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.2788500189781189,
+    "binary_confusion": [
+      [
+        468,
+        50
+      ],
+      [
+        17,
+        465
+      ]
+    ],
+    "op_accuracy": {
+      "XNOR": 0.9330000281333923
+    },
+    "op_confusions": {
+      "XNOR": [
+        [
+          468,
+          50
+        ],
+        [
+          17,
+          465
+        ]
+      ]
+    },
     "K": 1,
     "op": "XNOR",
     "train_mode": "weights_and_delays",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9520000219345093,
@@ -426,46 +1476,166 @@
     ],
     "mean_hidden_spikes": 19.615999221801758,
     "throughput_K_per_spk": 0.050978794844596685,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.21442002058029175,
+    "binary_confusion": [
+      [
+        483,
+        35
+      ],
+      [
+        13,
+        469
+      ]
+    ],
+    "op_accuracy": {
+      "XNOR": 0.9520000219345093
+    },
+    "op_confusions": {
+      "XNOR": [
+        [
+          483,
+          35
+        ],
+        [
+          13,
+          469
+        ]
+      ]
+    },
     "K": 1,
     "op": "XNOR",
     "train_mode": "weights_and_delays",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
-    "accuracy": 0.8790000081062317,
+    "accuracy": 0.7590000033378601,
     "per_query_acc": [
-      0.8790000081062317
+      0.7590000033378601
     ],
-    "mean_hidden_spikes": 5.89300012588501,
-    "throughput_K_per_spk": 0.1696928523058228,
+    "mean_hidden_spikes": 3.8589999675750732,
+    "throughput_K_per_spk": 0.2591344929780816,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.1996000111103058,
+    "binary_confusion": [
+      [
+        33,
+        205
+      ],
+      [
+        36,
+        726
+      ]
+    ],
+    "op_accuracy": {
+      "NAND": 0.7590000033378601
+    },
+    "op_confusions": {
+      "NAND": [
+        [
+          33,
+          205
+        ],
+        [
+          36,
+          726
+        ]
+      ]
+    },
     "K": 1,
     "op": "NAND",
     "train_mode": "weights_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.9179999828338623,
+    "accuracy": 0.7850000262260437,
     "per_query_acc": [
-      0.9179999828338623
+      0.7850000262260437
     ],
-    "mean_hidden_spikes": 10.138999938964844,
-    "throughput_K_per_spk": 0.09862905671366407,
+    "mean_hidden_spikes": 13.425000190734863,
+    "throughput_K_per_spk": 0.0744878946586638,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.32145002484321594,
+    "binary_confusion": [
+      [
+        51,
+        187
+      ],
+      [
+        28,
+        734
+      ]
+    ],
+    "op_accuracy": {
+      "NAND": 0.7850000262260437
+    },
+    "op_confusions": {
+      "NAND": [
+        [
+          51,
+          187
+        ],
+        [
+          28,
+          734
+        ]
+      ]
+    },
     "K": 1,
     "op": "NAND",
     "train_mode": "weights_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.9380000233650208,
+    "accuracy": 0.7910000085830688,
     "per_query_acc": [
-      0.9380000233650208
+      0.7910000085830688
     ],
-    "mean_hidden_spikes": 21.33099937438965,
-    "throughput_K_per_spk": 0.04688012888887975,
+    "mean_hidden_spikes": 31.812000274658203,
+    "throughput_K_per_spk": 0.031434678466182815,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.31178000569343567,
+    "binary_confusion": [
+      [
+        55,
+        183
+      ],
+      [
+        26,
+        736
+      ]
+    ],
+    "op_accuracy": {
+      "NAND": 0.7910000085830688
+    },
+    "op_confusions": {
+      "NAND": [
+        [
+          55,
+          183
+        ],
+        [
+          26,
+          736
+        ]
+      ]
+    },
     "K": 1,
     "op": "NAND",
     "train_mode": "weights_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
     "accuracy": 0.7860000133514404,
@@ -474,10 +1644,40 @@
     ],
     "mean_hidden_spikes": 0.24699999392032623,
     "throughput_K_per_spk": 4.0485830956035,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.024300001561641693,
+    "binary_confusion": [
+      [
+        28,
+        210
+      ],
+      [
+        4,
+        758
+      ]
+    ],
+    "op_accuracy": {
+      "NAND": 0.7860000133514404
+    },
+    "op_confusions": {
+      "NAND": [
+        [
+          28,
+          210
+        ],
+        [
+          4,
+          758
+        ]
+      ]
+    },
     "K": 1,
     "op": "NAND",
     "train_mode": "delays_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.8569999933242798,
@@ -486,10 +1686,40 @@
     ],
     "mean_hidden_spikes": 1.5490000247955322,
     "throughput_K_per_spk": 0.6455777817899001,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.06360000371932983,
+    "binary_confusion": [
+      [
+        118,
+        120
+      ],
+      [
+        23,
+        739
+      ]
+    ],
+    "op_accuracy": {
+      "NAND": 0.8569999933242798
+    },
+    "op_confusions": {
+      "NAND": [
+        [
+          118,
+          120
+        ],
+        [
+          23,
+          739
+        ]
+      ]
+    },
     "K": 1,
     "op": "NAND",
     "train_mode": "delays_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.8920000195503235,
@@ -498,10 +1728,40 @@
     ],
     "mean_hidden_spikes": 2.055000066757202,
     "throughput_K_per_spk": 0.48661798905826986,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.03743999823927879,
+    "binary_confusion": [
+      [
+        198,
+        40
+      ],
+      [
+        68,
+        694
+      ]
+    ],
+    "op_accuracy": {
+      "NAND": 0.8920000195503235
+    },
+    "op_confusions": {
+      "NAND": [
+        [
+          198,
+          40
+        ],
+        [
+          68,
+          694
+        ]
+      ]
+    },
     "K": 1,
     "op": "NAND",
     "train_mode": "delays_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9359999895095825,
@@ -510,10 +1770,40 @@
     ],
     "mean_hidden_spikes": 4.965000152587891,
     "throughput_K_per_spk": 0.20140986289371476,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.2849999964237213,
+    "binary_confusion": [
+      [
+        182,
+        56
+      ],
+      [
+        8,
+        754
+      ]
+    ],
+    "op_accuracy": {
+      "NAND": 0.9359999895095825
+    },
+    "op_confusions": {
+      "NAND": [
+        [
+          182,
+          56
+        ],
+        [
+          8,
+          754
+        ]
+      ]
+    },
     "K": 1,
     "op": "NAND",
     "train_mode": "weights_and_delays",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9649999737739563,
@@ -522,10 +1812,40 @@
     ],
     "mean_hidden_spikes": 8.420000076293945,
     "throughput_K_per_spk": 0.11876484452956787,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.23250000178813934,
+    "binary_confusion": [
+      [
+        207,
+        31
+      ],
+      [
+        4,
+        758
+      ]
+    ],
+    "op_accuracy": {
+      "NAND": 0.9649999737739563
+    },
+    "op_confusions": {
+      "NAND": [
+        [
+          207,
+          31
+        ],
+        [
+          4,
+          758
+        ]
+      ]
+    },
     "K": 1,
     "op": "NAND",
     "train_mode": "weights_and_delays",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9890000224113464,
@@ -534,46 +1854,166 @@
     ],
     "mean_hidden_spikes": 20.66699981689453,
     "throughput_K_per_spk": 0.04838631677842934,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.23584000766277313,
+    "binary_confusion": [
+      [
+        229,
+        9
+      ],
+      [
+        2,
+        760
+      ]
+    ],
+    "op_accuracy": {
+      "NAND": 0.9890000224113464
+    },
+    "op_confusions": {
+      "NAND": [
+        [
+          229,
+          9
+        ],
+        [
+          2,
+          760
+        ]
+      ]
+    },
     "K": 1,
     "op": "NAND",
     "train_mode": "weights_and_delays",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
-    "accuracy": 0.843999981880188,
+    "accuracy": 0.7549999952316284,
     "per_query_acc": [
-      0.843999981880188
+      0.7549999952316284
     ],
-    "mean_hidden_spikes": 10.472999572753906,
-    "throughput_K_per_spk": 0.0954836284536434,
+    "mean_hidden_spikes": 0.593999981880188,
+    "throughput_K_per_spk": 1.6835017348564563,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.050700005143880844,
+    "binary_confusion": [
+      [
+        755,
+        1
+      ],
+      [
+        244,
+        0
+      ]
+    ],
+    "op_accuracy": {
+      "NOR": 0.7549999952316284
+    },
+    "op_confusions": {
+      "NOR": [
+        [
+          755,
+          1
+        ],
+        [
+          244,
+          0
+        ]
+      ]
+    },
     "K": 1,
     "op": "NOR",
     "train_mode": "weights_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.9020000100135803,
+    "accuracy": 0.7559999823570251,
     "per_query_acc": [
-      0.9020000100135803
+      0.7559999823570251
     ],
-    "mean_hidden_spikes": 35.861000061035156,
-    "throughput_K_per_spk": 0.027885446537966242,
+    "mean_hidden_spikes": 1.8589999675750732,
+    "throughput_K_per_spk": 0.5379236242292276,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.06870000809431076,
+    "binary_confusion": [
+      [
+        756,
+        0
+      ],
+      [
+        244,
+        0
+      ]
+    ],
+    "op_accuracy": {
+      "NOR": 0.7559999823570251
+    },
+    "op_confusions": {
+      "NOR": [
+        [
+          756,
+          0
+        ],
+        [
+          244,
+          0
+        ]
+      ]
+    },
     "K": 1,
     "op": "NOR",
     "train_mode": "weights_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.8970000147819519,
+    "accuracy": 0.7559999823570251,
     "per_query_acc": [
-      0.8970000147819519
+      0.7559999823570251
     ],
-    "mean_hidden_spikes": 69.07099914550781,
-    "throughput_K_per_spk": 0.01447785629817456,
+    "mean_hidden_spikes": 2.878999948501587,
+    "throughput_K_per_spk": 0.347342833583746,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.04413999989628792,
+    "binary_confusion": [
+      [
+        756,
+        0
+      ],
+      [
+        244,
+        0
+      ]
+    ],
+    "op_accuracy": {
+      "NOR": 0.7559999823570251
+    },
+    "op_confusions": {
+      "NOR": [
+        [
+          756,
+          0
+        ],
+        [
+          244,
+          0
+        ]
+      ]
+    },
     "K": 1,
     "op": "NOR",
     "train_mode": "weights_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
     "accuracy": 0.7549999952316284,
@@ -582,10 +2022,40 @@
     ],
     "mean_hidden_spikes": 0.2919999957084656,
     "throughput_K_per_spk": 3.42465758457889,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.028699999675154686,
+    "binary_confusion": [
+      [
+        755,
+        1
+      ],
+      [
+        244,
+        0
+      ]
+    ],
+    "op_accuracy": {
+      "NOR": 0.7549999952316284
+    },
+    "op_confusions": {
+      "NOR": [
+        [
+          755,
+          1
+        ],
+        [
+          244,
+          0
+        ]
+      ]
+    },
     "K": 1,
     "op": "NOR",
     "train_mode": "delays_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.7559999823570251,
@@ -594,10 +2064,40 @@
     ],
     "mean_hidden_spikes": 1.7230000495910645,
     "throughput_K_per_spk": 0.5803830361103816,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.06424999982118607,
+    "binary_confusion": [
+      [
+        756,
+        0
+      ],
+      [
+        244,
+        0
+      ]
+    ],
+    "op_accuracy": {
+      "NOR": 0.7559999823570251
+    },
+    "op_confusions": {
+      "NOR": [
+        [
+          756,
+          0
+        ],
+        [
+          244,
+          0
+        ]
+      ]
+    },
     "K": 1,
     "op": "NOR",
     "train_mode": "delays_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.7559999823570251,
@@ -606,10 +2106,40 @@
     ],
     "mean_hidden_spikes": 2.5920000076293945,
     "throughput_K_per_spk": 0.38580246800021634,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.04004000127315521,
+    "binary_confusion": [
+      [
+        756,
+        0
+      ],
+      [
+        244,
+        0
+      ]
+    ],
+    "op_accuracy": {
+      "NOR": 0.7559999823570251
+    },
+    "op_confusions": {
+      "NOR": [
+        [
+          756,
+          0
+        ],
+        [
+          244,
+          0
+        ]
+      ]
+    },
     "K": 1,
     "op": "NOR",
     "train_mode": "delays_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9409999847412109,
@@ -618,10 +2148,40 @@
     ],
     "mean_hidden_spikes": 9.687999725341797,
     "throughput_K_per_spk": 0.10322048186935921,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.2947000563144684,
+    "binary_confusion": [
+      [
+        697,
+        59
+      ],
+      [
+        0,
+        244
+      ]
+    ],
+    "op_accuracy": {
+      "NOR": 0.9409999847412109
+    },
+    "op_confusions": {
+      "NOR": [
+        [
+          697,
+          59
+        ],
+        [
+          0,
+          244
+        ]
+      ]
+    },
     "K": 1,
     "op": "NOR",
     "train_mode": "weights_and_delays",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9860000014305115,
@@ -630,10 +2190,40 @@
     ],
     "mean_hidden_spikes": 26.03499984741211,
     "throughput_K_per_spk": 0.03840983314234205,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.43935003876686096,
+    "binary_confusion": [
+      [
+        742,
+        14
+      ],
+      [
+        0,
+        244
+      ]
+    ],
+    "op_accuracy": {
+      "NOR": 0.9860000014305115
+    },
+    "op_confusions": {
+      "NOR": [
+        [
+          742,
+          14
+        ],
+        [
+          0,
+          244
+        ]
+      ]
+    },
     "K": 1,
     "op": "NOR",
     "train_mode": "weights_and_delays",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9850000143051147,
@@ -642,46 +2232,166 @@
     ],
     "mean_hidden_spikes": 39.65999984741211,
     "throughput_K_per_spk": 0.02521432183175492,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.31640002131462097,
+    "binary_confusion": [
+      [
+        741,
+        15
+      ],
+      [
+        0,
+        244
+      ]
+    ],
+    "op_accuracy": {
+      "NOR": 0.9850000143051147
+    },
+    "op_confusions": {
+      "NOR": [
+        [
+          741,
+          15
+        ],
+        [
+          0,
+          244
+        ]
+      ]
+    },
     "K": 1,
     "op": "NOR",
     "train_mode": "weights_and_delays",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
-    "accuracy": 0.9100000262260437,
+    "accuracy": 0.7770000100135803,
     "per_query_acc": [
-      0.9100000262260437
+      0.7770000100135803
     ],
-    "mean_hidden_spikes": 10.187999725341797,
-    "throughput_K_per_spk": 0.09815469444041931,
+    "mean_hidden_spikes": 10.234000205993652,
+    "throughput_K_per_spk": 0.09771350203944096,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.4221000075340271,
+    "binary_confusion": [
+      [
+        54,
+        215
+      ],
+      [
+        8,
+        723
+      ]
+    ],
+    "op_accuracy": {
+      "A_IMP_B": 0.7770000100135803
+    },
+    "op_confusions": {
+      "A_IMP_B": [
+        [
+          54,
+          215
+        ],
+        [
+          8,
+          723
+        ]
+      ]
+    },
     "K": 1,
     "op": "A_IMP_B",
     "train_mode": "weights_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.9160000085830688,
+    "accuracy": 0.781000018119812,
     "per_query_acc": [
-      0.9160000085830688
+      0.781000018119812
     ],
-    "mean_hidden_spikes": 16.812000274658203,
-    "throughput_K_per_spk": 0.059481321892872176,
+    "mean_hidden_spikes": 15.914999961853027,
+    "throughput_K_per_spk": 0.0628338047374753,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.3432999849319458,
+    "binary_confusion": [
+      [
+        61,
+        208
+      ],
+      [
+        11,
+        720
+      ]
+    ],
+    "op_accuracy": {
+      "A_IMP_B": 0.781000018119812
+    },
+    "op_confusions": {
+      "A_IMP_B": [
+        [
+          61,
+          208
+        ],
+        [
+          11,
+          720
+        ]
+      ]
+    },
     "K": 1,
     "op": "A_IMP_B",
     "train_mode": "weights_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.9179999828338623,
+    "accuracy": 0.7839999794960022,
     "per_query_acc": [
-      0.9179999828338623
+      0.7839999794960022
     ],
-    "mean_hidden_spikes": 27.499000549316406,
-    "throughput_K_per_spk": 0.03636495799935023,
+    "mean_hidden_spikes": 31.174999237060547,
+    "throughput_K_per_spk": 0.0320769855484458,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.30184000730514526,
+    "binary_confusion": [
+      [
+        66,
+        203
+      ],
+      [
+        13,
+        718
+      ]
+    ],
+    "op_accuracy": {
+      "A_IMP_B": 0.7839999794960022
+    },
+    "op_confusions": {
+      "A_IMP_B": [
+        [
+          66,
+          203
+        ],
+        [
+          13,
+          718
+        ]
+      ]
+    },
     "K": 1,
     "op": "A_IMP_B",
     "train_mode": "weights_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
     "accuracy": 0.7649999856948853,
@@ -690,10 +2400,40 @@
     ],
     "mean_hidden_spikes": 0.2930000126361847,
     "throughput_K_per_spk": 3.412969136085637,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.02890000119805336,
+    "binary_confusion": [
+      [
+        43,
+        226
+      ],
+      [
+        9,
+        722
+      ]
+    ],
+    "op_accuracy": {
+      "A_IMP_B": 0.7649999856948853
+    },
+    "op_confusions": {
+      "A_IMP_B": [
+        [
+          43,
+          226
+        ],
+        [
+          9,
+          722
+        ]
+      ]
+    },
     "K": 1,
     "op": "A_IMP_B",
     "train_mode": "delays_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.7599999904632568,
@@ -702,10 +2442,40 @@
     ],
     "mean_hidden_spikes": 1.7630000114440918,
     "throughput_K_per_spk": 0.5672149707933861,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.06700000911951065,
+    "binary_confusion": [
+      [
+        29,
+        240
+      ],
+      [
+        0,
+        731
+      ]
+    ],
+    "op_accuracy": {
+      "A_IMP_B": 0.7599999904632568
+    },
+    "op_confusions": {
+      "A_IMP_B": [
+        [
+          29,
+          240
+        ],
+        [
+          0,
+          731
+        ]
+      ]
+    },
     "K": 1,
     "op": "A_IMP_B",
     "train_mode": "delays_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.7680000066757202,
@@ -714,10 +2484,40 @@
     ],
     "mean_hidden_spikes": 2.635999917984009,
     "throughput_K_per_spk": 0.37936268251661853,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.04083999618887901,
+    "binary_confusion": [
+      [
+        41,
+        228
+      ],
+      [
+        4,
+        727
+      ]
+    ],
+    "op_accuracy": {
+      "A_IMP_B": 0.7680000066757202
+    },
+    "op_confusions": {
+      "A_IMP_B": [
+        [
+          41,
+          228
+        ],
+        [
+          4,
+          727
+        ]
+      ]
+    },
     "K": 1,
     "op": "A_IMP_B",
     "train_mode": "delays_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.949999988079071,
@@ -726,10 +2526,40 @@
     ],
     "mean_hidden_spikes": 7.849999904632568,
     "throughput_K_per_spk": 0.12738853657945445,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.35589998960494995,
+    "binary_confusion": [
+      [
+        226,
+        43
+      ],
+      [
+        7,
+        724
+      ]
+    ],
+    "op_accuracy": {
+      "A_IMP_B": 0.949999988079071
+    },
+    "op_confusions": {
+      "A_IMP_B": [
+        [
+          226,
+          43
+        ],
+        [
+          7,
+          724
+        ]
+      ]
+    },
     "K": 1,
     "op": "A_IMP_B",
     "train_mode": "weights_and_delays",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9850000143051147,
@@ -738,10 +2568,40 @@
     ],
     "mean_hidden_spikes": 17.000999450683594,
     "throughput_K_per_spk": 0.05882007130820718,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.3664000332355499,
+    "binary_confusion": [
+      [
+        257,
+        12
+      ],
+      [
+        3,
+        728
+      ]
+    ],
+    "op_accuracy": {
+      "A_IMP_B": 0.9850000143051147
+    },
+    "op_confusions": {
+      "A_IMP_B": [
+        [
+          257,
+          12
+        ],
+        [
+          3,
+          728
+        ]
+      ]
+    },
     "K": 1,
     "op": "A_IMP_B",
     "train_mode": "weights_and_delays",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9850000143051147,
@@ -750,46 +2610,166 @@
     ],
     "mean_hidden_spikes": 25.57200050354004,
     "throughput_K_per_spk": 0.03910527062055883,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.2535799741744995,
+    "binary_confusion": [
+      [
+        256,
+        13
+      ],
+      [
+        2,
+        729
+      ]
+    ],
+    "op_accuracy": {
+      "A_IMP_B": 0.9850000143051147
+    },
+    "op_confusions": {
+      "A_IMP_B": [
+        [
+          256,
+          13
+        ],
+        [
+          2,
+          729
+        ]
+      ]
+    },
     "K": 1,
     "op": "A_IMP_B",
     "train_mode": "weights_and_delays",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
-    "accuracy": 0.8840000033378601,
+    "accuracy": 0.781000018119812,
     "per_query_acc": [
-      0.8840000033378601
+      0.781000018119812
     ],
-    "mean_hidden_spikes": 11.027999877929688,
-    "throughput_K_per_spk": 0.09067827448940201,
+    "mean_hidden_spikes": 11.817999839782715,
+    "throughput_K_per_spk": 0.08461668755771332,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.4351000189781189,
+    "binary_confusion": [
+      [
+        33,
+        216
+      ],
+      [
+        3,
+        748
+      ]
+    ],
+    "op_accuracy": {
+      "B_IMP_A": 0.781000018119812
+    },
+    "op_confusions": {
+      "B_IMP_A": [
+        [
+          33,
+          216
+        ],
+        [
+          3,
+          748
+        ]
+      ]
+    },
     "K": 1,
     "op": "B_IMP_A",
     "train_mode": "weights_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.9049999713897705,
+    "accuracy": 0.8109999895095825,
     "per_query_acc": [
-      0.9049999713897705
+      0.8109999895095825
     ],
-    "mean_hidden_spikes": 14.4399995803833,
-    "throughput_K_per_spk": 0.06925207957474577,
+    "mean_hidden_spikes": 18.64299964904785,
+    "throughput_K_per_spk": 0.053639436722892,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.3790999948978424,
+    "binary_confusion": [
+      [
+        67,
+        182
+      ],
+      [
+        7,
+        744
+      ]
+    ],
+    "op_accuracy": {
+      "B_IMP_A": 0.8109999895095825
+    },
+    "op_confusions": {
+      "B_IMP_A": [
+        [
+          67,
+          182
+        ],
+        [
+          7,
+          744
+        ]
+      ]
+    },
     "K": 1,
     "op": "B_IMP_A",
     "train_mode": "weights_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
-    "accuracy": 0.9139999747276306,
+    "accuracy": 0.8029999732971191,
     "per_query_acc": [
-      0.9139999747276306
+      0.8029999732971191
     ],
-    "mean_hidden_spikes": 29.461000442504883,
-    "throughput_K_per_spk": 0.0339431786083289,
+    "mean_hidden_spikes": 41.45800018310547,
+    "throughput_K_per_spk": 0.024120796844598152,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.34483999013900757,
+    "binary_confusion": [
+      [
+        60,
+        189
+      ],
+      [
+        8,
+        743
+      ]
+    ],
+    "op_accuracy": {
+      "B_IMP_A": 0.8029999732971191
+    },
+    "op_confusions": {
+      "B_IMP_A": [
+        [
+          60,
+          189
+        ],
+        [
+          8,
+          743
+        ]
+      ]
+    },
     "K": 1,
     "op": "B_IMP_A",
     "train_mode": "weights_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": 0.0
   },
   {
     "accuracy": 0.7509999871253967,
@@ -798,10 +2778,40 @@
     ],
     "mean_hidden_spikes": 0.28299999237060547,
     "throughput_K_per_spk": 3.5335689998550954,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.027900001034140587,
+    "binary_confusion": [
+      [
+        0,
+        249
+      ],
+      [
+        0,
+        751
+      ]
+    ],
+    "op_accuracy": {
+      "B_IMP_A": 0.7509999871253967
+    },
+    "op_confusions": {
+      "B_IMP_A": [
+        [
+          0,
+          249
+        ],
+        [
+          0,
+          751
+        ]
+      ]
+    },
     "K": 1,
     "op": "B_IMP_A",
     "train_mode": "delays_only",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.7689999938011169,
@@ -810,10 +2820,40 @@
     ],
     "mean_hidden_spikes": 1.8270000219345093,
     "throughput_K_per_spk": 0.547345368360289,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.06875000149011612,
+    "binary_confusion": [
+      [
+        19,
+        230
+      ],
+      [
+        1,
+        750
+      ]
+    ],
+    "op_accuracy": {
+      "B_IMP_A": 0.7689999938011169
+    },
+    "op_confusions": {
+      "B_IMP_A": [
+        [
+          19,
+          230
+        ],
+        [
+          1,
+          750
+        ]
+      ]
+    },
     "K": 1,
     "op": "B_IMP_A",
     "train_mode": "delays_only",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.7789999842643738,
@@ -822,10 +2862,40 @@
     ],
     "mean_hidden_spikes": 2.6670000553131104,
     "throughput_K_per_spk": 0.37495312308218093,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.041419997811317444,
+    "binary_confusion": [
+      [
+        29,
+        220
+      ],
+      [
+        1,
+        750
+      ]
+    ],
+    "op_accuracy": {
+      "B_IMP_A": 0.7789999842643738
+    },
+    "op_confusions": {
+      "B_IMP_A": [
+        [
+          29,
+          220
+        ],
+        [
+          1,
+          750
+        ]
+      ]
+    },
     "K": 1,
     "op": "B_IMP_A",
     "train_mode": "delays_only",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9330000281333923,
@@ -834,10 +2904,40 @@
     ],
     "mean_hidden_spikes": 10.680000305175781,
     "throughput_K_per_spk": 0.09363295612598216,
+    "ops_per_neuron_per_ms": 0.002,
+    "mean_active_hidden_fraction": 0.43389999866485596,
+    "binary_confusion": [
+      [
+        186,
+        63
+      ],
+      [
+        4,
+        747
+      ]
+    ],
+    "op_accuracy": {
+      "B_IMP_A": 0.9330000281333923
+    },
+    "op_confusions": {
+      "B_IMP_A": [
+        [
+          186,
+          63
+        ],
+        [
+          4,
+          747
+        ]
+      ]
+    },
     "K": 1,
     "op": "B_IMP_A",
     "train_mode": "weights_and_delays",
-    "hidden_size": 10
+    "hidden_size": 10,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9639999866485596,
@@ -846,10 +2946,40 @@
     ],
     "mean_hidden_spikes": 14.263999938964844,
     "throughput_K_per_spk": 0.07010656227418431,
+    "ops_per_neuron_per_ms": 0.001,
+    "mean_active_hidden_fraction": 0.30560001730918884,
+    "binary_confusion": [
+      [
+        221,
+        28
+      ],
+      [
+        8,
+        743
+      ]
+    ],
+    "op_accuracy": {
+      "B_IMP_A": 0.9639999866485596
+    },
+    "op_confusions": {
+      "B_IMP_A": [
+        [
+          221,
+          28
+        ],
+        [
+          8,
+          743
+        ]
+      ]
+    },
     "K": 1,
     "op": "B_IMP_A",
     "train_mode": "weights_and_delays",
-    "hidden_size": 20
+    "hidden_size": 20,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   },
   {
     "accuracy": 0.9779999852180481,
@@ -858,9 +2988,39 @@
     ],
     "mean_hidden_spikes": 32.14699935913086,
     "throughput_K_per_spk": 0.031107102371468007,
+    "ops_per_neuron_per_ms": 0.0004,
+    "mean_active_hidden_fraction": 0.2837800085544586,
+    "binary_confusion": [
+      [
+        230,
+        19
+      ],
+      [
+        3,
+        748
+      ]
+    ],
+    "op_accuracy": {
+      "B_IMP_A": 0.9779999852180481
+    },
+    "op_confusions": {
+      "B_IMP_A": [
+        [
+          230,
+          19
+        ],
+        [
+          3,
+          748
+        ]
+      ]
+    },
     "K": 1,
     "op": "B_IMP_A",
     "train_mode": "weights_and_delays",
-    "hidden_size": 50
+    "hidden_size": 50,
+    "delay_param_type": "sigmoid",
+    "delay_step": 1.0,
+    "fixed_delay_value": null
   }
 ]

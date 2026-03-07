@@ -12,6 +12,7 @@ name: snn_async
 
 channels:
   - pytorch
+  - nvidia
   - conda-forge
   - defaults
 
@@ -19,10 +20,10 @@ dependencies:
   - python=3.10
   - pip
 
-  # ---- PyTorch (CPU build; swap the line below for GPU) ----
-  - pytorch::pytorch>=2.0
-  - pytorch::torchvision>=0.15
-  - pytorch::pytorch-cuda=12.1          # remove this line for GPU
+  # ---- PyTorch (GPU build) ----
+  - pytorch
+  - torchvision
+  - pytorch-cuda=12.1
 
   # ---- Scientific stack ----
   - numpy>=1.24
@@ -32,7 +33,3 @@ dependencies:
   # ---- Utilities ----
   - pyyaml>=6.0
   - tqdm>=4.65
-
-  # ---- Pip extras (not in conda channels) ----
-  - pip:
-    - torch>=2.0.0   # ensures pip also sees torch if needed

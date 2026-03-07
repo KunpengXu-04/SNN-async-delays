@@ -165,6 +165,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/step2_multiquery_sameop.yaml")
     parser.add_argument("--K", default=None, type=int)
+    parser.add_argument("--op", default=None)
     parser.add_argument("--train_mode", default=None)
     parser.add_argument("--hidden_size", default=None, type=int)
     parser.add_argument("--seed", default=None, type=int)
@@ -198,47 +199,56 @@ def main():
         tau_list = sorted(set(float(t) for t in tau_list), reverse=True)
 
         conditions = _iter_conditions(base_cfg)
-        all_results: dict = {}
+        ops = sweep.get("ops", [base_cfg["op_name"]])
+        all_results: dict = {}  # all_results[op][cname][K]
 
-        for cond in conditions:
-            cname = cond["name"]
-            all_results[cname] = {}
-            for h in sweep["hidden_sizes"]:
-                for K in K_vals:
-                    cfg = copy.deepcopy(base_cfg)
-                    cfg["hidden_size"] = h
-                    res = run_single(cfg, K, cond, device, args.runs_dir)
-                    all_results[cname][K] = res
+        for op in ops:
+            all_results[op] = {}
+            for cond in conditions:
+                cname = cond["name"]
+                all_results[op][cname] = {}
+                for h in sweep["hidden_sizes"]:
+                    for K in K_vals:
+                        cfg = copy.deepcopy(base_cfg)
+                        cfg["hidden_size"] = h
+                        cfg["op_name"] = op
+                        res = run_single(cfg, K, cond, device, args.runs_dir)
+                        all_results[op][cname][K] = res
 
         summary = {}
-        for cname, k_results in all_results.items():
-            max_k_by_tau = {str(t): max_K_at_threshold(k_results, t) for t in tau_list}
-            summary[cname] = {
-                "max_K_by_tau": max_k_by_tau,
-                "results_by_K": k_results,
-            }
+        for op, cond_results in all_results.items():
+            summary[op] = {}
+            for cname, k_results in cond_results.items():
+                max_k_by_tau = {str(t): max_K_at_threshold(k_results, t) for t in tau_list}
+                summary[op][cname] = {
+                    "max_K_by_tau": max_k_by_tau,
+                    "results_by_K": k_results,
+                }
 
         summary_path = os.path.join(args.runs_dir, "step2_sweep_summary.json")
         with open(summary_path, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2, default=str)
         print(f"\nSweep summary saved to {summary_path}")
 
-        acc_by_mode = {c: [all_results[c][K]["accuracy"] for K in K_vals] for c in all_results}
-        thr_by_mode = {c: [all_results[c][K]["throughput_K_per_spk"] for K in K_vals] for c in all_results}
-        dens_by_mode = {c: [all_results[c][K]["ops_per_neuron_per_ms"] for K in K_vals] for c in all_results}
+        for op, cond_results in all_results.items():
+            acc_by_mode  = {c: [cond_results[c][K]["accuracy"] for K in K_vals] for c in cond_results}
+            thr_by_mode  = {c: [cond_results[c][K]["throughput_K_per_spk"] for K in K_vals] for c in cond_results}
+            dens_by_mode = {c: [cond_results[c][K]["ops_per_neuron_per_ms"] for K in K_vals] for c in cond_results}
 
-        plots_dir = os.path.join(args.runs_dir, "step2_plots")
-        plot_K_accuracy(K_vals, acc_by_mode, tau=tau_list[0], save_path=os.path.join(plots_dir, "K_accuracy.png"))
-        plot_throughput(K_vals, thr_by_mode, save_path=os.path.join(plots_dir, "K_throughput.png"))
-        plot_metric_triplet(
-            K_vals,
-            acc_by_mode,
-            thr_by_mode,
-            dens_by_mode,
-            tau_list=tau_list,
-            save_path=os.path.join(plots_dir, "K_metric_triplet.png"),
-        )
+            plots_dir = os.path.join(args.runs_dir, f"step2_plots_{op}")
+            plot_K_accuracy(K_vals, acc_by_mode, tau=tau_list[0], save_path=os.path.join(plots_dir, "K_accuracy.png"))
+            plot_throughput(K_vals, thr_by_mode, save_path=os.path.join(plots_dir, "K_throughput.png"))
+            plot_metric_triplet(
+                K_vals,
+                acc_by_mode,
+                thr_by_mode,
+                dens_by_mode,
+                tau_list=tau_list,
+                save_path=os.path.join(plots_dir, "K_metric_triplet.png"),
+            )
     else:
+        if args.op is not None:
+            base_cfg["op_name"] = args.op
         K = args.K if args.K is not None else base_cfg["K"]
         cond = {
             "name": _condition_name(base_cfg),

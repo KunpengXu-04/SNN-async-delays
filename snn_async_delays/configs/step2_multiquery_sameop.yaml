@@ -10,7 +10,7 @@ gap_len: 5
 
 # ----- Network -----
 n_input: 2
-hidden_size: 50
+hidden_size: 20
 d_max: 49
 lif_tau_m: 10.0
 lif_threshold: 1.0
@@ -28,7 +28,7 @@ lr_w: 1.0e-3
 lr_d: 1.0e-3
 lr_readout: 1.0e-3
 batch_size: 128
-epochs: 100
+epochs: 50
 spike_penalty: 0.0
 delay_penalty: 0.0
 grad_clip: 1.0
@@ -49,9 +49,10 @@ seed: 42
 
 # ----- Sweep configuration -----
 sweep:
-  K_values: [1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16]
-  hidden_sizes: [50]
-  accuracy_thresholds: [0.95, 0.90]
+  ops: [NAND, XOR]
+  K_values: [1, 2, 3, 4, 6, 8, 12, 16]
+  hidden_sizes: [20]
+  accuracy_thresholds: [0.95, 0.90, 0.85]
   conditions:
     - name: weights_only_d0
       train_mode: weights_only

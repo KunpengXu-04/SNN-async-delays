@@ -28,7 +28,7 @@ lr_w: 1.0e-3
 lr_d: 1.0e-3
 lr_readout: 1.0e-3
 batch_size: 128
-epochs: 50
+epochs: 100
 spike_penalty: 0.0
 delay_penalty: 0.0
 grad_clip: 1.0
@@ -50,7 +50,7 @@ seed: 42
 # ----- Sweep configuration -----
 sweep:
   ops: [NAND, XOR]
-  K_values: [1, 2, 3, 4, 6, 8, 12, 16]
+  K_values: [1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16]
   hidden_sizes: [20]
   accuracy_thresholds: [0.95, 0.90, 0.85]
   conditions:

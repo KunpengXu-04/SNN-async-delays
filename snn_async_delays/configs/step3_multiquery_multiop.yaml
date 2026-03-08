@@ -27,7 +27,7 @@ train_mode: weights_and_delays
 lr_w: 1.0e-3
 lr_d: 1.0e-3
 lr_readout: 1.0e-3
-batch_size: 128
+batch_size: 1024
 epochs: 300
 spike_penalty: 0.0
 delay_penalty: 0.0
@@ -53,8 +53,8 @@ seed: 42
 # ----- Sweep configuration -----
 sweep:
   K_values: [1, 2, 3, 4, 5, 6]
-  hidden_sizes: [50]
-  accuracy_thresholds: [0.95, 0.90]
+  hidden_sizes: [20, 50]
+  accuracy_thresholds: [0.95, 0.90, 0.85]
   conditions:
     - name: weights_only_d0_uniform
       train_mode: weights_only

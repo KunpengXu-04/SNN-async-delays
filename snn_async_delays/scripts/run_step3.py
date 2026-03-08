@@ -99,6 +99,13 @@ def run_single(cfg: dict, K: int, condition: dict, device: str, base_runs_dir: s
     run_name = f"step3_mixedops_{cname}_h{h}_K{K}_seed{cfg['seed']}"
     run_dir = os.path.join(base_runs_dir, run_name)
 
+    eval_path = os.path.join(run_dir, "eval_results.json")
+    if os.path.exists(eval_path):
+        with open(eval_path, encoding="utf-8") as f:
+            results = json.load(f)
+        logger.info(f"=== {run_name} [SKIPPED — already done, acc={results.get('accuracy', '?'):.4f}] ===")
+        return results
+
     logger.info(f"=== {run_name} ===")
 
     slots = make_slots(K, cfg["win_len"], cfg["read_len"], cfg["gap_len"])

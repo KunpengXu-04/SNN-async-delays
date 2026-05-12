@@ -189,7 +189,7 @@ Delays' main role is alignment; spatial channels (2K) already handle query separ
 
 Max K @ 90%: **K=2** (h=20). Bottleneck: h=20 capacity (~6.7 neurons/query at K=3).
 
-**h=50 results**: pending (experiment in progress).
+**h=50 results** (w_and_d only): K=1: 95.6%, K=2: 92.7%, K=3: 86.0%, K=4: 86.1%, K≥5: ~80-83%. Max K@90% = **K=2** (same as h=20). Increasing neurons by 150% yields only +1~3% — bottleneck is the shared single-readout decoder (Linear(h,K) decoding K answers from blended membrane state), not neuron count.
 
 ### Overall Conclusion
 

@@ -149,3 +149,51 @@ Comparison dimensions: `weight-only` vs `delay-only` vs `weight+delay`; hidden s
 3. **No mode reaches ≥95% without delays on weight training**: `weights_only` tops out at 0.940 (AND, h=50).
 4. **XOR is the hardest op**: only `weights_and_delays` at h=50 comes close (0.932, still below 95% threshold). This sets a floor for Step 2 experiments — XOR will likely need h≥50.
 5. **Energy sparsity**: `delays_only` fires only ~2.5 spikes/trial at h=50 (14× sparser than `weights_only`), but at severe accuracy cost. `weights_and_delays` achieves high accuracy with ~19% fewer spikes than `weights_only`.
+
+---
+
+## Step 2 Results (Multi-Query Temporal Multiplexing)
+
+Full experiment log: `docs/EXPERIMENT_LOG.md` (Sections 3–10)
+
+### Four Experimental Designs
+
+| Plan | Input channels | Readout | T grows with K? | What it tests |
+|------|---------------|---------|-----------------|---------------|
+| A (serial slots) | 2 shared | K separate windows | Yes (K×35) | Baseline; delays needed for alignment |
+| C (simultaneous) | 2K dedicated | 1 shared window | No (fixed 30) | Spatial vs temporal separation |
+| D (sequential)   | 2 shared | 1 shared window | Yes (K×10+10) | **Pure temporal routing** |
+
+### Plan A Key Finding (NAND, h=20, K=1~20)
+
+`weights_and_delays` achieves ≥95% for all K=1~20. `weights_only_d0` stuck at ~80% even at K=1.  
+**Mechanism**: delays perform *time alignment* (shift input into readout window), not true multiplexing — LIF decay (τ=10, slot_len=35) provides natural slot isolation (~3% residual).
+
+### Plan C Key Finding (NAND, h=20, K=1~12)
+
+Alignment effect (d=20 vs d=0): **+11.8%**. Capacity effect (w_and_d vs d=20): **+2.7%**.  
+Delays' main role is alignment; spatial channels (2K) already handle query separation.
+
+### Plan D Key Finding (NAND, h=20/50, sub_win=10, K=1~12)
+
+**Design**: K queries share 2 channels, injected sequentially in sub-windows; single readout decodes all K simultaneously. Weights structurally cannot distinguish queries — only delays can.
+
+**h=20 results** (w_and_d):
+
+| K | acc | gap vs d0 |
+|---|-----|-----------|
+| 1 | 94.9% | +19.3% |
+| 2 | 91.2% | +14.8% |
+| 3 | 83.5% | ~+7% |
+| ≥4 | ~80% | ~+4% |
+
+Max K @ 90%: **K=2** (h=20). Bottleneck: h=20 capacity (~6.7 neurons/query at K=3).
+
+**h=50 results**: pending (experiment in progress).
+
+### Overall Conclusion
+
+Trainable delays are a **structurally necessary** mechanism for shared-channel temporal multiplexing:  
+- d=0 is a structural failure (not a learning failure) in Plan D  
+- The primary benefit of delays is **time alignment** (+11–19% vs d=0)  
+- True temporal routing capacity exists (Plan D K=2) but requires sufficient hidden neurons

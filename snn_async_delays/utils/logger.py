@@ -17,10 +17,17 @@ def setup_logger(name: str = "snn", log_file: str = None, level=logging.INFO) ->
 
     fmt = logging.Formatter("[%(asctime)s] %(levelname)s  %(message)s", "%H:%M:%S")
 
-    # Console handler
+    # Console handler (force flush so output appears immediately when redirected to file)
     sh = logging.StreamHandler(sys.stdout)
     sh.setFormatter(fmt)
+    sh.terminator = "\n"
     logger.addHandler(sh)
+    # Make stdout line-buffered so every log line is flushed immediately
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(line_buffering=True)
+        except Exception:
+            pass
 
     # File handler (optional)
     if log_file is not None:

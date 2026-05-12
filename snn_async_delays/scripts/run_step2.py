@@ -79,14 +79,16 @@ def _iter_conditions(base_cfg: dict):
     return conds
 
 
-def run_single(cfg: dict, K: int, condition: dict, device: str, base_runs_dir: str) -> dict:
+def run_single(cfg: dict, K: int, condition: dict, device: str, base_runs_dir: str,
+               run_name_override: str | None = None) -> dict:
     set_seed(cfg["seed"])
     logger = setup_logger("step2")
 
     op = cfg["op_name"]
     h = cfg["hidden_size"]
     cname = condition["name"]
-    run_name = f"step2_{op}_{cname}_h{h}_K{K}_seed{cfg['seed']}"
+    run_name = (run_name_override if run_name_override is not None
+                else f"step2_{op}_{cname}_h{h}_K{K}_seed{cfg['seed']}")
     run_dir = os.path.join(base_runs_dir, run_name)
 
     # Skip if already completed

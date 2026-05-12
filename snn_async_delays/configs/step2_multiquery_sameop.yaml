@@ -49,30 +49,38 @@ seed: 42
 
 # ----- Sweep configuration -----
 sweep:
-  ops: [NAND, XOR]
-  K_values: [1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16]
+  # Phase 1 (core): NAND only, 2 conditions, sparse K → 14 runs, get results fast.
+  # Phase 2 (extend): push K higher to find accuracy drop for w_and_d_continuous.
+  ops: [NAND]
+  K_values: [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
   hidden_sizes: [20]
   accuracy_thresholds: [0.95, 0.90, 0.85]
   conditions:
-    - name: weights_only_d0
-      train_mode: weights_only
-      delay_param_type: sigmoid
-      fixed_delay_value: 0.0
     - name: w_and_d_continuous
       train_mode: weights_and_delays
       delay_param_type: sigmoid
-    - name: w_and_d_quantized_step1
-      train_mode: weights_and_delays
-      delay_param_type: quantized
-      delay_step: 1.0
-    - name: w_and_d_quantized_step2
-      train_mode: weights_and_delays
-      delay_param_type: quantized
-      delay_step: 2.0
-    - name: w_and_d_quantized_step5
-      train_mode: weights_and_delays
-      delay_param_type: quantized
-      delay_step: 5.0
+    # weights_only_d0 already done (K1-K12 all ~80%, no need to extend)
+    # - name: weights_only_d0
+    #   train_mode: weights_only
+    #   delay_param_type: sigmoid
+    #   fixed_delay_value: 0.0
+    # --- Phase 2: uncomment below after reviewing Phase 1 results ---
+    # - name: w_and_d_quantized_step1
+    #   train_mode: weights_and_delays
+    #   delay_param_type: quantized
+    #   delay_step: 1.0
+    # - name: w_and_d_quantized_step2
+    #   train_mode: weights_and_delays
+    #   delay_param_type: quantized
+    #   delay_step: 2.0
+    # - name: w_and_d_quantized_step5
+    #   train_mode: weights_and_delays
+    #   delay_param_type: quantized
+    #   delay_step: 5.0
+
+  # --- Phase 2: add XOR and denser K ---
+  # ops: [NAND, XOR]
+  # K_values: [1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16]
 
 # Optional quick sensitivity grid for separate runs (by manually overriding from CLI/config):
 # lif_tau_m in {5,10,20}, lif_refractory in {0,2}, d_max in {20,49}

@@ -1,0 +1,90 @@
+# ============================================================
+# Step 2D: TRUE Temporal Multiplexing — Sequential Injection
+#          on SHARED Channels (Plan D)
+#
+# Scientific question:
+#   With only 2 shared input channels (A, B), can trainable
+#   delays allow h=20 neurons to decode K queries injected
+#   in sequential sub-windows — where weights_only (d=0)
+#   structurally cannot distinguish queries?
+#
+# Design: Plan D — time-division multiplexing on 2 channels.
+#   - n_input = 2 (A, B shared, NOT 2K)
+#   - Query k fires during [k*sub_win, (k+1)*sub_win)
+#   - sub_win = win_len // K  (e.g. K=4: 5 steps each)
+#   - T = win_len + read_len = 30 (fixed, same as Plan C)
+#
+# Why d=0 structurally fails here (unlike Plan C):
+#   With only 2 channels, WEIGHTS cannot distinguish queries.
+#   A weight w_{A,j} applies equally to all time-steps of
+#   channel A, regardless of which query is currently active.
+#   Only delays let neuron j tune to a specific sub-window:
+#     d_{A,j} ≈ win_len - k*sub_win  →  query k arrives at t=win_len
+#   This is STRUCTURAL necessity, not just an alignment advantage.
+#
+# Contrast with Plan C (step2_simultaneous.yaml):
+#   Plan C had 2K channels — weights alone could separate queries.
+#   Plan D has 2 channels — only delays can separate queries.
+#   A vs B gap should be LARGER and grow with K in Plan D.
+# ============================================================
+
+# ----- Timing -----
+dt: 1.0
+sub_win: 10        # steps per query; win_len = K * sub_win (computed per run)
+read_len: 10       # readout accumulation [win_len, win_len+read_len)
+# d_max = win_len = K * sub_win (computed per run — must cover full win_len for query-0 routing)
+# T = win_len + read_len = K*10 + 10 (grows with K)
+# Expected spikes per query (A=1): 0.4 * sub_win = 4.0 (constant across all K)
+
+# ----- Network -----
+n_hidden: 20
+# d_max: computed per run as win_len = K * sub_win
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200          # more epochs — harder task than Plan C
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset -----
+ops_list: [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+op_name: NAND
+same_op: true
+n_train: 4000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Sweep -----
+# sub_win=10 constant: win_len=K*10, d_max=K*10
+# K=1: win=10,T=20  K=6: win=60,T=70  K=12: win=120,T=130
+sweep:
+  K_values: [1, 2, 3, 4, 5, 6, 8, 10, 12]
+  accuracy_thresholds: [0.95, 0.90]
+
+  conditions:
+    # Full model: can learn different delays per neuron to select queries
+    - name: w_and_d_continuous
+      train_mode: weights_and_delays
+      delay_param_type: sigmoid
+
+    # Baseline: d=0 — structurally cannot distinguish queries (h-independent, ~75% always)
+    # Skipped for h=50 sweep; h=20 results are sufficient.
+    # - name: weights_only_d0
+    #   train_mode: weights_only
+    #   delay_param_type: sigmoid
+    #   fixed_delay_value: 0.0

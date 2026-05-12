@@ -1,0 +1,86 @@
+# ============================================================
+# Experiment A: Isolation Breakdown Sweep
+# Tests cross-slot interference as a function of tau_m and gap_len.
+#
+# Scientific question: when the LIF membrane decay no longer
+# provides perfect slot isolation, do trainable delays allow
+# the network to compensate where fixed-zero delays cannot?
+# ============================================================
+
+# ----- Simulation timing (baseline, identical to step2_multiquery_sameop) -----
+dt: 1.0
+win_len: 20
+read_len: 10
+gap_len: 5        # overridden per-run in Part 2
+
+# ----- Network (identical to step2_multiquery_sameop baseline) -----
+n_input: 2
+hidden_size: 20
+d_max: 49
+lif_tau_m: 10.0   # overridden per-run in Part 1
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+use_output_layer: false
+readout_source: hidden
+
+# ----- Training -----
+train_mode: weights_and_delays
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 100
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset -----
+ops_list: [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+op_name: NAND
+same_op: true
+K: 8
+n_train: 4000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Isolation sweep grid -----
+isolation_sweep:
+  K: 8
+  op: NAND
+
+  # Part 1: tau_m sweep — gap_len=5 fixed
+  # Isolation ratio = slot_len / tau_m = 35 / tau_m
+  #   tau_m= 5 -> ratio=7.0, bleed=e^{-7}  ~0.1%   (very clean)
+  #   tau_m=10 -> ratio=3.5, bleed=e^{-3.5}~3%     (baseline)
+  #   tau_m=20 -> ratio=1.75, bleed=e^{-1.75}~17%  (moderate bleed)
+  #   tau_m=30 -> ratio=1.17, bleed=e^{-1.17}~31%  (heavy bleed)
+  tau_m_sweep:
+    gap_len: 5
+    tau_m_values: [5, 10, 20, 30]
+
+  # Part 2: gap_len sweep — tau_m=10 fixed
+  # At tau_m=10, all gap values give < 5% bleed:
+  #   gap=0 -> slot_len=30, bleed~5%
+  #   gap=2 -> slot_len=32, bleed~4%
+  #   gap=5 -> slot_len=35, bleed~3%  (baseline)
+  #   gap=10-> slot_len=40, bleed~2%
+  gap_len_sweep:
+    tau_m: 10.0
+    gap_len_values: [0, 2, 5, 10]
+
+  conditions:
+    - name: w_and_d_continuous
+      train_mode: weights_and_delays
+      delay_param_type: sigmoid
+    - name: weights_only_d0
+      train_mode: weights_only
+      delay_param_type: sigmoid
+      fixed_delay_value: 0.0

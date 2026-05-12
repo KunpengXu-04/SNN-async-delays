@@ -206,9 +206,18 @@ class SNNModel(nn.Module):
         if self.use_output_layer:
             v_o, ref_o = self.lif_o.init_state(B, device)
 
-        buf_in = torch.zeros(B, self.d_max + 1, self.n_input, device=device)
+        # Circular delay buffers (in-place writes; no torch.cat allocation per step)
+        d_max_1 = self.d_max + 1
+        buf_in  = torch.zeros(B, d_max_1, self.n_input,  device=device)
+        buf_ptr = 0
         if self.use_output_layer:
-            buf_h = torch.zeros(B, self.d_max + 1, self.n_hidden, device=device)
+            buf_h   = torch.zeros(B, d_max_1, self.n_hidden, device=device)
+            buf_h_ptr = 0
+
+        # Pre-compute delays once per forward pass (constant across all T steps)
+        d_cont_ih = self.syn_ih.get_delays()
+        if self.use_output_layer:
+            d_cont_ho = self.syn_ho.get_delays()
 
         hidden_acc = [torch.zeros(B, self.n_hidden, device=device) for _ in range(K)]
         if self.use_output_layer:
@@ -226,16 +235,20 @@ class SNNModel(nn.Module):
         for t in range(T):
             x_t = spike_input[:, t, :]
 
-            I_h = self.syn_ih(buf_in)
+            # Compute synaptic currents from circular buffer (reads happen before write)
+            I_h = self.syn_ih(buf_in, d_cont_ih, buf_ptr)
             spike_h, v_h, ref_h = self.lif_h(I_h, v_h, ref_h)
 
             if self.use_output_layer:
-                I_o = self.syn_ho(buf_h)
+                I_o = self.syn_ho(buf_h, d_cont_ho, buf_h_ptr)
                 spike_o, v_o, ref_o = self.lif_o(I_o, v_o, ref_o)
 
-            buf_in = torch.cat([x_t.unsqueeze(1), buf_in[:, :-1, :]], dim=1)
+            # In-place circular buffer update (no memory allocation)
+            buf_in[:, buf_ptr, :] = x_t
+            buf_ptr = (buf_ptr + 1) % d_max_1
             if self.use_output_layer:
-                buf_h = torch.cat([spike_h.unsqueeze(1), buf_h[:, :-1, :]], dim=1)
+                buf_h[:, buf_h_ptr, :] = spike_h
+                buf_h_ptr = (buf_h_ptr + 1) % d_max_1
 
             total_h_spk = total_h_spk + spike_h.sum(dim=1)
             hidden_fired_any = torch.maximum(hidden_fired_any, (spike_h > 0).float())
@@ -263,4 +276,162 @@ class SNNModel(nn.Module):
             "active_hidden_fraction": active_hidden_neurons / float(self.n_hidden),
             "trial_steps": T,
         }
+        return logits, info
+
+
+class SNNSimultaneousModel(nn.Module):
+    """
+    SNN for TRUE temporal multiplexing (Plan C).
+
+    Architecture
+    ------------
+      2K input channels  [A_0, B_0, ..., A_{K-1}, B_{K-1}]
+        -> DelayedSynapticLayer(W_ih, D_ih)   [2K -> n_hidden]
+        -> LIFNeurons(n_hidden)
+        -> Linear readout [n_hidden -> K]      (one logit per query)
+
+    All K queries are injected SIMULTANEOUSLY during [0, win_len).
+    Hidden spikes are accumulated during [win_len, win_len+read_len).
+    The K-output readout decodes all queries from the shared hidden activity.
+
+    Scientific hypothesis
+    ---------------------
+    With trainable delays, hidden neuron j can selectively delay channel
+    A_k to a specific arrival time, effectively time-sharing its capacity.
+    This allows h neurons to handle K queries where weights_only (d=0)
+    saturates at smaller K because all 2K inputs interfere simultaneously.
+    """
+
+    def __init__(
+        self,
+        n_queries: int,
+        n_hidden: int,
+        win_len: int,
+        read_len: int,
+        d_max: int = 49,
+        train_mode: str = "weights_and_delays",
+        delay_param_type: str = "sigmoid",
+        delay_step: float = 1.0,
+        fixed_delay_value: float | None = None,
+        lif_tau_m: float = 10.0,
+        lif_threshold: float = 1.0,
+        lif_reset: float = 0.0,
+        lif_refractory: int = 2,
+        dt: float = 1.0,
+        surrogate_beta: float = 4.0,
+        n_input_channels: int | None = None,
+    ):
+        super().__init__()
+
+        self.n_queries = n_queries
+        # Plan C default: 2K dedicated channels per query.
+        # Plan D override: n_input_channels=2 (shared channels, sequential injection).
+        self.n_input   = n_input_channels if n_input_channels is not None else 2 * n_queries
+        self.n_hidden  = n_hidden
+        self.d_max     = d_max
+        self.win_len   = win_len
+        self.read_len  = read_len
+        self.T         = win_len + read_len
+        self.train_mode = train_mode
+
+        train_w = train_mode in ("weights_only", "weights_and_delays")
+        train_d = train_mode in ("delays_only", "weights_and_delays")
+
+        if (not train_d) and (fixed_delay_value is None):
+            fixed_delay_value = 0.0
+
+        lif_kw = dict(
+            tau_m=lif_tau_m, v_threshold=lif_threshold, v_reset=lif_reset,
+            refractory_steps=lif_refractory, dt=dt, surrogate_beta=surrogate_beta,
+        )
+
+        self.syn_ih = DelayedSynapticLayer(
+            self.n_input, n_hidden, d_max=d_max,
+            delay_param_type=delay_param_type, delay_step=delay_step,
+            fixed_delay_value=fixed_delay_value,
+            train_weights=train_w, train_delays=train_d,
+        )
+        self.lif_h = LIFNeurons(n_hidden, **lif_kw)
+
+        # K-output readout: one logit per query from shared hidden activity
+        self.readout = nn.Linear(n_hidden, n_queries)
+
+    def weight_params(self):
+        return [p for name, p in self.named_parameters()
+                if "weight" in name and "readout" not in name and p.requires_grad]
+
+    def delay_params(self):
+        return [p for name, p in self.named_parameters()
+                if "delay_raw" in name and p.requires_grad]
+
+    def readout_params(self):
+        return list(self.readout.parameters())
+
+    def get_delays(self) -> Dict[str, torch.Tensor]:
+        return {"ih": self.syn_ih.get_delays()}
+
+    def delay_regularization(self) -> torch.Tensor:
+        return self.syn_ih.get_delays().mean()
+
+    def forward(
+        self,
+        spike_input: torch.Tensor,  # [B, T, n_input]
+        record: bool = False,
+    ) -> Tuple[torch.Tensor, Dict]:
+        """
+        Args:
+            spike_input : [B, T, 2K]  where T = win_len + read_len
+
+        Returns:
+            logits : [B, K]   (one logit per simultaneous query)
+            info   : dict with spike stats
+        """
+        B, T, _ = spike_input.shape
+        device = spike_input.device
+
+        v_h, ref_h = self.lif_h.init_state(B, device)
+
+        d_max_1 = self.d_max + 1
+        buf_in  = torch.zeros(B, d_max_1, self.n_input, device=device)
+        buf_ptr = 0
+
+        d_cont_ih = self.syn_ih.get_delays()
+
+        hidden_acc       = torch.zeros(B, self.n_hidden, device=device)
+        total_h_spk      = torch.zeros(B, device=device)
+        hidden_fired_any = torch.zeros(B, self.n_hidden, device=device)
+
+        # Optional full spike-train recording (for visualization)
+        hidden_train: list = [] if record else None  # type: ignore[assignment]
+
+        for t in range(T):
+            x_t = spike_input[:, t, :]
+            I_h = self.syn_ih(buf_in, d_cont_ih, buf_ptr)
+            spike_h, v_h, ref_h = self.lif_h(I_h, v_h, ref_h)
+
+            buf_in[:, buf_ptr, :] = x_t
+            buf_ptr = (buf_ptr + 1) % d_max_1
+
+            total_h_spk      = total_h_spk + spike_h.sum(dim=1)
+            hidden_fired_any = torch.maximum(hidden_fired_any, (spike_h > 0).float())
+
+            if t >= self.win_len:
+                hidden_acc = hidden_acc + spike_h
+
+            if record:
+                hidden_train.append(spike_h.detach().cpu())
+
+        logits = self.readout(hidden_acc)  # [B, K]
+
+        active_hidden_neurons = hidden_fired_any.sum(dim=1)
+        info = {
+            "total_hidden_spikes":    total_h_spk,
+            "active_hidden_neurons":  active_hidden_neurons,
+            "active_hidden_fraction": active_hidden_neurons / float(self.n_hidden),
+            "trial_steps":            T,
+        }
+        if record:
+            # [B, T, n_hidden]  — full per-timestep spike trains for visualization
+            info["hidden_spike_train"] = torch.stack(hidden_train, dim=1)
+
         return logits, info

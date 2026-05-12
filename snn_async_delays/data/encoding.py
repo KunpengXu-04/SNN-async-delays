@@ -82,3 +82,127 @@ def encode_trial(
             spike_input[:, slot.win_start:slot.win_end, 2:] = torch.bernoulli(p_op_exp)
 
     return spike_input
+
+
+def encode_simultaneous_trial(
+    A_batch: torch.Tensor,   # [B, K] float
+    B_batch: torch.Tensor,   # [B, K] float
+    win_len: int,
+    read_len: int,
+    r_on: float = 400.0,
+    r_off: float = 10.0,
+    dt: float = 1.0,
+    device: str = "cpu",
+) -> torch.Tensor:
+    """
+    Encode K queries simultaneously with 2K dedicated input channels.
+
+    TRUE temporal multiplexing design: all K queries are injected at the
+    same time into shared hidden neurons. Each query k gets its own pair
+    of input channels [2k, 2k+1] = [A_k, B_k].
+
+    Channel layout: [A_0, B_0, A_1, B_1, ..., A_{K-1}, B_{K-1}]
+
+    Timeline:
+      [0, win_len)              : Poisson spikes from all 2K channels.
+      [win_len, win_len+read_len): silence -- readout accumulates delayed spikes.
+
+    The test: with trainable delays, hidden neuron j can route A_k's input
+    to a specific arrival time, effectively time-sharing its capacity across
+    K queries. With d=0, all 2K inputs arrive simultaneously and must be
+    separated by weights alone.
+
+    Returns
+    -------
+    spike_input : [B, T, 2K]  where T = win_len + read_len
+    """
+    B = A_batch.shape[0]
+    K = A_batch.shape[1]
+    T = win_len + read_len
+
+    p_on  = r_on  * dt / 1000.0
+    p_off = r_off * dt / 1000.0
+
+    # Build per-channel probabilities [B, 2K]
+    # Interleave A and B: [A_0, B_0, A_1, B_1, ...]
+    AB = torch.stack([A_batch.to(device), B_batch.to(device)], dim=2)  # [B, K, 2]
+    AB = AB.reshape(B, 2 * K)                                            # [B, 2K]
+
+    p_fire = torch.where(AB > 0.5,
+                         torch.full_like(AB, p_on),
+                         torch.full_like(AB, p_off))   # [B, 2K]
+
+    # Sample Bernoulli for win_len steps in one call: [B, win_len, 2K]
+    p_expanded = p_fire.unsqueeze(1).expand(B, win_len, 2 * K)
+    win_spikes = torch.bernoulli(p_expanded)
+
+    spike_input = torch.zeros(B, T, 2 * K, device=device)
+    spike_input[:, :win_len, :] = win_spikes
+    return spike_input
+
+
+def encode_sequential_trial(
+    A_batch: torch.Tensor,   # [B, K] float
+    B_batch: torch.Tensor,   # [B, K] float
+    win_len: int,
+    read_len: int,
+    r_on: float = 400.0,
+    r_off: float = 10.0,
+    dt: float = 1.0,
+    device: str = "cpu",
+) -> torch.Tensor:
+    """
+    Encode K queries sequentially on 2 SHARED input channels.
+
+    Plan D — true temporal multiplexing via time-division:
+      Query k fires on channels [A, B] during sub-window
+      [k*sub_win, (k+1)*sub_win), where sub_win = win_len // K.
+
+    With d=0: the network cannot distinguish which time-slice belongs
+    to which query — they all go through the same 2 weights.
+    Only trainable delays let each hidden neuron selectively "tune" to
+    a specific sub-window offset, achieving genuine temporal routing.
+
+    Timeline:
+      [0,         sub_win)   : query 0 spikes on A, B
+      [sub_win,   2*sub_win) : query 1 spikes on A, B
+      ...
+      [win_len,   T)         : silence — readout accumulates delayed spikes
+
+    Returns
+    -------
+    spike_input : [B, T, 2]  where T = win_len + read_len
+    """
+    B = A_batch.shape[0]
+    K = A_batch.shape[1]
+    T = win_len + read_len
+    sub_win = win_len // K          # base sub-window length per query
+
+    p_on  = r_on  * dt / 1000.0
+    p_off = r_off * dt / 1000.0
+
+    spike_input = torch.zeros(B, T, 2, device=device)
+
+    for k in range(K):
+        t_start = k * sub_win
+        # Last query gets any remaining steps due to integer division
+        t_end = (k + 1) * sub_win if k < K - 1 else win_len
+        wl = t_end - t_start
+
+        A_k = A_batch[:, k].to(device)
+        B_k = B_batch[:, k].to(device)
+
+        pA = torch.where(A_k > 0.5,
+                         torch.full_like(A_k, p_on),
+                         torch.full_like(A_k, p_off))
+        pB = torch.where(B_k > 0.5,
+                         torch.full_like(B_k, p_on),
+                         torch.full_like(B_k, p_off))
+
+        pA_exp = pA.unsqueeze(1).expand(B, wl)
+        pB_exp = pB.unsqueeze(1).expand(B, wl)
+
+        spike_input[:, t_start:t_end, 0] = torch.bernoulli(pA_exp)
+        spike_input[:, t_start:t_end, 1] = torch.bernoulli(pB_exp)
+
+    return spike_input

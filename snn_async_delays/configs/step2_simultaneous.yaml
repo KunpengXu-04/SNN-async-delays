@@ -1,0 +1,97 @@
+# ============================================================
+# Step 2C: TRUE Temporal Multiplexing (Simultaneous Injection)
+#
+# Scientific question:
+#   Can trainable delays allow h=20 shared hidden neurons to
+#   correctly decode K simultaneous boolean queries (with 2K
+#   dedicated input channels) at larger K than weights_only?
+#
+# Design: Plan C — all K queries injected at the SAME time.
+#   - Input: 2K channels [A_0,B_0,...,A_{K-1},B_{K-1}]
+#   - All channels active during [0, win_len) simultaneously
+#   - Single readout window [win_len, win_len+read_len)
+#   - Readout: nn.Linear(n_hidden, K) → K simultaneous logits
+#
+# Why d=0 is harder here (hypothesis):
+#   With d=0, all 2K inputs arrive simultaneously, creating
+#   maximum crosstalk in the hidden layer. As K grows, the
+#   h=20 neurons must linearly separate more and more mixed
+#   inputs, which becomes increasingly noisy.
+#   With delays, hidden neuron j can "route" its preferred
+#   input channel to a specific arrival time, effectively
+#   time-sharing capacity across K queries and reducing
+#   the instantaneous interference.
+#
+# Contrast with Plan A (step2_multiquery_sameop):
+#   Plan A used K sequential time slots (slot_len=35, tau_m=10).
+#   The LIF decay gave near-perfect slot isolation (3% bleed),
+#   making it equivalent to K independent single-query problems.
+#   That was NOT temporal multiplexing — it was sequential.
+#   Plan C tests true multiplexing: K queries compete for the
+#   same neurons at the same time.
+# ============================================================
+
+# ----- Timing (single-window, no slots) -----
+dt: 1.0
+win_len: 20        # input injection window [0, win_len)
+read_len: 10       # readout accumulation window [win_len, win_len+read_len)
+# T = win_len + read_len = 30  (fixed, independent of K)
+
+# ----- Network -----
+n_hidden: 20
+d_max: 49
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 150
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset -----
+ops_list: [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+op_name: NAND
+same_op: true
+n_train: 4000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Sweep over K (simultaneous queries) -----
+sweep:
+  K_values: [1, 2, 3, 4, 5, 6, 8, 10, 12]
+  accuracy_thresholds: [0.95, 0.90]
+
+  conditions:
+    # Condition A: trainable weights + trainable delays (full model)
+    - name: w_and_d_continuous
+      train_mode: weights_and_delays
+      delay_param_type: sigmoid
+
+    # Condition B: trainable weights, fixed d=20 (alignment SOLVED, no routing freedom)
+    # d=20 routes input spikes from [0,20) to arrive at [20,30) = readout window.
+    # A vs B isolates the CAPACITY effect of trainable delays.
+    - name: weights_only_d20
+      train_mode: weights_only
+      delay_param_type: sigmoid
+      fixed_delay_value: 20.0
+
+    # Condition C: trainable weights, fixed d=0 (alignment FAILS, original baseline)
+    # B vs C isolates the ALIGNMENT effect of a fixed non-zero delay.
+    - name: weights_only_d0
+      train_mode: weights_only
+      delay_param_type: sigmoid
+      fixed_delay_value: 0.0

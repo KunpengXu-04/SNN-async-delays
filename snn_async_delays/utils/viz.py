@@ -257,6 +257,271 @@ def plot_confusion_matrix(
     plt.close(fig)
 
 
+def plot_multilayer_raster(
+    spike_input: np.ndarray,
+    hidden_spikes: np.ndarray,
+    save_path: str,
+    win_len: int,
+    read_len: int,
+    title: str = "Spike Raster",
+    K: int = 1,
+    sub_win: Optional[int] = None,
+):
+    """
+    Two-panel spike raster: Input layer (top) and Hidden layer (bottom).
+
+    Parameters
+    ----------
+    spike_input   : [T, n_input]   binary spike train for input neurons
+    hidden_spikes : [T, n_hidden]  binary spike train for hidden neurons
+    win_len       : length of input injection window
+    read_len      : length of readout window
+    K             : number of queries
+    sub_win       : per-query sub-window length (Plan D); None for Plan C
+    """
+    T, n_input  = spike_input.shape
+    _,  n_hidden = hidden_spikes.shape
+
+    COLORS = plt.cm.tab10.colors
+
+    # Height ratio: one row per neuron (min 1 px each)
+    hr = [max(n_input, 2), max(n_hidden, 4)]
+    fig, axes = plt.subplots(
+        2, 1, figsize=(12, 1.5 + 0.2 * (n_input + n_hidden)),
+        sharex=True, gridspec_kw={"height_ratios": hr}
+    )
+    ax_in, ax_hid = axes
+
+    # ── Input raster ──────────────────────────────────────────────────
+    ax_in.set_title(title, fontsize=11)
+    ax_in.set_ylabel("Input neuron", fontsize=9)
+
+    for n in range(n_input):
+        ts = np.where(spike_input[:, n] > 0)[0]
+        if len(ts) == 0:
+            continue
+        # Plan D: 2 shared channels → all same colour but annotated by window
+        # Plan C: 2K channels → colour by query index
+        if n_input == 2:
+            col = "#333333"
+        else:
+            col = COLORS[(n // 2) % len(COLORS)]
+        ax_in.scatter(ts, np.full_like(ts, n), s=5, color=col, marker="|", linewidths=0.8)
+
+    ax_in.set_ylim(-0.5, n_input - 0.5)
+    ax_in.set_yticks(range(n_input))
+    if n_input == 2:
+        ax_in.set_yticklabels(["A", "B"], fontsize=8)
+    else:
+        ax_in.set_yticklabels(
+            [f"A{n//2}" if n % 2 == 0 else f"B{n//2}" for n in range(n_input)],
+            fontsize=6,
+        )
+
+    # ── Hidden raster ─────────────────────────────────────────────────
+    ax_hid.set_ylabel("Hidden neuron", fontsize=9)
+    ax_hid.set_xlabel("Timestep (ms)", fontsize=9)
+
+    for n in range(n_hidden):
+        ts = np.where(hidden_spikes[:, n] > 0)[0]
+        if len(ts) == 0:
+            continue
+        ax_hid.scatter(ts, np.full_like(ts, n), s=5, color="steelblue",
+                       marker="|", linewidths=0.8)
+
+    ax_hid.set_ylim(-0.5, n_hidden - 0.5)
+    ax_hid.set_yticks(range(0, n_hidden, max(1, n_hidden // 10)))
+
+    # ── Annotations: windows & query boundaries ───────────────────────
+    from matplotlib.patches import Patch
+    for ax in axes:
+        ax.axvspan(0, win_len, alpha=0.07, color="royalblue", zorder=0)
+        ax.axvspan(win_len, win_len + read_len, alpha=0.10, color="tomato", zorder=0)
+        ax.set_xlim(-0.5, T - 0.5)
+
+        if sub_win is not None and K > 1:
+            for k in range(K):
+                t0 = k * sub_win
+                t1 = (k + 1) * sub_win if k < K - 1 else win_len
+                ax.axvline(t0, color=COLORS[k % len(COLORS)],
+                           linestyle="--", linewidth=0.9, alpha=0.8, zorder=1)
+                ax.axvline(t1, color=COLORS[k % len(COLORS)],
+                           linestyle="--", linewidth=0.9, alpha=0.4, zorder=1)
+                mid = (t0 + t1) / 2
+                ymax = ax.get_ylim()[1]
+                ax.text(mid, ymax * 0.97, f"Q{k}", ha="center", va="top",
+                        fontsize=7, color=COLORS[k % len(COLORS)],
+                        fontweight="bold", zorder=2)
+
+    legend_patches = [
+        Patch(facecolor="royalblue", alpha=0.3, label="input window"),
+        Patch(facecolor="tomato",    alpha=0.4, label="readout window"),
+    ]
+    ax_in.legend(handles=legend_patches, loc="upper right", fontsize=8,
+                 framealpha=0.8)
+
+    fig.tight_layout(h_pad=0.3)
+    _ensure_dir(save_path)
+    fig.savefig(save_path, dpi=150)
+    plt.close(fig)
+
+
+def plot_layer_flow(
+    spike_input: np.ndarray,
+    hidden_spikes: np.ndarray,
+    save_path: str,
+    win_len: int,
+    read_len: int,
+    delays: Optional[np.ndarray] = None,
+    weights: Optional[np.ndarray] = None,
+    title: str = "Layer-to-Layer Spike Flow",
+    K: int = 1,
+    sub_win: Optional[int] = None,
+    n_arrows: int = 8,
+):
+    """
+    Layer-to-layer directed spike flow diagram.
+
+    Y-axis represents the neural hierarchy (Input → Hidden → Readout).
+    Within each layer-band spikes are scattered by neuron index.
+    Delay arrows are drawn for the n_arrows synapses with largest |weight|.
+
+    Parameters
+    ----------
+    spike_input   : [T, n_input]   binary spike train
+    hidden_spikes : [T, n_hidden]  binary spike train
+    delays        : [n_input, n_hidden]  learned delay values (optional)
+    weights       : [n_input, n_hidden]  synaptic weights    (optional)
+    n_arrows      : how many delay arrows to draw
+    """
+    T,  n_input  = spike_input.shape
+    _,  n_hidden = hidden_spikes.shape
+
+    COLORS = plt.cm.tab10.colors
+
+    fig, ax = plt.subplots(figsize=(13, 5))
+
+    # ── Band layout ──────────────────────────────────────────────────
+    # Input  band : y ∈ [0,  1)  — each neuron spread across 0..1
+    # Hidden band : y ∈ [1.5, 2.5)
+    # Readout line: y = 3.2
+
+    BAND_IN_BOT,  BAND_IN_TOP  = 0.0, 1.0
+    BAND_HID_BOT, BAND_HID_TOP = 1.5, 2.5
+    READOUT_Y = 3.2
+
+    def input_y(n):
+        return BAND_IN_BOT + (n + 0.5) / n_input * (BAND_IN_TOP - BAND_IN_BOT)
+
+    def hidden_y(n):
+        return BAND_HID_BOT + (n + 0.5) / n_hidden * (BAND_HID_TOP - BAND_HID_BOT)
+
+    # ── Input spikes ─────────────────────────────────────────────────
+    for n in range(n_input):
+        ts = np.where(spike_input[:, n] > 0)[0]
+        if len(ts) == 0:
+            continue
+        col = COLORS[(n // 2) % len(COLORS)] if n_input > 2 else "#333333"
+        ys  = np.full(len(ts), input_y(n))
+        ax.scatter(ts, ys, s=6, color=col, marker="|", linewidths=1.0, zorder=3)
+
+    # ── Hidden spikes ─────────────────────────────────────────────────
+    for n in range(n_hidden):
+        ts = np.where(hidden_spikes[:, n] > 0)[0]
+        if len(ts) == 0:
+            continue
+        ys = np.full(len(ts), hidden_y(n))
+        ax.scatter(ts, ys, s=6, color="steelblue", marker="|",
+                   linewidths=1.0, zorder=3)
+
+    # ── Readout marker ────────────────────────────────────────────────
+    ax.axhline(READOUT_Y, xmin=(win_len / T), xmax=1.0,
+               color="tomato", linewidth=2, alpha=0.6, zorder=2)
+    ax.text(win_len + (T - win_len) / 2, READOUT_Y + 0.08,
+            "Readout window (accumulate → logits)",
+            ha="center", va="bottom", fontsize=8, color="tomato")
+
+    # ── Delay arrows (most important synapses) ────────────────────────
+    if delays is not None and n_arrows > 0:
+        if weights is not None:
+            importance = np.abs(weights).flatten()
+        else:
+            importance = np.ones(n_input * n_hidden)
+        flat_idx  = np.argsort(importance)[::-1][:n_arrows]
+        pre_idxs  = flat_idx // n_hidden
+        post_idxs = flat_idx %  n_hidden
+
+        for pre, post in zip(pre_idxs, post_idxs):
+            d = delays[pre, post]
+            # Find first spike from pre-synaptic neuron
+            ts_pre = np.where(spike_input[:, pre] > 0)[0]
+            if len(ts_pre) == 0:
+                continue
+            t_spike = ts_pre[0]
+            t_arrive = t_spike + d
+            if t_arrive >= T:
+                continue
+            y0 = input_y(pre)
+            y1 = hidden_y(post)
+            col = COLORS[(pre // 2) % len(COLORS)] if n_input > 2 else COLORS[pre]
+            ax.annotate(
+                "", xy=(t_arrive, y1), xytext=(t_spike, y0),
+                arrowprops=dict(
+                    arrowstyle="-|>", color=col, alpha=0.55,
+                    lw=0.9, mutation_scale=8,
+                    connectionstyle="arc3,rad=0.15",
+                ),
+                zorder=4,
+            )
+
+    # ── Band backgrounds & labels ─────────────────────────────────────
+    ax.axhspan(BAND_IN_BOT - 0.1,  BAND_IN_TOP + 0.1,
+               alpha=0.06, color="royalblue", zorder=0)
+    ax.axhspan(BAND_HID_BOT - 0.1, BAND_HID_TOP + 0.1,
+               alpha=0.06, color="steelblue", zorder=0)
+    ax.text(-0.8, (BAND_IN_BOT + BAND_IN_TOP) / 2,
+            "Input", va="center", ha="right", fontsize=9, fontweight="bold",
+            color="royalblue")
+    ax.text(-0.8, (BAND_HID_BOT + BAND_HID_TOP) / 2,
+            "Hidden", va="center", ha="right", fontsize=9, fontweight="bold",
+            color="steelblue")
+    ax.text(-0.8, READOUT_Y,
+            "Readout", va="center", ha="right", fontsize=9, fontweight="bold",
+            color="tomato")
+
+    # ── Window shading & query lines ──────────────────────────────────
+    ax.axvspan(0, win_len, alpha=0.05, color="royalblue", zorder=0)
+    ax.axvspan(win_len, win_len + read_len, alpha=0.08, color="tomato", zorder=0)
+
+    if sub_win is not None and K > 1:
+        for k in range(K):
+            t0 = k * sub_win
+            ax.axvline(t0, color=COLORS[k % len(COLORS)],
+                       linestyle=":", linewidth=1.0, alpha=0.7, zorder=1)
+            ax.text(t0 + 0.3, BAND_IN_BOT - 0.05, f"Q{k}",
+                    fontsize=7, color=COLORS[k % len(COLORS)],
+                    va="top", fontweight="bold")
+
+    # ── Axes formatting ───────────────────────────────────────────────
+    ax.set_xlim(-1, T)
+    ax.set_ylim(BAND_IN_BOT - 0.25, READOUT_Y + 0.35)
+    ax.set_yticks([])
+    ax.set_xlabel("Timestep (ms)", fontsize=10)
+    ax.set_title(title, fontsize=11)
+
+    from matplotlib.patches import Patch
+    legend_patches = [
+        Patch(facecolor="royalblue", alpha=0.3, label="input window"),
+        Patch(facecolor="tomato",    alpha=0.4, label="readout window"),
+    ]
+    ax.legend(handles=legend_patches, loc="upper right", fontsize=8, framealpha=0.8)
+
+    fig.tight_layout()
+    _ensure_dir(save_path)
+    fig.savefig(save_path, dpi=150)
+    plt.close(fig)
+
+
 def plot_opwise_accuracy(
     op_accuracy: Dict[str, float],
     save_path: str,

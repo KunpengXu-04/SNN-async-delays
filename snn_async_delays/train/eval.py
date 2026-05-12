@@ -16,8 +16,8 @@ from typing import List, Dict
 import torch
 from torch.utils.data import DataLoader
 
-from snn.model import SNNModel, SlotBoundaries
-from data.encoding import encode_trial
+from snn.model import SNNModel, SNNSimultaneousModel, SlotBoundaries
+from data.encoding import encode_trial, encode_simultaneous_trial
 
 
 def _binary_confusion(preds_flat: torch.Tensor, labels_flat: torch.Tensor) -> list[list[int]]:
@@ -158,6 +158,84 @@ def save_eval_results(results: Dict, path: str):
 def load_eval_results(path: str) -> Dict:
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+@torch.no_grad()
+def evaluate_simultaneous(
+    model: SNNSimultaneousModel,
+    loader: DataLoader,
+    cfg: Dict,
+    device: str = "cpu",
+    encode_fn=None,
+) -> Dict:
+    """
+    Evaluation for SNNSimultaneousModel (true temporal multiplexing).
+
+    Returns the same keys as evaluate() for direct comparison.
+    """
+    model.eval()
+    K = model.n_queries
+
+    all_preds, all_labels, all_h_spk, all_active_frac = [], [], [], []
+
+    for A, B, op_ids, labels in loader:
+        if labels.dim() == 1:
+            A, B, op_ids, labels = (
+                A.unsqueeze(1), B.unsqueeze(1),
+                op_ids.unsqueeze(1), labels.unsqueeze(1),
+            )
+
+        A      = A.to(device)
+        B      = B.to(device)
+        labels = labels.to(device)
+
+        _encode = encode_fn if encode_fn is not None else encode_simultaneous_trial
+        spike_input = _encode(
+            A, B,
+            win_len=cfg["win_len"],
+            read_len=cfg["read_len"],
+            r_on=cfg["r_on"],
+            r_off=cfg["r_off"],
+            dt=cfg["dt"],
+            device=device,
+        )
+        logits, info = model(spike_input)
+
+        preds = (logits > 0).float()
+        all_preds.append(preds.cpu())
+        all_labels.append(labels.cpu())
+        all_h_spk.append(info["total_hidden_spikes"].cpu())
+        all_active_frac.append(info["active_hidden_fraction"].cpu())
+
+    preds  = torch.cat(all_preds,  dim=0)   # [N, K]
+    labels = torch.cat(all_labels, dim=0)   # [N, K]
+    h_spk  = torch.cat(all_h_spk,  dim=0)  # [N]
+    active_frac = torch.cat(all_active_frac, dim=0)
+
+    correct      = (preds == labels).float()
+    overall_acc  = correct.mean().item()
+    per_query_acc = correct.mean(dim=0).tolist()
+    mean_h_spk   = h_spk.mean().item()
+    throughput    = K / mean_h_spk if mean_h_spk > 0 else float("nan")
+
+    T_steps    = model.T
+    trial_ms   = T_steps * float(cfg["dt"])
+    ops_per_neuron_per_ms = K / (max(model.n_hidden, 1) * max(trial_ms, 1e-9))
+
+    preds_flat  = preds.reshape(-1)
+    labels_flat = labels.reshape(-1)
+    binary_conf = _binary_confusion(preds_flat, labels_flat)
+
+    return {
+        "accuracy":                overall_acc,
+        "per_query_acc":           per_query_acc,
+        "mean_hidden_spikes":      mean_h_spk,
+        "throughput_K_per_spk":    throughput,
+        "ops_per_neuron_per_ms":   ops_per_neuron_per_ms,
+        "mean_active_hidden_fraction": float(active_frac.mean().item()),
+        "binary_confusion":        binary_conf,
+        "K":                       K,
+    }
 
 
 def summarize_sweep(results: List[Dict], key_fields: List[str] = None) -> str:

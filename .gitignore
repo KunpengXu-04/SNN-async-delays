@@ -13,6 +13,5 @@ __pycache__/
 # Claude Code internal
 .claude/
 
-# Run archives and console logs
-snn_async_delays/runs/_archive_*/
-snn_async_delays/runs/*.log
+# Run outputs (experiment artifacts, regeneratable)
+snn_async_delays/runs/

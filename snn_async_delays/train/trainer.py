@@ -21,8 +21,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from snn.model import SNNModel, SlotBoundaries
-from data.encoding import encode_trial
+from snn.model import SNNModel, SNNSimultaneousModel, SlotBoundaries
+from data.encoding import encode_trial, encode_simultaneous_trial
 
 
 # ---------------------------------------------------------------------------
@@ -204,6 +204,188 @@ class Trainer:
             self.log_rows.append(row)
 
             # Checkpoint
+            if val["acc"] > self.best_val:
+                self.best_val = val["acc"]
+                torch.save(
+                    self.model.state_dict(),
+                    os.path.join(self.run_dir, "best_model.pt"),
+                )
+
+            if verbose and (epoch % 10 == 0 or epoch == 1):
+                print(
+                    f"[{epoch:4d}/{epochs}] "
+                    f"train acc={tr['acc']:.4f}  "
+                    f"val acc={val['acc']:.4f}  "
+                    f"spk={val['mean_hidden_spikes']:.1f}  "
+                    f"({dt:.1f}s)"
+                )
+
+        self._save_log()
+        return self.log_rows
+
+    # ------------------------------------------------------------------
+    def _save_log(self):
+        if not self.log_rows:
+            return
+        path = os.path.join(self.run_dir, "train_log.csv")
+        keys = list(self.log_rows[0].keys())
+        with open(path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=keys)
+            writer.writeheader()
+            writer.writerows(self.log_rows)
+
+    def save_config(self, cfg: Dict):
+        path = os.path.join(self.run_dir, "config.json")
+        with open(path, "w") as f:
+            json.dump(cfg, f, indent=2, default=str)
+
+
+# ---------------------------------------------------------------------------
+
+class SimultaneousTrainer:
+    """
+    Training engine for SNNSimultaneousModel (true temporal multiplexing).
+
+    Differences from Trainer:
+      - Uses encode_simultaneous_trial() instead of encode_trial()
+      - Calls model(spike_input) without slots (single readout window)
+      - Model produces [B, K] logits from shared hidden activity
+    """
+
+    def __init__(
+        self,
+        model: SNNSimultaneousModel,
+        cfg: Dict[str, Any],
+        run_dir: str,
+        device: str = "cpu",
+        encode_fn=None,
+    ):
+        self.model   = model.to(device)
+        self.cfg     = cfg
+        self.run_dir = run_dir
+        self.device  = device
+        # Plan C default: simultaneous 2K-channel encoding.
+        # Plan D override: pass encode_sequential_trial.
+        self.encode_fn = encode_fn if encode_fn is not None else encode_simultaneous_trial
+
+        os.makedirs(run_dir, exist_ok=True)
+
+        # Reuse the same optimizer builder (param group API is identical)
+        self.optimizer  = build_optimizer(model, cfg)
+        self.best_val   = 0.0
+        self.log_rows: List[Dict] = []
+
+    # ------------------------------------------------------------------
+    def _forward_batch(self, A, B, op_ids, labels):
+        A      = A.to(self.device)
+        B      = B.to(self.device)
+        labels = labels.to(self.device)   # [B, K]
+
+        spike_input = self.encode_fn(
+            A, B,
+            win_len=self.cfg["win_len"],
+            read_len=self.cfg["read_len"],
+            r_on=self.cfg["r_on"],
+            r_off=self.cfg["r_off"],
+            dt=self.cfg["dt"],
+            device=self.device,
+        )
+
+        logits, info = self.model(spike_input)   # [B, K]
+
+        loss = F.binary_cross_entropy_with_logits(
+            logits.reshape(-1), labels.reshape(-1)
+        )
+
+        if self.cfg.get("spike_penalty", 0.0) > 0:
+            spk_mean = info["total_hidden_spikes"].mean()
+            loss = loss + self.cfg["spike_penalty"] * spk_mean
+
+        if self.cfg.get("delay_penalty", 0.0) > 0:
+            loss = loss + self.cfg["delay_penalty"] * self.model.delay_regularization()
+
+        preds = (logits.detach() > 0).float()
+        acc   = (preds == labels.detach()).float().mean().item()
+
+        return loss, acc, info
+
+    # ------------------------------------------------------------------
+    def train_epoch(self, loader: DataLoader) -> Dict[str, float]:
+        self.model.train()
+        total_loss, total_acc, n = 0.0, 0.0, 0
+
+        for A, B, op_ids, labels in loader:
+            if labels.dim() == 1:
+                A, B, op_ids, labels = (
+                    A.unsqueeze(1), B.unsqueeze(1),
+                    op_ids.unsqueeze(1), labels.unsqueeze(1),
+                )
+
+            loss, acc, _ = self._forward_batch(A, B, op_ids, labels)
+
+            self.optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), self.cfg.get("grad_clip", 1.0)
+            )
+            self.optimizer.step()
+
+            total_loss += loss.item()
+            total_acc  += acc
+            n += 1
+
+        return {"loss": total_loss / n, "acc": total_acc / n}
+
+    # ------------------------------------------------------------------
+    @torch.no_grad()
+    def eval_epoch(self, loader: DataLoader) -> Dict[str, float]:
+        self.model.eval()
+        total_loss, total_acc, total_spk, n = 0.0, 0.0, 0.0, 0
+
+        for A, B, op_ids, labels in loader:
+            if labels.dim() == 1:
+                A, B, op_ids, labels = (
+                    A.unsqueeze(1), B.unsqueeze(1),
+                    op_ids.unsqueeze(1), labels.unsqueeze(1),
+                )
+
+            loss, acc, info = self._forward_batch(A, B, op_ids, labels)
+            total_loss += loss.item()
+            total_acc  += acc
+            total_spk  += info["total_hidden_spikes"].mean().item()
+            n += 1
+
+        return {
+            "loss": total_loss / n,
+            "acc":  total_acc  / n,
+            "mean_hidden_spikes": total_spk / n,
+        }
+
+    # ------------------------------------------------------------------
+    def fit(
+        self,
+        train_loader: DataLoader,
+        val_loader:   DataLoader,
+        epochs:       int,
+        verbose:      bool = True,
+    ) -> List[Dict]:
+        for epoch in range(1, epochs + 1):
+            t0  = time.time()
+            tr  = self.train_epoch(train_loader)
+            val = self.eval_epoch(val_loader)
+            dt  = time.time() - t0
+
+            row = {
+                "epoch":      epoch,
+                "train_loss": tr["loss"],
+                "train_acc":  tr["acc"],
+                "val_loss":   val["loss"],
+                "val_acc":    val["acc"],
+                "mean_hidden_spikes": val["mean_hidden_spikes"],
+                "time_s":     dt,
+            }
+            self.log_rows.append(row)
+
             if val["acc"] > self.best_val:
                 self.best_val = val["acc"]
                 torch.save(

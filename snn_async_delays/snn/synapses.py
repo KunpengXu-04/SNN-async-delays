@@ -99,39 +99,49 @@ class DelayedSynapticLayer(nn.Module):
         raise ValueError(f"Unsupported delay_param_type: {self.delay_param_type}")
 
     # ------------------------------------------------------------------
-    def forward(self, buf: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        buf: torch.Tensor,
+        d_cont: torch.Tensor | None = None,
+        buf_ptr: int | None = None,
+    ) -> torch.Tensor:
         """
         Args:
-            buf : [B, d_max+1, N_pre]
-                  buf[:, d, :] = spikes from (d+1) steps ago
+            buf     : [B, d_max+1, N_pre]
+                      Shift-register mode  (buf_ptr=None): buf[:, d, :] = spikes from (d+1) steps ago.
+                      Circular-buffer mode (buf_ptr=int):  write head; buf[:, (ptr-1-d)%(d_max+1), :]
+                      = spikes from (d+1) steps ago.
+            d_cont  : optional pre-computed delays [N_pre, N_post] in [0, d_max].
+                      If None, calls get_delays() internally (slower for T-step loops).
+            buf_ptr : circular buffer write-head position (int).  None → shift-register mode.
 
         Returns:
             I_syn : [B, N_post]
         """
         B = buf.shape[0]
-        device = buf.device
 
-        d_cont = self.get_delays()                            # [N_pre, N_post]
+        if d_cont is None:
+            d_cont = self.get_delays()                                   # [N_pre, N_post]
+
         d_floor = torch.clamp(d_cont.detach().floor().long(), 0, self.d_max)
-        d_ceil = torch.clamp(d_floor + 1, 0, self.d_max)
-        alpha = d_cont - d_floor.float()                      # fractional part; grad flows
+        d_ceil  = torch.clamp(d_floor + 1, 0, self.d_max)
+        alpha   = d_cont - d_floor.float()                               # grad flows
 
-        I_syn = torch.zeros(B, self.n_post, device=device)
+        # buf transposed: [B, N_pre, d_max+1]  (contiguous for gather)
+        buf_t = buf.permute(0, 2, 1).contiguous()
 
-        for i in range(self.n_pre):
-            buf_i = buf[:, :, i]                              # [B, d_max+1]
+        if buf_ptr is not None:
+            d_max_1 = self.d_max + 1
+            idx_f = ((buf_ptr - 1 - d_floor) % d_max_1).unsqueeze(0).expand(B, -1, -1)
+            idx_c = ((buf_ptr - 1 - d_ceil)  % d_max_1).unsqueeze(0).expand(B, -1, -1)
+        else:
+            idx_f = d_floor.unsqueeze(0).expand(B, -1, -1)              # [B, N_pre, N_post]
+            idx_c = d_ceil.unsqueeze(0).expand(B, -1, -1)
 
-            # floor gather
-            idx_f = d_floor[i].unsqueeze(0).expand(B, -1)    # [B, N_post]
-            s_f = torch.gather(buf_i, 1, idx_f)              # [B, N_post]
+        s_f   = torch.gather(buf_t, 2, idx_f)                           # [B, N_pre, N_post]
+        s_c   = torch.gather(buf_t, 2, idx_c)
+        s_del = (1.0 - alpha) * s_f + alpha * s_c                       # broadcast over B
 
-            # ceil gather
-            idx_c = d_ceil[i].unsqueeze(0).expand(B, -1)
-            s_c = torch.gather(buf_i, 1, idx_c)              # [B, N_post]
-
-            # linear interpolation (gradient flows through alpha -> d_cont -> d_raw)
-            s_i = (1.0 - alpha[i]) * s_f + alpha[i] * s_c    # [B, N_post]
-
-            I_syn = I_syn + s_i * self.weight[i].unsqueeze(0)
-
+        # weighted sum over N_pre  →  [B, N_post]
+        I_syn = (s_del * self.weight).sum(dim=1)
         return I_syn

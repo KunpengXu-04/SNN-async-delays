@@ -302,17 +302,42 @@ h 从 20 增加到 50（+150% 神经元），Max K@90% 未变。这说明瓶颈*
 | 3 | 88.63% | 88.27% | 87.23% | 85.97% | **87.52 ± 1.04%** |
 
 **稳定性**：所有条件 std < 2%，结论不依赖特定种子。  
-**Max K @ 90%（多 seed）**：h=50 K=2 均值 92.20%（4/4 seeds ≥ 90%），Max K@90% = **2** 确认。
+**Max K @ 90%（线性读出，多 seed）**：h=50 K=2 均值 92.20%（4/4 seeds ≥ 90%），Max K@90%（线性）= **2**。
 
-### 6.6 Plan D 结论
+### 6.6 Plan D + MLP 读出实验（2026-05-13）
+
+**实验动机**：Section 10.5 假设 K=2 上限来自线性解码器，而非 SNN 表示。改用 MLP 读出（`Linear(h,h)→ReLU→Linear(h,K)`）来验证。
+
+**结果（h=50，seeds 42 和 0）：**
+
+| K | seed=42 | seed=0 | mean |
+|---|---------|--------|------|
+| 1 | 95.00% | 96.90% | 95.95% |
+| 2 | 94.10% | 92.90% | 93.50% |
+| **3** | **92.33%** | **93.03%** | **92.68%** |
+| 4 | 89.63% | 90.07% | 89.85% |
+| 5 | 85.84% | 86.74% | 86.29% |
+| 6 | 83.10% | 84.58% | 83.84% |
+
+**Max K @ 90%（MLP 读出）= K=3**，K=3 精度从 87.52%（线性）跃升至 92.68%（MLP），+5.16%。
+
+### 6.7 Plan D 最终结论
 
 1. **延迟是时序路由的结构性必要机制**（Plan D 最干净地证明）：d=0 无法区分时间位置的查询，这是权重的原理性局限，不是训练量问题。
 
-2. **时间路由在 K=2 时成立**（多 seed 验证）：h=50 下 92.20 ± 0.75%（+16.7% vs d=0），4/4 seeds 均超过 90% 门槛，结论稳健。
+2. **时间路由在 K=2（线性）/ K=3（MLP）时成立**：  
+   - 线性读出 h=50 K=2：92.20 ± 0.75%（4 seeds，+16.7% vs d=0）  
+   - MLP 读出 h=50 K=3：92.68%（2 seeds，两者均 > 92%）  
+   这是本研究中对"时间复用"最干净的证明。
 
-3. **时间路由受共享读出解码瓶颈限制**：增加 h 无法突破 K=2@90% 的上限，真正限制是单一读出窗口的叠加解码难度。K=3 多 seed 均值 84~88%，稳定低于门槛。
+3. **K=2 上限是线性解码器的局限，不是 SNN 机制的上限**：  
+   MLP 读出将 Max K@90% 从 2 推进到 3，增幅 5.16 个百分点。  
+   延迟的时序路由在 h=50 下实际上创造了支持 K=3 的非线性可分表示。
 
-4. **Plan D 的 K=2 上限与 Plan A 的 K=20 上限并不矛盾**：Plan A 中每个查询有专属读出，Plan D 中所有查询共享读出——后者是更严格的复用测试。
+4. **MLP 不能无限扩展 K**：K=4 均值 89.85%（接近但未过 90%），K≥5 继续下降。  
+   膜电位叠加在 K≥4 时使解码困难——这是 SNN 积分特性的根本约束。
+
+5. **Plan D 的上限与 Plan A 的 K=20 并不矛盾**：Plan A 用 K 个独立读出窗口（天然隔离），Plan D 用单一共享读出（更严格的测试）。
 
 ---
 
@@ -346,7 +371,7 @@ h 从 20 增加到 50（+150% 神经元），Max K@90% 未变。这说明瓶颈*
 
 **发现 2（Plan C）**：当权重已能在空间上区分查询（2K 专属通道），延迟的额外贡献仅 +2.7%。对齐是延迟价值的主体（4.3× 大于路由容量）。
 
-**发现 3（Plan D，主要发现）**：在共享通道约束下，可训练延迟是时序路由的**唯一且必要**机制（d=0 结构性失败）。时间路由在 K=2 时有效（+14~17%），但受共享单读出解码瓶颈限制，Max K@90% = 2，与 h 无关（h=20→50 无突破）。
+**发现 3（Plan D，主要发现）**：在共享通道约束下，可训练延迟是时序路由的**唯一且必要**机制（d=0 结构性失败）。时间路由在 K=2（线性读出，+14~17%）/ K=3（MLP 读出，+5.2% 额外提升）时有效。线性读出下 Max K@90% = 2（h=50，4 seeds），MLP 读出将上限推至 K=3（两个 seed 均 >92%），揭示了 K=2 上限是线性解码器的局限，而非 SNN 表示的局限。
 
 **发现 4（机制统一）**：Plan A 的"K=1~20 全部工作"与 Plan D 的"K=2 上限"不矛盾，而是揭示了两种不同计算模式的本质差异：
 - 串行多读出（Plan A）= 序列化的单任务处理，可无限扩展，延迟仅做对齐
@@ -360,11 +385,11 @@ h 从 20 增加到 50（+150% 神经元），Max K@90% 未变。这说明瓶颈*
 
 > **"给定固定网络规模，带延迟的 SNN 能否通过时间复用处理更多并行查询？"**
 
-**是，但比假设弱，且机制不同于预期。**
+**是，机制比预期更微妙，容量比初版结论更强。**
 
 - **强结论**：可训练延迟是时序计算的**必要**机制——在共享通道设计（Plan D）中，无延迟（d=0）在任何 K 下都无法有效工作，这是权重的原理性局限，无法通过增加训练量克服。
 
-- **弱结论**：真正的时间复用（并行处理多查询共享同一输入通道）在 K=2 时成立（+14~17% vs d=0），但在当前架构（线性单读出）下受解码瓶颈限制，无法扩展到 K≥3。
+- **更新结论（MLP 读出后）**：延迟的时序表示支持 K=3 的非线性可分分离（MLP 读出：92.68%，2 seeds）。线性读出下 Max K@90% = 2，MLP 读出下 Max K@90% = 3。这说明 SNN 的时序路由容量高于线性解码所能体现的——延迟确实将查询编码进了更丰富的隐层状态。
 
 - **否定结论**：Plan A 中观察到的 K=1~20 全部工作，**不是**时间复用的证明，而是串行对齐的结果。
 
@@ -374,7 +399,7 @@ h 从 20 增加到 50（+150% 神经元），Max K@90% 未变。这说明瓶颈*
 
 2. **The dominant benefit of trainable delays is temporal alignment, not multiplexing capacity**: Alignment effect (+11–19% across all designs) is 4.3× larger than capacity effect (+2.7% in Plan C).
 
-3. **Temporal multiplexing exists but is bounded by the readout architecture**: Plan D achieves K=2 with 92.20 ± 0.75% accuracy (h=50, 4 seeds, shared channels, single readout), but the ceiling is K=2 regardless of hidden size (h=20→50 gives no improvement), due to blended membrane state at shared readout.
+3. **Temporal multiplexing exists and its ceiling depends on the readout architecture**: With linear readout, Plan D achieves Max K@90% = 2 (92.20±0.75%, 4 seeds). With MLP readout, Max K@90% = 3 (92.68%, 2 seeds, +5.2% over linear). The K=2 ceiling under linear readout is a decoder limitation, not a representation limitation — delays create richer temporal structure than a linear layer can extract.
 
 4. **Energy advantage**: `weights_and_delays` achieves comparable or higher accuracy with ~19% fewer spikes than `weights_only` at equivalent K.
 
@@ -389,24 +414,23 @@ h 从 20 增加到 50（+150% 神经元），Max K@90% 未变。这说明瓶颈*
 | 维度 | 当前状态 | 缺口 |
 |------|---------|------|
 | 研究问题清晰度 | ✓ 清晰，有正有负 | — |
-| 实验系统性 | ✓ 4种设计逐步收紧 | — |
-| 结论的可辩护性 | ✓ 机制分析充分 | — |
-| 统计可靠性 | ✓ Plan D K=1,2,3 已完成 4 seeds（std < 2%） | Plan A K=1 可补充 |
+| 实验系统性 | ✓ 4种设计逐步收紧 + 读出层消融 | — |
+| 结论的可辩护性 | ✓ 机制分析充分，MLP 验证了表示层假设 | — |
+| 统计可靠性 | ✓ Plan D K=1,2,3 已完成 4 seeds（std < 2%）；MLP K=3 2 seeds | MLP K=3 可补充到 4 seeds |
 | 实验规模 | ⚠ 只测 NAND，h=20/50 | 更多 op 或更多 h 值 |
-| 基线对比 | ⚠ 无非 SNN 基线（RNN/MLP）| 增加对比才有意义 |
+| 基线对比 | ⚠ 无非 SNN 基线（RNN/MLP on raw input）| 增加对比才有意义 |
 | 理论分析 | ✗ 全是实验，无数学分析 | 读出解码瓶颈的理论界 |
 
 ### 9.2 最高优先级补充实验
 
-**① 多 seed 重复（✓ 已完成）**
+**① 多 seed 重复（✓ 已完成，MLP 可补充）**
 
-Plan D K=1,2,3（h=20 和 h=50）均已用 seeds [0,1,2,42] 验证，std < 2%。
-结论稳健：Max K@90% = 2（h=50 K=2：92.20 ± 0.75%，4/4 seeds ≥ 90%）。
-可选补充：Plan A K=1 跑多 seed（低优先级，K=1 结果本身变异性小）。
+Plan D 线性读出 K=1,2,3（h=20 和 h=50）均已用 4 seeds 验证，std < 2%。  
+MLP 读出 K=3（h=50）已有 2 seeds，均值 92.68%——可补充到 4 seeds 以匹配线性读出的统计质量。
 
 **② Plan D 的理论分析（有价值，中难度）**
 
-为什么 K=2 是上限？可以从信息论或线性代数角度分析：读出层 Linear(h, K) 需要将 h 维状态解码为 K 个独立 bit，当 K 个查询的膜电位表示在 h 维空间中的线性可分性被噪声（跨 slot 残留）破坏时，解码误差下界是多少？
+为什么线性读出 K=2 是上限而 MLP 能突破？可从 Rademacher complexity 或线性可分性角度分析：膜电位在 K 个查询叠加后的几何结构（线性可分 vs 非线性可分边界），以及跨 slot 残留（~37%/slot）如何破坏线性可分性。
 
 **③ 非 SNN 基线（如果要投 ML 会议）**
 

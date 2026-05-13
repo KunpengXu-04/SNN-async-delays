@@ -154,7 +154,7 @@ Comparison dimensions: `weight-only` vs `delay-only` vs `weight+delay`; hidden s
 
 ## Step 2 Results (Multi-Query Temporal Multiplexing)
 
-Full experiment log: `docs/EXPERIMENT_LOG.md` (Sections 3–10)
+Full experiment log: `docs/EXPERIMENT_LOG.md` (Sections 3–12)
 
 ### Four Experimental Designs
 
@@ -189,11 +189,14 @@ Delays' main role is alignment; spatial channels (2K) already handle query separ
 
 Max K @ 90%: **K=2** (h=20). Bottleneck: h=20 capacity (~6.7 neurons/query at K=3).
 
-**h=50 results** (w_and_d only): K=1: 95.6%, K=2: 92.7%, K=3: 86.0%, K=4: 86.1%, K≥5: ~80-83%. Max K@90% = **K=2** (same as h=20). Increasing neurons by 150% yields only +1~3% — bottleneck is the shared single-readout decoder (Linear(h,K) decoding K answers from blended membrane state), not neuron count.
+**h=50 results, linear readout** (w_and_d, 4 seeds): K=1: 95.05±0.21%, K=2: 92.20±0.75%, K=3: 87.52±1.04%. Max K@90% = **K=2** (linear readout). Increasing neurons by 150% yields only +1~3% — bottleneck is the shared single-readout decoder (Linear(h,K)), not neuron count.
+
+**h=50 results, MLP readout** (w_and_d, seeds 42+0): K=1: 95.95%, K=2: 93.50%, K=3: **92.68%**, K=4: 89.85%, K=5: 86.29%, K=6: 83.84%. Max K@90% = **K=3** (MLP readout). K=3 accuracy jumps from 87.52% (linear) to 92.68% (MLP), confirming the K=2 ceiling under linear readout was a *decoder* limitation, not a *representation* limitation.
 
 ### Overall Conclusion
 
 Trainable delays are a **structurally necessary** mechanism for shared-channel temporal multiplexing:  
 - d=0 is a structural failure (not a learning failure) in Plan D  
 - The primary benefit of delays is **time alignment** (+11–19% vs d=0)  
-- True temporal routing capacity exists (Plan D K=2) but requires sufficient hidden neurons
+- True temporal routing capacity exists: **K=3 @ >92%** with MLP readout (h=50)  
+- The K=2 ceiling under linear readout reflects decoder expressiveness, not SNN representation capacity

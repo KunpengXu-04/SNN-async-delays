@@ -321,23 +321,39 @@ h 从 20 增加到 50（+150% 神经元），Max K@90% 未变。这说明瓶颈*
 
 **Max K @ 90%（MLP 读出）= K=3**，K=3 精度从 87.52%（线性）跃升至 92.68%（MLP），+5.16%。
 
-### 6.7 Plan D 最终结论
+### 6.7 消融对照：MLP + d=0（2026-05-13，排除混淆假说）
 
-1. **延迟是时序路由的结构性必要机制**（Plan D 最干净地证明）：d=0 无法区分时间位置的查询，这是权重的原理性局限，不是训练量问题。
+**问题**：MLP 的提升是因为 delay 创造了更好的表示，还是 MLP 本身足够强大无需 delay？
 
-2. **时间路由在 K=2（线性）/ K=3（MLP）时成立**：  
-   - 线性读出 h=50 K=2：92.20 ± 0.75%（4 seeds，+16.7% vs d=0）  
-   - MLP 读出 h=50 K=3：92.68%（2 seeds，两者均 > 92%）  
-   这是本研究中对"时间复用"最干净的证明。
+**实验**：`MLP readout + weights_only (d=0)`，h=50，K=2 和 K=3，seeds 42 和 0。
 
-3. **K=2 上限是线性解码器的局限，不是 SNN 机制的上限**：  
-   MLP 读出将 Max K@90% 从 2 推进到 3，增幅 5.16 个百分点。  
-   延迟的时序路由在 h=50 下实际上创造了支持 K=3 的非线性可分表示。
+**完整 2×2 消融矩阵（h=50）：**
 
-4. **MLP 不能无限扩展 K**：K=4 均值 89.85%（接近但未过 90%），K≥5 继续下降。  
-   膜电位叠加在 K≥4 时使解码困难——这是 SNN 积分特性的根本约束。
+| 读出层 | Delay | K=2 acc | K=3 acc | Max K@90% |
+|-------|-------|---------|---------|----------|
+| Linear | d=0 | ~76% | ~76% | 0 |
+| Linear | trainable | 92.20 ± 0.75% | 87.52 ± 1.04% | **2** |
+| MLP | d=0 | 78.15% | ~77% | 0 |
+| **MLP** | **trainable** | **93.50%** | **92.68%** | **3** |
 
-5. **Plan D 的上限与 Plan A 的 K=20 并不矛盾**：Plan A 用 K 个独立读出窗口（天然隔离），Plan D 用单一共享读出（更严格的测试）。
+MLP+d0 K=3 = 76-77%，与 Linear+d0 完全相同，停留在类先验附近。
+
+**结论：是 delay，不是 MLP。** MLP 在无 delay 时完全无效；MLP 仅在 delay 已创造时序可分表示的前提下才额外贡献 +5.2%。
+
+### 6.8 Plan D 最终结论
+
+1. **延迟是时序路由的唯一且结构性必要机制**：d=0 无论使用线性还是 MLP 读出，均停留在 ~76-78%（类先验附近），是权重的原理性局限。
+
+2. **delay 创造了非线性可分的时序表示**：  
+   - 线性读出：Max K@90% = 2（92.20 ± 0.75%，4 seeds）  
+   - MLP 读出：Max K@90% = 3（92.68%，2 seeds 均 >92%）  
+   K=3 从 87.52% 跳到 92.68%，gap = +5.16%——这部分提升来自 delay 表示的非线性可分性。
+
+3. **SNN delay 的时序路由容量 > 线性解码所能体现**：K=2 的上限（在线性读出下）是解码器的局限，而非 SNN 机制的上限。
+
+4. **MLP 不能无限扩展 K**：K=4 均值 89.85%（接近但未过 90%），K≥5 继续下降。膜电位在 K≥4 时的叠加是 SNN 积分特性的根本约束，超出 MLP 的解码能力。
+
+5. **Plan D 的 K=3 上限与 Plan A 的 K=20 不矛盾**：Plan A 用 K 个独立读出窗口（天然隔离），Plan D 用单一共享读出（更严格的测试）。
 
 ---
 
@@ -361,8 +377,8 @@ h 从 20 增加到 50（+150% 神经元），Max K@90% 未变。这说明瓶颈*
 |---------|---------|
 | 延迟实现跨时间的并行复用 | ❌（Plan A 是串行对齐，非并行）|
 | 随 K 增大，w_and_d 下降更慢 | ❌ Plan A 中两者都不下降（w_only 因对齐问题在 K=1 就失败）|
-| 时间路由使网络处理更多查询 | ✓ 有限：Plan D K=2 是最干净证明，K≥3 受读出解码限制 |
-| 延迟是时序计算的必要机制 | ✓ 强成立：Plan D d=0 结构性失败 |
+| 时间路由使网络处理更多查询 | ✓ 成立：Max K@90% = 3（MLP 读出），= 2（线性读出）；消融证明是 delay 而非 MLP 功劳 |
+| 延迟是时序计算的必要机制 | ✓ 强成立：Plan D d=0 + 任意读出层均停留在 ~77%（结构性失败）|
 | 能量归一化吞吐量 K/spk 更高 | ✓ 部分成立，但与固定延迟相比可训练延迟 K/spk 反而更低（更多脉冲换精度）|
 
 ### 7.3 关键发现汇总
@@ -387,19 +403,21 @@ h 从 20 增加到 50（+150% 神经元），Max K@90% 未变。这说明瓶颈*
 
 **是，机制比预期更微妙，容量比初版结论更强。**
 
-- **强结论**：可训练延迟是时序计算的**必要**机制——在共享通道设计（Plan D）中，无延迟（d=0）在任何 K 下都无法有效工作，这是权重的原理性局限，无法通过增加训练量克服。
+- **强结论**：可训练延迟是时序路由的**唯一且结构性必要**机制——在共享通道设计（Plan D）中，d=0 无论配合线性还是 MLP 读出均停留在 ~77%，是权重的原理性局限，无法通过任何下游解码器克服。
 
-- **更新结论（MLP 读出后）**：延迟的时序表示支持 K=3 的非线性可分分离（MLP 读出：92.68%，2 seeds）。线性读出下 Max K@90% = 2，MLP 读出下 Max K@90% = 3。这说明 SNN 的时序路由容量高于线性解码所能体现的——延迟确实将查询编码进了更丰富的隐层状态。
+- **消融确认的结论（2026-05-13）**：MLP+d0 K=3 = 76-77%，与 Linear+d0 完全相同，排除了"是 MLP 有用"的混淆假说。delay 是必要条件，MLP 是在 delay 表示基础上的锦上添花（K=3 额外 +5.2%）。
+
+- **时序复用容量结论**：Max K@90% = 2（线性读出）/ 3（MLP 读出）。delay 创造了非线性可分的时序表示，超出线性解码的提取能力。
 
 - **否定结论**：Plan A 中观察到的 K=1~20 全部工作，**不是**时间复用的证明，而是串行对齐的结果。
 
 ### 8.2 可辩护的核心主张（适合写入论文）
 
-1. **Trainable delays are structurally necessary for temporal routing in shared-channel SNNs**: d=0 is a structural (not learning) failure in Plan D — weights cannot distinguish temporal position without delays.
+1. **Trainable delays are structurally necessary for temporal routing in shared-channel SNNs**: d=0 fails regardless of readout type (Linear or MLP) — both achieve only ~77% at K=3, confirming this is a representational failure, not a decoder failure.
 
 2. **The dominant benefit of trainable delays is temporal alignment, not multiplexing capacity**: Alignment effect (+11–19% across all designs) is 4.3× larger than capacity effect (+2.7% in Plan C).
 
-3. **Temporal multiplexing exists and its ceiling depends on the readout architecture**: With linear readout, Plan D achieves Max K@90% = 2 (92.20±0.75%, 4 seeds). With MLP readout, Max K@90% = 3 (92.68%, 2 seeds, +5.2% over linear). The K=2 ceiling under linear readout is a decoder limitation, not a representation limitation — delays create richer temporal structure than a linear layer can extract.
+3. **Delays create temporally structured representations that exceed linear decodability**: With linear readout Max K@90% = 2 (92.20±0.75%, 4 seeds); with MLP readout Max K@90% = 3 (92.68%, 2 seeds, +5.2%). Ablation confirms the gain is attributable to delay-created representations, not MLP capacity per se (MLP+d0 = ~77%, same as linear+d0).
 
 4. **Energy advantage**: `weights_and_delays` achieves comparable or higher accuracy with ~19% fewer spikes than `weights_only` at equivalent K.
 

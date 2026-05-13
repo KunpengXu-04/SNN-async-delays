@@ -191,12 +191,23 @@ Max K @ 90%: **K=2** (h=20). Bottleneck: h=20 capacity (~6.7 neurons/query at K=
 
 **h=50 results, linear readout** (w_and_d, 4 seeds): K=1: 95.05±0.21%, K=2: 92.20±0.75%, K=3: 87.52±1.04%. Max K@90% = **K=2** (linear readout). Increasing neurons by 150% yields only +1~3% — bottleneck is the shared single-readout decoder (Linear(h,K)), not neuron count.
 
-**h=50 results, MLP readout** (w_and_d, seeds 42+0): K=1: 95.95%, K=2: 93.50%, K=3: **92.68%**, K=4: 89.85%, K=5: 86.29%, K=6: 83.84%. Max K@90% = **K=3** (MLP readout). K=3 accuracy jumps from 87.52% (linear) to 92.68% (MLP), confirming the K=2 ceiling under linear readout was a *decoder* limitation, not a *representation* limitation.
+**h=50 results, MLP readout** (w_and_d, seeds 42+0): K=1: 95.95%, K=2: 93.50%, K=3: **92.68%**, K=4: 89.85%, K=5: 86.29%, K=6: 83.84%. Max K@90% = **K=3** (MLP readout).
+
+**Ablation control — MLP + d=0** (seeds 42+0): K=2: 78.15%, K=3: ~77%. Essentially identical to linear+d0. Confirms: **it is the delay, not MLP**, that enables temporal routing. MLP adds +5.2% on top of delay representations, but contributes nothing without delays.
+
+**Full 2×2 ablation (h=50):**
+
+| Readout | Delay | K=3 acc | Max K@90% |
+|---------|-------|---------|----------|
+| Linear  | d=0   | ~76%    | 0        |
+| Linear  | trainable | 87.52% | **2** |
+| MLP     | d=0   | ~77%    | 0        |
+| MLP     | trainable | **92.68%** | **3** |
 
 ### Overall Conclusion
 
-Trainable delays are a **structurally necessary** mechanism for shared-channel temporal multiplexing:  
-- d=0 is a structural failure (not a learning failure) in Plan D  
+Trainable delays are the **sole necessary mechanism** for shared-channel temporal multiplexing:  
+- d=0 fails regardless of readout type (linear or MLP): both ~77% at K=3  
 - The primary benefit of delays is **time alignment** (+11–19% vs d=0)  
-- True temporal routing capacity exists: **K=3 @ >92%** with MLP readout (h=50)  
-- The K=2 ceiling under linear readout reflects decoder expressiveness, not SNN representation capacity
+- Delays create **non-linearly separable** temporal representations: Max K@90% = 2 (linear) / 3 (MLP)  
+- Full experiment log: `docs/EXPERIMENT_LOG.md` Sections 3–12

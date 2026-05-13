@@ -76,8 +76,10 @@ def run_single(
     d_max   = win_len   # query 0 needs delay ≈ win_len to reach readout window
     run_cfg = {**cfg, "win_len": win_len, "d_max": d_max}
 
+    readout_type = cfg.get("readout_type", "linear")
+    rt_suffix = f"_rt{readout_type}" if readout_type != "linear" else ""
     run_name = (run_name_override if run_name_override is not None
-                else f"step2_seq_{op}_{cname}_h{h}_K{K}_sw{sub_win}_seed{cfg['seed']}")
+                else f"step2_seq_{op}_{cname}_h{h}_K{K}_sw{sub_win}_seed{cfg['seed']}{rt_suffix}")
     run_dir  = os.path.join(base_runs_dir, run_name)
 
     eval_path = os.path.join(run_dir, "eval_results.json")
@@ -124,6 +126,7 @@ def run_single(
         dt=cfg["dt"],
         surrogate_beta=cfg["surrogate_beta"],
         n_input_channels=2,   # <-- Plan D: 2 shared channels (not 2K)
+        readout_type=readout_type,
     )
 
     trainer = SimultaneousTrainer(
@@ -134,6 +137,7 @@ def run_single(
         **run_cfg, **condition,
         "K": K, "n_input": 2,
         "sub_win": sub_win,
+        "readout_type": readout_type,
         "experiment": "sequential_planD",
     })
     log_rows = trainer.fit(train_loader, val_loader, run_cfg["epochs"])
@@ -240,9 +244,10 @@ def main():
     parser.add_argument("--train_mode", default=None)
     parser.add_argument("--epochs",     default=None, type=int)
     parser.add_argument("--seed",       default=None, type=int)
-    parser.add_argument("--n_hidden",   default=None, type=int)
-    parser.add_argument("--device",     default="auto")
-    parser.add_argument("--runs_dir",   default="runs")
+    parser.add_argument("--n_hidden",     default=None, type=int)
+    parser.add_argument("--readout_type", default=None)
+    parser.add_argument("--device",       default="auto")
+    parser.add_argument("--runs_dir",     default="runs")
     args = parser.parse_args()
 
     if args.device == "auto":
@@ -253,8 +258,9 @@ def main():
     base_cfg = load_cfg(args.config)
     if args.epochs     is not None: base_cfg["epochs"]   = args.epochs
     if args.seed       is not None: base_cfg["seed"]     = args.seed
-    if args.n_hidden   is not None: base_cfg["n_hidden"] = args.n_hidden
-    if args.train_mode is not None: base_cfg["train_mode"] = args.train_mode
+    if args.n_hidden     is not None: base_cfg["n_hidden"]     = args.n_hidden
+    if args.readout_type is not None: base_cfg["readout_type"] = args.readout_type
+    if args.train_mode   is not None: base_cfg["train_mode"]   = args.train_mode
 
     sweep = base_cfg.get("sweep", {})
     K_vals   = sweep.get("K_values", [base_cfg.get("K", 2)])

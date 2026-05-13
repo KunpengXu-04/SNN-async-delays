@@ -320,6 +320,7 @@ class SNNSimultaneousModel(nn.Module):
         dt: float = 1.0,
         surrogate_beta: float = 4.0,
         n_input_channels: int | None = None,
+        readout_type: str = "linear",
     ):
         super().__init__()
 
@@ -353,8 +354,16 @@ class SNNSimultaneousModel(nn.Module):
         )
         self.lif_h = LIFNeurons(n_hidden, **lif_kw)
 
-        # K-output readout: one logit per query from shared hidden activity
-        self.readout = nn.Linear(n_hidden, n_queries)
+        self.readout_type = readout_type
+        if readout_type == "mlp":
+            hidden_r = max(n_hidden, n_queries * 8)
+            self.readout = nn.Sequential(
+                nn.Linear(n_hidden, hidden_r),
+                nn.ReLU(),
+                nn.Linear(hidden_r, n_queries),
+            )
+        else:
+            self.readout = nn.Linear(n_hidden, n_queries)
 
     def weight_params(self):
         return [p for name, p in self.named_parameters()

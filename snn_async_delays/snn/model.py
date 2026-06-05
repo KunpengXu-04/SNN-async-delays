@@ -281,25 +281,33 @@ class SNNModel(nn.Module):
 
 class SNNSimultaneousModel(nn.Module):
     """
-    SNN for TRUE temporal multiplexing (Plan C).
+    SNN for TRUE temporal multiplexing (Plan C / Plan D).
 
-    Architecture
-    ------------
-      2K input channels  [A_0, B_0, ..., A_{K-1}, B_{K-1}]
-        -> DelayedSynapticLayer(W_ih, D_ih)   [2K -> n_hidden]
+    Architecture (1 hidden layer, default)
+    ---------------------------------------
+      n_input channels
+        -> DelayedSynapticLayer(W_ih, D_ih)   [n_input -> n_hidden]
         -> LIFNeurons(n_hidden)
-        -> Linear readout [n_hidden -> K]      (one logit per query)
+        -> Linear/MLP readout [n_hidden -> K]
 
-    All K queries are injected SIMULTANEOUSLY during [0, win_len).
-    Hidden spikes are accumulated during [win_len, win_len+read_len).
-    The K-output readout decodes all queries from the shared hidden activity.
+    Architecture (2 hidden layers, num_hidden_layers=2)
+    ---------------------------------------------------
+      n_input channels
+        -> DelayedSynapticLayer(W_ih, D_ih)    [n_input -> h1]
+        -> LIFNeurons(h1)
+        -> DelayedSynapticLayer(W_h1h2, D_h1h2) [h1 -> h2]
+        -> LIFNeurons(h2)
+        -> Linear/MLP readout [h2 -> K]
 
-    Scientific hypothesis
-    ---------------------
-    With trainable delays, hidden neuron j can selectively delay channel
-    A_k to a specific arrival time, effectively time-sharing its capacity.
-    This allows h neurons to handle K queries where weights_only (d=0)
-    saturates at smaller K because all 2K inputs interfere simultaneously.
+    The readout always accumulates spikes from the last hidden layer
+    during [win_len, win_len + read_len).
+
+    Parameters
+    ----------
+    num_hidden_layers : 1 (default, identical to original) or 2
+    hidden_sizes      : list[int] e.g. [25, 25] or [50, 50].
+                        When given, overrides n_hidden for each layer.
+                        For 1-layer models, [n_hidden] or None both work.
     """
 
     def __init__(
@@ -321,19 +329,42 @@ class SNNSimultaneousModel(nn.Module):
         surrogate_beta: float = 4.0,
         n_input_channels: int | None = None,
         readout_type: str = "linear",
+        num_hidden_layers: int = 1,
+        hidden_sizes: List[int] | None = None,
     ):
         super().__init__()
 
         self.n_queries = n_queries
         # Plan C default: 2K dedicated channels per query.
         # Plan D override: n_input_channels=2 (shared channels, sequential injection).
-        self.n_input   = n_input_channels if n_input_channels is not None else 2 * n_queries
-        self.n_hidden  = n_hidden
-        self.d_max     = d_max
-        self.win_len   = win_len
-        self.read_len  = read_len
-        self.T         = win_len + read_len
+        self.n_input    = n_input_channels if n_input_channels is not None else 2 * n_queries
+        self.d_max      = d_max
+        self.win_len    = win_len
+        self.read_len   = read_len
+        self.T          = win_len + read_len
         self.train_mode = train_mode
+
+        # Resolve layer sizes
+        if num_hidden_layers not in (1, 2):
+            raise ValueError(f"num_hidden_layers must be 1 or 2, got {num_hidden_layers}")
+        self._num_layers = num_hidden_layers
+
+        if hidden_sizes is not None:
+            if len(hidden_sizes) != num_hidden_layers:
+                raise ValueError(
+                    f"hidden_sizes length ({len(hidden_sizes)}) must match "
+                    f"num_hidden_layers ({num_hidden_layers})"
+                )
+            h1 = hidden_sizes[0]
+            h2 = hidden_sizes[1] if num_hidden_layers == 2 else None
+        else:
+            h1 = n_hidden
+            h2 = n_hidden if num_hidden_layers == 2 else None
+
+        self.n_hidden  = h1   # first (and only, for 1-layer) hidden size
+        self.n_hidden2 = h2   # second hidden size (None for 1-layer)
+        # Total hidden neuron count (for energy / ops_per_neuron metrics)
+        self.n_hidden_total = h1 + (h2 if h2 is not None else 0)
 
         train_w = train_mode in ("weights_only", "weights_and_delays")
         train_d = train_mode in ("delays_only", "weights_and_delays")
@@ -346,30 +377,40 @@ class SNNSimultaneousModel(nn.Module):
             refractory_steps=lif_refractory, dt=dt, surrogate_beta=surrogate_beta,
         )
 
-        self.syn_ih = DelayedSynapticLayer(
-            self.n_input, n_hidden, d_max=d_max,
-            delay_param_type=delay_param_type, delay_step=delay_step,
-            fixed_delay_value=fixed_delay_value,
-            train_weights=train_w, train_delays=train_d,
+        syn_kw = dict(
+            d_max=d_max, delay_param_type=delay_param_type, delay_step=delay_step,
+            fixed_delay_value=fixed_delay_value, train_weights=train_w, train_delays=train_d,
         )
-        self.lif_h = LIFNeurons(n_hidden, **lif_kw)
 
+        # ── Layer 1: input -> h1 ──
+        self.syn_ih = DelayedSynapticLayer(self.n_input, h1, **syn_kw)
+        self.lif_h  = LIFNeurons(h1, **lif_kw)   # always named lif_h for compat
+
+        # ── Layer 2 (optional): h1 -> h2 ──
+        if num_hidden_layers == 2:
+            self.syn_h1h2 = DelayedSynapticLayer(h1, h2, **syn_kw)
+            self.lif_h2   = LIFNeurons(h2, **lif_kw)
+
+        # ── Readout (always trainable) ──
+        readout_in = h2 if (num_hidden_layers == 2) else h1
         self.readout_type = readout_type
         if readout_type == "mlp":
-            hidden_r = max(n_hidden, n_queries * 8)
+            hidden_r = max(readout_in, n_queries * 8)
             self.readout = nn.Sequential(
-                nn.Linear(n_hidden, hidden_r),
+                nn.Linear(readout_in, hidden_r),
                 nn.ReLU(),
                 nn.Linear(hidden_r, n_queries),
             )
         else:
-            self.readout = nn.Linear(n_hidden, n_queries)
+            self.readout = nn.Linear(readout_in, n_queries)
 
     def weight_params(self):
+        # Captures syn_ih.weight and syn_h1h2.weight (if present)
         return [p for name, p in self.named_parameters()
                 if "weight" in name and "readout" not in name and p.requires_grad]
 
     def delay_params(self):
+        # Captures syn_ih.delay_raw and syn_h1h2.delay_raw (if present)
         return [p for name, p in self.named_parameters()
                 if "delay_raw" in name and p.requires_grad]
 
@@ -377,10 +418,16 @@ class SNNSimultaneousModel(nn.Module):
         return list(self.readout.parameters())
 
     def get_delays(self) -> Dict[str, torch.Tensor]:
-        return {"ih": self.syn_ih.get_delays()}
+        d = {"ih": self.syn_ih.get_delays()}
+        if self._num_layers == 2:
+            d["h1h2"] = self.syn_h1h2.get_delays()
+        return d
 
     def delay_regularization(self) -> torch.Tensor:
-        return self.syn_ih.get_delays().mean()
+        reg = self.syn_ih.get_delays().mean()
+        if self._num_layers == 2:
+            reg = reg + self.syn_h1h2.get_delays().mean()
+        return reg
 
     def forward(
         self,
@@ -389,58 +436,105 @@ class SNNSimultaneousModel(nn.Module):
     ) -> Tuple[torch.Tensor, Dict]:
         """
         Args:
-            spike_input : [B, T, 2K]  where T = win_len + read_len
+            spike_input : [B, T, n_input]  where T = win_len + read_len
 
         Returns:
-            logits : [B, K]   (one logit per simultaneous query)
-            info   : dict with spike stats
+            logits : [B, K]   (one logit per query)
+            info   : dict with spike stats (layer-wise when num_hidden_layers=2)
         """
         B, T, _ = spike_input.shape
         device = spike_input.device
-
-        v_h, ref_h = self.lif_h.init_state(B, device)
-
         d_max_1 = self.d_max + 1
+
+        # ── Shared: input buffer & layer-1 state ──
+        v_h, ref_h = self.lif_h.init_state(B, device)
         buf_in  = torch.zeros(B, d_max_1, self.n_input, device=device)
         buf_ptr = 0
-
         d_cont_ih = self.syn_ih.get_delays()
 
-        hidden_acc       = torch.zeros(B, self.n_hidden, device=device)
-        total_h_spk      = torch.zeros(B, device=device)
-        hidden_fired_any = torch.zeros(B, self.n_hidden, device=device)
+        # ── 2-layer extras ──
+        if self._num_layers == 2:
+            v_h2, ref_h2 = self.lif_h2.init_state(B, device)
+            buf_h1       = torch.zeros(B, d_max_1, self.n_hidden, device=device)
+            buf_h1_ptr   = 0
+            d_cont_h1h2  = self.syn_h1h2.get_delays()
+            last_acc     = torch.zeros(B, self.n_hidden2, device=device)
+            total_h1_spk = torch.zeros(B, device=device)
+            total_h2_spk = torch.zeros(B, device=device)
+            h1_fired_any = torch.zeros(B, self.n_hidden,  device=device)
+            h2_fired_any = torch.zeros(B, self.n_hidden2, device=device)
+        else:
+            last_acc         = torch.zeros(B, self.n_hidden, device=device)
+            total_h_spk      = torch.zeros(B, device=device)
+            hidden_fired_any = torch.zeros(B, self.n_hidden, device=device)
 
-        # Optional full spike-train recording (for visualization)
+        # Optional full spike-train recording (last hidden layer + h1 for 2-layer)
         hidden_train: list = [] if record else None  # type: ignore[assignment]
+        h1_train:     list = [] if (record and self._num_layers == 2) else None  # type: ignore[assignment]
 
         for t in range(T):
-            x_t = spike_input[:, t, :]
-            I_h = self.syn_ih(buf_in, d_cont_ih, buf_ptr)
+            x_t   = spike_input[:, t, :]
+            I_h   = self.syn_ih(buf_in, d_cont_ih, buf_ptr)
             spike_h, v_h, ref_h = self.lif_h(I_h, v_h, ref_h)
 
+            # Write input to buffer AFTER reading (maintains correct delay semantics)
             buf_in[:, buf_ptr, :] = x_t
             buf_ptr = (buf_ptr + 1) % d_max_1
 
-            total_h_spk      = total_h_spk + spike_h.sum(dim=1)
-            hidden_fired_any = torch.maximum(hidden_fired_any, (spike_h > 0).float())
+            if self._num_layers == 2:
+                I_h2    = self.syn_h1h2(buf_h1, d_cont_h1h2, buf_h1_ptr)
+                spike_h2, v_h2, ref_h2 = self.lif_h2(I_h2, v_h2, ref_h2)
 
-            if t >= self.win_len:
-                hidden_acc = hidden_acc + spike_h
+                buf_h1[:, buf_h1_ptr, :] = spike_h
+                buf_h1_ptr = (buf_h1_ptr + 1) % d_max_1
 
-            if record:
-                hidden_train.append(spike_h.detach().cpu())
+                total_h1_spk = total_h1_spk + spike_h.sum(dim=1)
+                total_h2_spk = total_h2_spk + spike_h2.sum(dim=1)
+                h1_fired_any = torch.maximum(h1_fired_any, (spike_h  > 0).float())
+                h2_fired_any = torch.maximum(h2_fired_any, (spike_h2 > 0).float())
 
-        logits = self.readout(hidden_acc)  # [B, K]
+                if t >= self.win_len:
+                    last_acc = last_acc + spike_h2
 
-        active_hidden_neurons = hidden_fired_any.sum(dim=1)
-        info = {
-            "total_hidden_spikes":    total_h_spk,
-            "active_hidden_neurons":  active_hidden_neurons,
-            "active_hidden_fraction": active_hidden_neurons / float(self.n_hidden),
-            "trial_steps":            T,
-        }
+                if record:
+                    h1_train.append(spike_h.detach().cpu())     # layer 1
+                    hidden_train.append(spike_h2.detach().cpu()) # layer 2
+            else:
+                total_h_spk      = total_h_spk + spike_h.sum(dim=1)
+                hidden_fired_any = torch.maximum(hidden_fired_any, (spike_h > 0).float())
+
+                if t >= self.win_len:
+                    last_acc = last_acc + spike_h
+
+                if record:
+                    hidden_train.append(spike_h.detach().cpu())
+
+        logits = self.readout(last_acc)  # [B, K]
+
+        if self._num_layers == 2:
+            active_h2 = h2_fired_any.sum(dim=1)
+            info = {
+                "total_hidden_spikes":    total_h1_spk + total_h2_spk,
+                "layer1_hidden_spikes":   total_h1_spk,
+                "layer2_hidden_spikes":   total_h2_spk,
+                "active_hidden_neurons":  active_h2,
+                "active_hidden_fraction": active_h2 / float(self.n_hidden2),
+                "trial_steps":            T,
+            }
+        else:
+            active_hidden_neurons = hidden_fired_any.sum(dim=1)
+            info = {
+                "total_hidden_spikes":    total_h_spk,
+                "active_hidden_neurons":  active_hidden_neurons,
+                "active_hidden_fraction": active_hidden_neurons / float(self.n_hidden),
+                "trial_steps":            T,
+            }
+
         if record:
-            # [B, T, n_hidden]  — full per-timestep spike trains for visualization
+            # [B, T, last_hidden_size] — always present
             info["hidden_spike_train"] = torch.stack(hidden_train, dim=1)
+            if self._num_layers == 2:
+                # [B, T, h1] — first hidden layer (only for 2-layer models)
+                info["hidden1_spike_train"] = torch.stack(h1_train, dim=1)
 
         return logits, info

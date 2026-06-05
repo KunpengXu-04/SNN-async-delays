@@ -177,6 +177,8 @@ def evaluate_simultaneous(
     K = model.n_queries
 
     all_preds, all_labels, all_h_spk, all_active_frac = [], [], [], []
+    all_h1_spk: list = []
+    all_h2_spk: list = []
 
     for A, B, op_ids, labels in loader:
         if labels.dim() == 1:
@@ -207,6 +209,10 @@ def evaluate_simultaneous(
         all_h_spk.append(info["total_hidden_spikes"].cpu())
         all_active_frac.append(info["active_hidden_fraction"].cpu())
 
+        if "layer1_hidden_spikes" in info:
+            all_h1_spk.append(info["layer1_hidden_spikes"].cpu())
+            all_h2_spk.append(info["layer2_hidden_spikes"].cpu())
+
     preds  = torch.cat(all_preds,  dim=0)   # [N, K]
     labels = torch.cat(all_labels, dim=0)   # [N, K]
     h_spk  = torch.cat(all_h_spk,  dim=0)  # [N]
@@ -220,13 +226,15 @@ def evaluate_simultaneous(
 
     T_steps    = model.T
     trial_ms   = T_steps * float(cfg["dt"])
-    ops_per_neuron_per_ms = K / (max(model.n_hidden, 1) * max(trial_ms, 1e-9))
+    # Use total neuron count (both layers) for ops/neuron metric
+    n_neurons_total = getattr(model, "n_hidden_total", model.n_hidden)
+    ops_per_neuron_per_ms = K / (max(n_neurons_total, 1) * max(trial_ms, 1e-9))
 
     preds_flat  = preds.reshape(-1)
     labels_flat = labels.reshape(-1)
     binary_conf = _binary_confusion(preds_flat, labels_flat)
 
-    return {
+    result = {
         "accuracy":                overall_acc,
         "per_query_acc":           per_query_acc,
         "mean_hidden_spikes":      mean_h_spk,
@@ -236,6 +244,18 @@ def evaluate_simultaneous(
         "binary_confusion":        binary_conf,
         "K":                       K,
     }
+
+    # Layer-wise spike stats (only present for 2-layer models)
+    if all_h1_spk:
+        h1_t = torch.cat(all_h1_spk, dim=0)
+        h2_t = torch.cat(all_h2_spk, dim=0)
+        result["layer1_hidden_spikes"] = float(h1_t.mean().item())
+        result["layer2_hidden_spikes"] = float(h2_t.mean().item())
+    else:
+        result["layer1_hidden_spikes"] = None
+        result["layer2_hidden_spikes"] = None
+
+    return result
 
 
 def summarize_sweep(results: List[Dict], key_fields: List[str] = None) -> str:

@@ -1,0 +1,87 @@
+# ============================================================
+# Depth Ablation for Plan D Sequential Temporal Multiplexing
+#
+# Scientific question:
+#   Can a 2nd spiking hidden layer improve temporal demultiplexing?
+#   Are trainable delays still necessary with 2-layer depth?
+#
+# Experiment matrix (all 50 total neurons, same budget):
+#   - L1-h50-linear       : 1-layer, 50 neurons (baseline)
+#   - L2-h25h25-linear    : 2-layer, 25+25, trainable delays
+#   - L2-h25h25-linear-d0 : 2-layer, 25+25, d=0 control
+#
+# Key comparisons:
+#   L2-h25h25 vs L1-h50      : depth effect (same budget)
+#   L2-h25h25-d0 vs L2-h25h25: delay necessity (same architecture)
+#   L2-h25h25-d0 vs L1-d0    : does depth help without delays at all?
+# ============================================================
+
+# ----- Timing (same as step2_sequential.yaml) -----
+dt: 1.0
+sub_win: 10        # steps per query; win_len = K * sub_win (computed per run)
+read_len: 10       # readout window [win_len, win_len+read_len)
+# d_max = win_len = K * sub_win (computed per run)
+# T = win_len + read_len = K*10 + 10
+
+# ----- Default network params -----
+n_hidden: 50       # overridden per model in sweep
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset -----
+ops_list: [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+op_name: NAND
+same_op: true
+n_train: 4000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Depth Ablation Sweep -----
+sweep:
+  K_values: [2, 3, 4]
+  seeds: [42, 0]
+  accuracy_thresholds: [0.95, 0.90]
+
+  models:
+    # Baseline: 1-layer, 50 hidden neurons, linear readout
+    - name: L1-h50-linear
+      num_hidden_layers: 1
+      hidden_sizes: [50]
+      readout_type: linear
+      train_mode: weights_and_delays
+      delay_param_type: sigmoid
+
+    # Depth at same neuron budget: 25+25 = 50 neurons total
+    - name: L2-h25h25-linear
+      num_hidden_layers: 2
+      hidden_sizes: [25, 25]
+      readout_type: linear
+      train_mode: weights_and_delays
+      delay_param_type: sigmoid
+
+    # Control: 2-layer without delays — are delays still necessary with depth?
+    - name: L2-h25h25-linear-d0
+      num_hidden_layers: 2
+      hidden_sizes: [25, 25]
+      readout_type: linear
+      train_mode: weights_only
+      fixed_delay_value: 0.0

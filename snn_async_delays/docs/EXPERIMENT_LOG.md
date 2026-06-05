@@ -1,7 +1,7 @@
 # SNN Temporal Multiplexing — Experiment Log
 
 > 记录所有实验设置、结果、代码修改、机制分析和失败原因。  
-> 最后更新：2026-04-10
+> 最后更新：2026-06-05
 
 ---
 
@@ -981,5 +981,137 @@ snn_async_delays/
     step2_simultaneous_summary.json   # Plan C 结果（运行后生成）
     step2_sequential_summary.json     # Plan D 结果（新建）
     step2_analysis_delays_vs_K.png    # 延迟统计图
+    depth_ablation/                   # Section 13 depth ablation 结果（新建）
   EXPERIMENT_LOG.md                   # 本文件
 ```
+
+---
+
+## 13. Depth Ablation: 第二层 Spiking Hidden Layer 能否增强时序分解能力？
+
+**日期**: 2026-06-05  
+**实验目录**: `runs/depth_ablation/`  
+**摘要**: 在 Plan D sequential shared-channel 任务上，测试增加第二层 spiking hidden layer 是否能在相同神经元预算（50 neurons）下提升 temporal demultiplexing 能力，以及 trainable delay 是否在两层结构中依然是必要机制。
+
+---
+
+### 13.1 实验设计
+
+**实验矩阵**（全部 50 neurons，相同神经元预算）：
+
+| 模型 | 层数 | 隐层尺寸 | Readout | train_mode | 作用 |
+|------|------|---------|---------|------------|------|
+| L1-h50-linear | 1 | [50] | linear | w_and_d | 基准 |
+| L2-h25h25-linear | 2 | [25, 25] | linear | w_and_d | 深度 @ 相同预算 |
+| L2-h25h25-linear-d0 | 2 | [25, 25] | linear | weights_only, d=0 | 无延迟控制 |
+
+**参数**: K ∈ {2, 3, 4}, seeds ∈ {42, 0}, 200 epochs, NAND, sub_win=10  
+**配置**: `configs/step2_depth_ablation.yaml`  
+**运行脚本**: `scripts/run_depth_ablation.py`
+
+**关键对比**:
+- L2-h25h25 vs L1-h50：相同神经元数，depth vs width 效果
+- L2-h25h25-d0 vs L2-h25h25：相同架构，delay 是否必要
+- L2-h25h25-d0 vs L1-d0：深度是否在无 delay 情况下提供任何帮助
+
+**注意**: L2-h25h25 比 L1-h50 的突触参数多得多：h1h2 层有 25×25=625 个权重，而 L1 的 ih 层只有 2×50=100 个。因此 L2 的参数量约是 L1 的 7 倍，即使神经元数相同。
+
+---
+
+### 13.2 完整结果
+
+| 模型 | K | seed42 | seed0 | 均值 | K/spk (均) |
+|------|---|--------|-------|------|-----------|
+| L1-h50-linear | 2 | 92.70% | 92.05% | **92.4%** | 0.144 |
+| L1-h50-linear | 3 | 85.97% | 88.63% | **87.3%** | 0.142 |
+| L1-h50-linear | 4 | 84.07% | 85.77% | **84.9%** | 0.168 |
+| L2-h25h25-linear | 2 | 89.70% | 93.05% | **91.4%** | 0.089 |
+| L2-h25h25-linear | 3 | 88.73% | 88.47% | **88.6%** | 0.066 |
+| L2-h25h25-linear | 4 | 88.42% | 88.05% | **88.2%** | 0.069 |
+| L2-h25h25-linear-d0 | 2 | 77.50% | 77.85% | **77.7%** | 0.107 |
+| L2-h25h25-linear-d0 | 3 | 77.83% | 76.87% | **77.4%** | 0.122 |
+| L2-h25h25-linear-d0 | 4 | 76.82% | 76.92% | **76.9%** | 0.122 |
+
+**Max K @ τ=90% 汇总**:
+
+| 模型 | Max K@90% |
+|------|-----------|
+| L1-h50-linear | **2** |
+| L2-h25h25-linear | **2** |
+| L2-h25h25-linear-d0 | **0** |
+
+**层间 spike 统计（L2 模型，均值）**:
+
+| K | layer1 spikes/trial | layer2 spikes/trial | total |
+|---|---------------------|---------------------|-------|
+| 2 | 10.9 | 11.7 | 22.6 |
+| 3 | 21.5 | 24.2 | 45.7 |
+| 4 | 28.1 | 29.9 | 58.0 |
+
+---
+
+### 13.3 关键发现
+
+#### Finding 1: 深度不能提升 Max K@90%
+
+L2-h25h25 和 L1-h50 均达到 Max K@90% = 2，90% 容量阈值未被突破。深度带来了轻微的原始精度提升，但没有改变根本的容量限制。
+
+#### Finding 2: 深度在 K=3,4 时提供边际精度增益
+
+| K | L1-h50 | L2-h25h25 | Delta |
+|---|--------|-----------|-------|
+| 2 | 92.4%  | 91.4%     | -1.0pp |
+| 3 | 87.3%  | 88.6%     | **+1.3pp** |
+| 4 | 84.9%  | 88.2%     | **+3.3pp** |
+
+增益随 K 增大而增长，在 K=4 时最为明显。这与"第二层帮助解码高负载下重叠的时序表示"一致，但仍未突破 90% 阈值。
+
+#### Finding 3: 深度显著降低能效
+
+K/spk 下降明显（~38–54%）：L2 模型的两层均大量放电，几乎使总 spike 数翻倍。在对能量敏感的应用中，这是一个严重的代价。
+
+| K | L1 K/spk | L2 K/spk | 效率损失 |
+|---|----------|----------|---------|
+| 2 | 0.144 | 0.089 | −38% |
+| 3 | 0.142 | 0.066 | −54% |
+| 4 | 0.168 | 0.069 | −59% |
+
+#### Finding 4: 即使在两层架构中，延迟依然是必要机制
+
+L2-h25h25-d0 在所有 K 上均约为 77%，与 L1-d0 (h-sweep 中 h=50, ~77%) 完全一致。第二层 spiking hidden layer 在没有 trainable delay 的情况下不提供任何帮助。这是本实验最重要的发现：**深度不能替代延迟进行时序路由**。
+
+#### Finding 5: L2 增益可能是参数驱动而非深度驱动
+
+L2-h25h25 有 25×25=625 个 h1h2 突触权重，而 L1-h50 只有 2×50=100 个 ih 突触权重。L2 的突触参数总量约为 L1 的 7 倍，尽管神经元数相同。因此观察到的精度提升更可能来自更大的参数容量（更丰富的 h1→h2 映射）而非深度本身带来的质变。
+
+---
+
+### 13.4 结论与对整体研究的意义
+
+| 问题 | 答案 |
+|------|------|
+| 深度是否提升 Max K@90%？ | **否**（均为 K=2） |
+| 深度是否提升高 K 时的原始精度？ | **是**（K=4 时 +3.3pp） |
+| 深度是否保持能效？ | **否**（K/spk 降低 ~50%） |
+| 延迟在两层架构中是否仍然必要？ | **是**（d0 ≈ 77%，无改善） |
+| 深度增益是否是真正的 depth effect？ | **可能不是**（参数量 7× 更多） |
+
+**对主研究结论的影响**：trainable delay 是共享通道 Plan D 时序分解的唯一必要机制这一核心结论得到加强。两层 SNN 不能在不引入 trainable delay 的情况下解决问题，delay 的作用无法被更深的 SNN 结构所替代。
+
+**实践建议**：
+- 若精度优先（K=3,4）：L2-h25h25 + trainable delay 比 L1-h50 好 1–3pp
+- 若能效优先：L1-h50 + trainable delay 明显更优（K/spk 高 ~50%）
+- 若需要真正突破 Max K@90% = 2：需要探索其他方向（更大 h、MLP readout、更长 read_len 等）
+
+---
+
+### 13.5 代码变更记录
+
+| 文件 | 变更 |
+|------|------|
+| `snn/model.py` | `SNNSimultaneousModel` 新增 `num_hidden_layers`, `hidden_sizes` 参数；2 层时增加 `syn_h1h2`, `lif_h2`；`record=True` 时额外保存 `hidden1_spike_train` |
+| `train/eval.py` | `evaluate_simultaneous` 新增 layer-wise spike 统计（`layer1_hidden_spikes`, `layer2_hidden_spikes`）|
+| `utils/viz.py` | 新增 `plot_weight_heatmaps`, `plot_delay_heatmaps`, `plot_spike_raster_layers`, `plot_layer_to_layer_spike_flow`, `plot_diagnostic_panel`, `save_run_diagnostic_plots`, `plot_depth_ablation_curves` |
+| `configs/step2_depth_ablation.yaml` | 新建：3 模型 × K=[2,3,4] × seeds=[42,0] 实验矩阵 |
+| `scripts/run_depth_ablation.py` | 新建：可恢复 sweep 脚本，自动调用诊断可视化 |
+| `scripts/generate_diagnostic_plots.py` | 新建：对已完成 run 补生成诊断图 |

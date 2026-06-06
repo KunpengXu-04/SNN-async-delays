@@ -216,44 +216,48 @@ Trainable delays are the **sole necessary mechanism** for shared-channel tempora
 
 ## Depth Ablation Results (2-Layer SNN, Plan D)
 
-**Config**: 3 models × K∈{2,3,4} × 2 seeds = 18 runs, 200 epochs, NAND, h=50 total neurons.  
+**Config**: 4 models × K∈{2,3,4} × 2 seeds = 24 runs, 200 epochs, NAND, h=50 total neurons.  
 **Summary**: `runs/depth_ablation/depth_ablation_summary.csv`  
-**Log**: `docs/EXPERIMENT_LOG.md` Section 13
+**Log**: `docs/EXPERIMENT_LOG.md` Sections 13–14
 
-### Experiment Matrix (all 50 total neurons)
+### Complete 2×2 Ablation Matrix (depth × readout, all with trainable delays unless noted)
 
-| Model | Architecture | train_mode | Purpose |
-|-------|-------------|------------|---------|
-| L1-h50-linear | 1 × h=50 | w_and_d | Baseline |
-| L2-h25h25-linear | 2 × h=[25,25] | w_and_d | Depth @ same budget |
-| L2-h25h25-linear-d0 | 2 × h=[25,25] | weights_only, d=0 | Depth without delays |
+| | Linear readout | MLP readout |
+|---|---|---|
+| **L1-h50** | K@90%=2, K=3→87.3% | K@90%=**3**, K=3→92.7% |
+| **L2-h25h25** | K@90%=2, K=3→88.6% | K@90%=**2**, K=3→88.3% |
+| **L2-h25h25-d0** | K@90%=**0**, K=3→77.4% | — |
 
 ### Accuracy Results (mean over 2 seeds)
 
 | Model | K=2 | K=3 | K=4 | Max K@90% |
 |-------|-----|-----|-----|-----------|
 | L1-h50-linear | **92.4%** | 87.3% | 84.9% | **2** |
-| L2-h25h25-linear | 91.4% | 88.6% | **88.2%** | **2** |
-| L2-h25h25-linear-d0 | 77.7% | 77.4% | 76.9% | **0** |
+| L1-h50-MLP | **95.9%** | **92.7%** | **89.9%** | **3** |
+| L2-h25h25-linear | 91.4% | 88.6% | 88.2% | **2** |
+| L2-h25h25-MLP | 91.6% | 88.3% | 86.5% | **2** |
+| L2-h25h25-d0 | 77.7% | 77.4% | 76.9% | **0** |
 
 ### Energy-Normalised Throughput K/spk (mean over 2 seeds)
 
 | Model | K=2 | K=3 | K=4 |
 |-------|-----|-----|-----|
 | L1-h50-linear | **0.144** | **0.142** | **0.168** |
+| L1-h50-MLP | ~0.10 | ~0.11 | ~0.10 |
 | L2-h25h25-linear | 0.089 | 0.066 | 0.069 |
-| L2-h25h25-linear-d0 | 0.107 | 0.122 | 0.122 |
+| L2-h25h25-MLP | 0.073 | 0.084 | 0.083 |
+| L2-h25h25-d0 | 0.107 | 0.122 | 0.122 |
 
 ### Key Findings
 
-1. **Depth does not improve Max K@90%**: Both L1-h50 and L2-h25h25 achieve Max K@90% = 2. The 2nd spiking layer does not push the temporal capacity threshold.
-2. **Depth gives modest accuracy gains at high K**: +1.3pp at K=3, +3.3pp at K=4 (growing with K). Neither model crosses 90% at K≥3.
-3. **Depth reduces energy efficiency by ~50%**: L2 nearly doubles total spike count; K/spk drops from 0.14 to 0.07 at K=3. Two-layer architecture is significantly less efficient.
-4. **Delays remain necessary even with depth**: L2-h25h25-d0 ≈ 77% across all K, identical to L1-d0. A 2nd spiking layer provides **zero benefit** without trainable delays. Depth cannot substitute for temporal routing.
-5. **Gains may be parameter-driven**: L2-h25h25 has 25×25=625 h1h2 synapses vs 2×50=100 for L1-h50 (~7× more parameters at same neuron count). The accuracy improvement likely reflects increased synaptic capacity rather than a genuine depth effect.
+1. **MLP readout is the only intervention that improves Max K@90%**: L1+MLP is the sole model reaching K@90%=3. Neither depth (L2+linear) nor their combination (L2+MLP) breaks the threshold.
+2. **Depth and MLP gains are not additive**: L2+MLP ≈ L2+linear (88.3% vs 88.6% at K=3). MLP provides no benefit at h2=25 because the readout network (25→25→K) is too small — its capacity is constrained by the readout input dimension, not the MLP depth.
+3. **MLP benefit scales with readout input size**: L1+MLP (h=50 input) gains +5.4pp over L1+linear at K=3. L2+MLP (h2=25 input) gains only +0pp. The MLP must receive rich enough representations to add nonlinear decoding value.
+4. **Depth gives modest raw accuracy gains at K=3,4 but at ~50% energy cost**: L2+linear is +1–3pp over L1+linear, but K/spk drops from 0.14 to 0.07. Not energy-efficient.
+5. **Delays remain necessary regardless of architecture**: L2-d0 ≈ 77% = L1-d0, confirming delays are the primary and irreplaceable mechanism for temporal routing.
 
 ### Practical Recommendations
 
-- **Accuracy-first (K=3,4)**: L2-h25h25 + trainable delays is +1–3pp better than L1-h50, at ~50% energy cost
-- **Efficiency-first**: L1-h50 + trainable delays is clearly superior (K/spk ~2× higher)
-- **To break Max K@90% = 2**: explore larger h, MLP readout, or longer read_len — not additional spiking layers
+- **Best accuracy at K=3**: L1-h50 + MLP (92.7%), Max K@90%=3
+- **Best efficiency**: L1-h50 + linear (K/spk=0.14), Max K@90%=2
+- **To push Max K@90% beyond 3**: explore timing parameters (τ_m, read_len, sub_win) rather than deeper networks or larger MLP readouts on small hidden layers

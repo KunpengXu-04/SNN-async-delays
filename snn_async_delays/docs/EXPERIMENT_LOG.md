@@ -1,7 +1,7 @@
 # SNN Temporal Multiplexing — Experiment Log
 
 > 记录所有实验设置、结果、代码修改、机制分析和失败原因。  
-> 最后更新：2026-06-05
+> 最后更新：2026-06-06
 
 ---
 
@@ -1112,6 +1112,68 @@ L2-h25h25 有 25×25=625 个 h1h2 突触权重，而 L1-h50 只有 2×50=100 个
 | `snn/model.py` | `SNNSimultaneousModel` 新增 `num_hidden_layers`, `hidden_sizes` 参数；2 层时增加 `syn_h1h2`, `lif_h2`；`record=True` 时额外保存 `hidden1_spike_train` |
 | `train/eval.py` | `evaluate_simultaneous` 新增 layer-wise spike 统计（`layer1_hidden_spikes`, `layer2_hidden_spikes`）|
 | `utils/viz.py` | 新增 `plot_weight_heatmaps`, `plot_delay_heatmaps`, `plot_spike_raster_layers`, `plot_layer_to_layer_spike_flow`, `plot_diagnostic_panel`, `save_run_diagnostic_plots`, `plot_depth_ablation_curves` |
-| `configs/step2_depth_ablation.yaml` | 新建：3 模型 × K=[2,3,4] × seeds=[42,0] 实验矩阵 |
+| `configs/step2_depth_ablation.yaml` | 新建：4 模型 × K=[2,3,4] × seeds=[42,0] 实验矩阵（含 L2+MLP）|
 | `scripts/run_depth_ablation.py` | 新建：可恢复 sweep 脚本，自动调用诊断可视化 |
 | `scripts/generate_diagnostic_plots.py` | 新建：对已完成 run 补生成诊断图 |
+
+---
+
+## 14. L2+MLP 补全 2×2 矩阵：MLP 收益依赖 Readout 输入维度
+
+**日期**: 2026-06-06  
+**实验目录**: `runs/depth_ablation/L2-h25h25-mlp_*/`  
+**背景**: 完成 Section 13 depth ablation 后，L2+MLP 这一格缺失。添加以验证 depth 与 MLP 的增益是否可叠加。
+
+---
+
+### 14.1 L2-h25h25-MLP 完整结果
+
+| K | seed42 | seed0 | 均值 | K/spk (均) |
+|---|--------|-------|------|-----------|
+| 2 | 91.15% | 92.10% | **91.6%** | 0.073 |
+| 3 | 88.23% | 88.30% | **88.3%** | 0.084 |
+| 4 | 87.05% | 85.93% | **86.5%** | 0.083 |
+
+**Max K@90% = 2**（未突破阈值）
+
+---
+
+### 14.2 完整 2×2 矩阵（depth × readout，均使用 trainable delay）
+
+| | Linear readout | MLP readout |
+|---|---|---|
+| **L1-h50** | K@90%=2, K=3→87.3% | **K@90%=3, K=3→92.7%** |
+| **L2-h25h25** | K@90%=2, K=3→88.6% | K@90%=2, K=3→88.3% |
+
+---
+
+### 14.3 核心发现：MLP 收益受 Readout 输入维度约束
+
+**L2+MLP ≈ L2+linear**（88.3% vs 88.6% at K=3，差距 <0.3pp）。MLP 对 L2 没有附加价值。
+
+原因在于 MLP readout 的架构：
+- L1+MLP：readout_in=50，hidden_r=max(50, K×8)=50；网络为 50→50→K，有足够容量
+- L2+MLP：readout_in=h2=25，hidden_r=max(25, K×8)=25~32；网络为 25→25→K，几乎等价于 linear 25→K
+
+**MLP 收益公式（经验）**：
+- 当 readout_in ≥ 2×K×8 时，MLP 有效（L1-h50: 50 ≥ 48 for K≥3）
+- 当 readout_in ≈ K×8 时，MLP 退化为 linear（L2-h25h25: 25 ≈ 24 for K=3）
+
+---
+
+### 14.4 深度与 MLP 的增益不可叠加
+
+| 干预 | 在 L1-h50 上的效果（K=3）| 在 L2-h25h25 上的效果（K=3）|
+|------|------------------------|---------------------------|
+| + MLP readout | **+5.4pp**（87.3%→92.7%） | **~0pp**（88.6%→88.3%） |
+| + 2nd layer | +1.3pp（L1→L2 with linear）| — |
+
+结论：MLP 的增益在 L2 上完全消失。两者的增益非独立，不可叠加。
+
+---
+
+### 14.5 对整体研究结论的影响
+
+完整的 2×2 矩阵揭示：**L1-h50 + MLP + trainable delay** 是目前最优组合（Max K@90%=3）。添加第二层不能在任何 readout 类型下进一步提升容量阈值。
+
+要突破 Max K@90%=3，需要探索时序参数本身（τ_m、read_len、sub_win）——见 Section 13.4 方向 B。

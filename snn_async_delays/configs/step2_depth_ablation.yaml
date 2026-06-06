@@ -85,3 +85,11 @@ sweep:
       readout_type: linear
       train_mode: weights_only
       fixed_delay_value: 0.0
+
+    # 2-layer + MLP readout — can depth and MLP readout give additive gains?
+    - name: L2-h25h25-mlp
+      num_hidden_layers: 2
+      hidden_sizes: [25, 25]
+      readout_type: mlp
+      train_mode: weights_and_delays
+      delay_param_type: sigmoid

@@ -260,4 +260,42 @@ Trainable delays are the **sole necessary mechanism** for shared-channel tempora
 
 - **Best accuracy at K=3**: L1-h50 + MLP (92.7%), Max K@90%=3
 - **Best efficiency**: L1-h50 + linear (K/spk=0.14), Max K@90%=2
-- **To push Max K@90% beyond 3**: explore timing parameters (τ_m, read_len, sub_win) rather than deeper networks or larger MLP readouts on small hidden layers
+- **Max K@90%=3 appears to be a hard ceiling**: neither architecture (depth/MLP, see above) nor timing parameters (below) can break it.
+
+---
+
+## Timing-Parameter Ablation Results (Direction B)
+
+**Config**: `configs/step2_timing_ablation.yaml`, runner `scripts/run_timing_ablation.py`.
+**Hypothesis**: `sub_win == lif_tau_m == 10ms`, so query Q0's membrane signal decays by
+~1/e (≈63%) before the readout window opens at `t = win_len = K*sub_win` — this timing
+mismatch was suspected to cause the Max K@90%=3 ceiling. Three candidate fixes tested
+(one-at-a-time + combined), all on the best-known architecture (`L1-h50 + MLP + trainable
+delays`), K∈{3,4}, 2 seeds, 200 epochs:
+
+| Condition | sub_win | read_len | τ_m | K=3 acc | K=4 acc | Max K@90% |
+|---|---|---|---|---|---|---|
+| `baseline`     | 10 | 10 | 10.0 | **92.7%** | **89.9%** | **3** |
+| `read_len20`   | 10 | 20 | 10.0 | 91.3%     | 88.4%     | 3 |
+| `subwin5`      | 5  | 10 | 10.0 | 85.2%     | 83.7%     | 0 |
+| `tau20`        | 10 | 10 | 20.0 | 88.6%     | 86.1%     | 0 |
+| `combined`     | 5  | 20 | 20.0 | 82.6%     | 81.3%     | 0 |
+
+**Hypothesis REFUTED — every intervention performs at or below baseline; none crosses
+90% at K=4.** Mechanism (revealed by `mean_hidden_spikes`, which collapses from ~28→40 in
+baseline down to ~7→10 in `combined`): increasing `τ_m` makes LIF neurons fire *less*
+often (slower membrane charge/discharge ⇒ fewer threshold crossings ⇒ less information
+throughput), and shrinking `sub_win` gives rate-coded inputs less time to generate spikes
+in the first place — both reduce, not preserve, transmitted information. Worse, slower
+decay (`τ_m ↑`) actively **weakens the "natural slot isolation"** that Plan A identified
+as the mechanism separating queries (LIF decay at τ=10/slot_len=35 gave ~3% residual
+cross-talk) — Q0's signal now leaks further into Q1/Q2's processing windows, *increasing*
+cross-query interference rather than reducing information loss.
+
+**Conclusion**: Max K@90%=3 is not a simple membrane-decay timing artifact fixable by
+retuning `τ_m`/`read_len`/`sub_win` — these knobs trade off information throughput and
+slot isolation in ways that net to zero or negative. The ceiling more likely reflects a
+fundamental **representational-interference** limit on how many simultaneously-active
+queries a shared 50-dim hidden layer can keep separable, independent of both architecture
+(depth/readout, Sections 13–14) and timing constants (this section). Full log:
+`docs/EXPERIMENT_LOG.md` Section 15.

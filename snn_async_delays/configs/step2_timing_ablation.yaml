@@ -1,0 +1,100 @@
+# ============================================================
+# Direction B: Timing-Parameter Ablation for Plan D
+#
+# Scientific question:
+#   Max K@90% = 3 (MLP) / 2 (linear) regardless of depth or readout
+#   capacity. Is the ceiling caused by a TIMING mismatch — specifically
+#   sub_win == lif_tau_m == 10ms, so query Q0's membrane signal has
+#   decayed by ~1/e before the readout window opens at t=win_len?
+#
+# Fixed architecture (isolates the timing variable):
+#   L1-h50 + MLP readout + trainable delays
+#   (the single best-known config; closest to crossing K=4: 89.85% baseline)
+#
+# Conditions vary sub_win / read_len / lif_tau_m one-at-a-time + combined:
+#   baseline    : sub_win=10 read_len=10 tau_m=10  (reproduces L1-h50-mlp)
+#   read_len20  : more integration time for readout
+#   subwin5     : less decay accumulated before readout opens
+#   tau20       : slower membrane decay -> Q0 signal survives longer
+#   combined    : all three favorable changes together (additivity test)
+# ============================================================
+
+# ----- Timing defaults (overridden per condition) -----
+dt: 1.0
+sub_win: 10
+read_len: 10
+# d_max = win_len = K * sub_win (computed per run)
+# T = win_len + read_len
+
+# ----- Default network params -----
+n_hidden: 50
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset -----
+ops_list: [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+op_name: NAND
+same_op: true
+n_train: 4000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Timing Ablation Sweep -----
+sweep:
+  K_values: [3, 4]
+  seeds: [42, 0]
+  accuracy_thresholds: [0.95, 0.90]
+
+  # Fixed architecture for all conditions — only timing params vary
+  model:
+    name: L1-h50-mlp
+    num_hidden_layers: 1
+    hidden_sizes: [50]
+    readout_type: mlp
+    train_mode: weights_and_delays
+    delay_param_type: sigmoid
+
+  conditions:
+    - name: baseline
+      sub_win: 10
+      read_len: 10
+      lif_tau_m: 10.0
+
+    - name: read_len20
+      sub_win: 10
+      read_len: 20
+      lif_tau_m: 10.0
+
+    - name: subwin5
+      sub_win: 5
+      read_len: 10
+      lif_tau_m: 10.0
+
+    - name: tau20
+      sub_win: 10
+      read_len: 10
+      lif_tau_m: 20.0
+
+    - name: combined
+      sub_win: 5
+      read_len: 20
+      lif_tau_m: 20.0

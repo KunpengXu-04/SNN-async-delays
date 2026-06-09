@@ -325,3 +325,29 @@ queries a shared 50-dim hidden layer can keep separable, independent of both arc
 2. **Absolute accuracy limited by task difficulty, not temporal capacity**: K=1 never reaches 90% — caused by sparse per-op training (~500 samples/op vs. 4000 for NAND in Step 2) and XOR/XNOR dragging down the mean. This is a **data sparsity / multi-function learning ceiling**, not a timing or routing failure.
 3. **d0 near-chance at K≥3**: 57–60% for d0 vs. 65–69% for w_and_d at K=3–4. Without delays, spike activity in the shared readout window is negligible (LIF decays erase K=0's sub-window signal) and the network falls back to a weak label prior.
 4. **Config note**: initial d0_control used `train_mode: weights_and_delays` (bug — delays were trained, results identical to w_and_d). Fixed to `train_mode: weights_only` + `fixed_delay_value: 0.0` before final analysis.
+
+---
+
+## Step 3 Follow-Up (4 Easy Ops: AND/OR/NAND/NOR)
+
+**Config**: same as Step 3 but `n_ops=4, ops_list=[AND,OR,NAND,NOR]`, n_input=6, n_train=4000 (~1000/op × 4 ops).
+**Summary**: `runs/step3_planD_4ops/step3_planD_summary.csv`
+**Log**: `docs/EXPERIMENT_LOG.md` Section 17
+
+### Accuracy by Model × K (mean ± range over 2 seeds)
+
+| K | `w_and_d` | `d0_control` | Delay gap | vs 8-op w_and_d |
+|---|-----------|--------------|-----------|-----------------|
+| 1 | 87.7% ± 1.7% | 62.6% ± 1.4% | **+25.1%** | +3.4% |
+| 2 | 80.2% ± 0.5% | 59.4% ± 2.7% | **+20.8%** | +5.8% |
+| 3 | 74.9% ± 1.6% | 55.9% ± 0.1% | **+19.0%** | +6.2% |
+| 4 | 72.6% ± 0.7% | 53.8% ± 0.4% | **+18.8%** | +5.0% |
+
+**Max K@90%**: 0 for both models.
+
+### Key Findings
+
+1. **Hypothesis refuted**: Removing XOR/XNOR + doubling per-op samples improves w_and_d by +3–6% but K=1 only reaches 87.7% — still 2.3% below the 90% threshold.
+2. **Multi-function learning is an independent bottleneck**: Even with 4 easy linearly-separable ops at ~1000 samples/op, accuracy is ~7% below single-op NAND (95% at 4000 samples). The network must simultaneously represent 4 different Boolean computations in shared h=50 neurons — this **multi-function representational competition** is the fundamental ceiling.
+3. **Delay advantage larger with easy ops** (+19–25% vs +11–20% for 8 ops): w_and_d gains more from easy ops; d0 is slightly worse (4 ops have more symmetric output distributions → weaker label prior).
+4. **Estimated data requirement to reach Max K@90%≥1**: ~16,000 total samples (~4000/op × 4 ops), based on interpolating from Step 2 single-op scaling.

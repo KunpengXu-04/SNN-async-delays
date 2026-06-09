@@ -1,0 +1,86 @@
+# ============================================================
+# Step 3 — Mixed-Op Temporal Multiplexing (Plan D sequential)
+#
+# Scientific question:
+#   Step 2 Plan D showed delays enable temporal routing of K identical
+#   NAND queries (Max K@90% = 3, MLP readout). Step 3 extends this to
+#   *heterogeneous* operations: each of K queries asks a DIFFERENT
+#   boolean op (randomly drawn from 8 ops). Does temporal delay-based
+#   routing generalise to mixed-op computation within a fixed network?
+#
+# Design (same Plan D sequential structure as Step 2):
+#   - n_input_channels = 2 (A,B) + 8 (one-hot op) = 10
+#   - Query k fires on all 10 channels during sub-window [k*sub_win, (k+1)*sub_win)
+#   - Shared readout decodes all K answers simultaneously at t in [win_len, T)
+#   - win_len = K * sub_win,  d_max = win_len,  T = win_len + read_len
+#
+# Hypothesis: delays carry temporal-slot identity (same as Step 2) while
+# the one-hot op channel carries operation identity spatially. If delays
+# still provide the primary advantage, Max K@90% should be comparable to
+# Step 2 Plan D (baseline K@90%=3). If op-heterogeneity adds interference,
+# Max K@90% may be lower.
+# ============================================================
+
+# ----- Fixed timing (same as Step 2 Plan D baseline) -----
+dt: 1.0
+sub_win: 10
+read_len: 10
+# win_len = K * sub_win  (computed per run in runner)
+# d_max   = win_len      (computed per run in runner)
+
+# ----- Op config -----
+n_ops: 8
+ops_list: [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+same_op: false          # Step 3: mixed ops per trial
+op_sampling: uniform    # each query draws an op independently and uniformly
+
+# ----- Network defaults -----
+n_hidden: 50
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+delay_step: 1.0
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset -----
+n_train: 4000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Sweep -----
+sweep:
+  K_values: [1, 2, 3, 4]
+  seeds: [42, 0]
+  accuracy_thresholds: [0.95, 0.90]
+
+  models:
+    - name: w_and_d
+      train_mode: weights_and_delays
+      fixed_delay_value: null
+      readout_type: mlp
+      num_hidden_layers: 1
+      hidden_sizes: [50]
+
+    - name: d0_control
+      train_mode: weights_and_delays
+      fixed_delay_value: 0.0
+      readout_type: mlp
+      num_hidden_layers: 1
+      hidden_sizes: [50]

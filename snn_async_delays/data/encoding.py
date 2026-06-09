@@ -93,6 +93,7 @@ def encode_simultaneous_trial(
     r_off: float = 10.0,
     dt: float = 1.0,
     device: str = "cpu",
+    **kwargs,   # absorbs op_ids/n_ops passed by Step-3-aware callers
 ) -> torch.Tensor:
     """
     Encode K queries simultaneously with 2K dedicated input channels.
@@ -150,42 +151,37 @@ def encode_sequential_trial(
     r_off: float = 10.0,
     dt: float = 1.0,
     device: str = "cpu",
+    op_ids: "torch.Tensor | None" = None,   # [B, K] long  (Step 3 only)
+    n_ops: int = 0,                          # >0 enables one-hot op channels
+    **kwargs,
 ) -> torch.Tensor:
     """
-    Encode K queries sequentially on 2 SHARED input channels.
+    Encode K queries sequentially on shared input channels.
 
     Plan D — true temporal multiplexing via time-division:
       Query k fires on channels [A, B] during sub-window
       [k*sub_win, (k+1)*sub_win), where sub_win = win_len // K.
 
-    With d=0: the network cannot distinguish which time-slice belongs
-    to which query — they all go through the same 2 weights.
-    Only trainable delays let each hidden neuron selectively "tune" to
-    a specific sub-window offset, achieving genuine temporal routing.
-
-    Timeline:
-      [0,         sub_win)   : query 0 spikes on A, B
-      [sub_win,   2*sub_win) : query 1 spikes on A, B
-      ...
-      [win_len,   T)         : silence — readout accumulates delayed spikes
+    Step 3 extension: when n_ops > 0, appends n_ops one-hot op channels,
+    giving n_input_channels = 2 + n_ops total.
 
     Returns
     -------
-    spike_input : [B, T, 2]  where T = win_len + read_len
+    spike_input : [B, T, 2+n_ops]  where T = win_len + read_len
     """
     B = A_batch.shape[0]
     K = A_batch.shape[1]
     T = win_len + read_len
-    sub_win = win_len // K          # base sub-window length per query
+    sub_win = win_len // K
+    n_ch = 2 + n_ops
 
     p_on  = r_on  * dt / 1000.0
     p_off = r_off * dt / 1000.0
 
-    spike_input = torch.zeros(B, T, 2, device=device)
+    spike_input = torch.zeros(B, T, n_ch, device=device)
 
     for k in range(K):
         t_start = k * sub_win
-        # Last query gets any remaining steps due to integer division
         t_end = (k + 1) * sub_win if k < K - 1 else win_len
         wl = t_end - t_start
 
@@ -199,10 +195,14 @@ def encode_sequential_trial(
                          torch.full_like(B_k, p_on),
                          torch.full_like(B_k, p_off))
 
-        pA_exp = pA.unsqueeze(1).expand(B, wl)
-        pB_exp = pB.unsqueeze(1).expand(B, wl)
+        spike_input[:, t_start:t_end, 0] = torch.bernoulli(pA.unsqueeze(1).expand(B, wl))
+        spike_input[:, t_start:t_end, 1] = torch.bernoulli(pB.unsqueeze(1).expand(B, wl))
 
-        spike_input[:, t_start:t_end, 0] = torch.bernoulli(pA_exp)
-        spike_input[:, t_start:t_end, 1] = torch.bernoulli(pB_exp)
+        if n_ops > 0 and op_ids is not None:
+            op_k = op_ids[:, k].to(device)                     # [B]
+            op_oh = torch.zeros(B, n_ops, device=device)
+            op_oh.scatter_(1, op_k.unsqueeze(1), 1.0)          # [B, n_ops]
+            p_op_exp = (op_oh * p_on).unsqueeze(1).expand(B, wl, n_ops)
+            spike_input[:, t_start:t_end, 2:] = torch.bernoulli(p_op_exp)
 
     return spike_input

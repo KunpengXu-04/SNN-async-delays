@@ -289,6 +289,8 @@ class SimultaneousTrainer:
             r_off=self.cfg["r_off"],
             dt=self.cfg["dt"],
             device=self.device,
+            op_ids=op_ids.to(self.device),
+            n_ops=self.cfg.get("n_ops", 0),
         )
 
         logits, info = self.model(spike_input)   # [B, K]

@@ -200,6 +200,8 @@ def evaluate_simultaneous(
             r_off=cfg["r_off"],
             dt=cfg["dt"],
             device=device,
+            op_ids=op_ids.to(device),
+            n_ops=cfg.get("n_ops", 0),
         )
         logits, info = model(spike_input)
 

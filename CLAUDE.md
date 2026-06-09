@@ -299,3 +299,29 @@ fundamental **representational-interference** limit on how many simultaneously-a
 queries a shared 50-dim hidden layer can keep separable, independent of both architecture
 (depth/readout, Sections 13–14) and timing constants (this section). Full log:
 `docs/EXPERIMENT_LOG.md` Section 15.
+
+---
+
+## Step 3 Results (Mixed-Op Temporal Multiplexing, Plan D)
+
+**Config**: L1-h50 + MLP readout, Plan D sequential, n_input=10 (2 A/B + 8 one-hot op), K=1~4, seeds 42+0, 200 epochs, 8 ops uniformly sampled per query, n_train=4000.
+**Summary**: `runs/step3_planD/step3_planD_summary.csv`
+**Log**: `docs/EXPERIMENT_LOG.md` Section 16
+
+### Accuracy by Model × K (mean ± range over 2 seeds)
+
+| K | `w_and_d` | `d0_control` | Delay gap |
+|---|-----------|--------------|-----------|
+| 1 | 84.3% ± 4.4% | 64.5% ± 1.6% | **+19.8%** |
+| 2 | 74.4% ± 0.7% | 60.0% ± 0.5% | **+14.4%** |
+| 3 | 68.7% ± 1.9% | 57.6% ± 2.3% | **+11.1%** |
+| 4 | 67.6% ± 0.8% | 56.7% ± 0.3% | **+10.9%** |
+
+**Max K@90%**: 0 for both models.
+
+### Key Findings
+
+1. **Delay advantage generalises to mixed ops**: +11–20% gain over d0 at all K, matching Step 2 Plan D magnitude (+14–19%). Temporal routing is insensitive to operation heterogeneity — delays encode temporal-slot identity; one-hot op channels handle operation identity spatially. The two mechanisms are orthogonal.
+2. **Absolute accuracy limited by task difficulty, not temporal capacity**: K=1 never reaches 90% — caused by sparse per-op training (~500 samples/op vs. 4000 for NAND in Step 2) and XOR/XNOR dragging down the mean. This is a **data sparsity / multi-function learning ceiling**, not a timing or routing failure.
+3. **d0 near-chance at K≥3**: 57–60% for d0 vs. 65–69% for w_and_d at K=3–4. Without delays, spike activity in the shared readout window is negligible (LIF decays erase K=0's sub-window signal) and the network falls back to a weak label prior.
+4. **Config note**: initial d0_control used `train_mode: weights_and_delays` (bug — delays were trained, results identical to w_and_d). Fixed to `train_mode: weights_only` + `fixed_delay_value: 0.0` before final analysis.

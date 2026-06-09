@@ -79,7 +79,7 @@ sweep:
       hidden_sizes: [50]
 
     - name: d0_control
-      train_mode: weights_and_delays
+      train_mode: weights_only
       fixed_delay_value: 0.0
       readout_type: mlp
       num_hidden_layers: 1

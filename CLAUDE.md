@@ -367,3 +367,29 @@ Full discussion and citations: `docs/EXPERIMENT_LOG.md` Section 18.
 2. **Multi-function learning is an independent bottleneck**: Even with 4 easy linearly-separable ops at ~1000 samples/op, accuracy is ~7% below single-op NAND (95% at 4000 samples). The network must simultaneously represent 4 different Boolean computations in shared h=50 neurons — this **multi-function representational competition** is the fundamental ceiling.
 3. **Delay advantage larger with easy ops** (+19–25% vs +11–20% for 8 ops): w_and_d gains more from easy ops; d0 is slightly worse (4 ops have more symmetric output distributions → weaker label prior).
 4. **Estimated data requirement to reach Max K@90%≥1**: ~16,000 total samples (~4000/op × 4 ops), based on interpolating from Step 2 single-op scaling.
+
+---
+
+## Step 3 Direction A (n_train=16000, 4-op mixed)
+
+**Config**: same as the 4-ops follow-up but `n_train=16000` (~4000/op, matching Step 2 NAND density). `configs/step3_planD_4ops_16k.yaml`.
+**Summary**: `runs/step3_planD_4ops_16k/step3_planD_summary.csv`
+**Log**: `docs/EXPERIMENT_LOG.md` Section 19
+
+### Accuracy by Model × K (mean ± range over 2 seeds)
+
+| K | `w_and_d` | `d0_control` | Delay gap | vs 1000/op (Section 17) |
+|---|-----------|--------------|-----------|--------------------------|
+| 1 | **96.5%** ± 0.1% | 64.1% ± 0.6% | **+32.4%** | +8.8% |
+| 2 | **93.0%** ± 0.4% | 58.8% ± 0.9% | **+34.2%** | +12.8% |
+| 3 | **88.1%** ± 1.8% | 55.6% ± 0.5% | **+32.4%** | +13.2% |
+| 4 | 80.4% ± 4.9% | 52.6% ± 0.0% | **+27.8%** | +7.8% |
+
+**Max K@95%**: 1. **Max K@90%**: **2** (up from 0 at n_train=4000).
+
+### Key Findings
+
+1. **Data-sparsity hypothesis confirmed**: 4× more training data (4000→16000) lifts K=1 w_and_d from 87.7% to 96.5% and K=2 from 80.2% to 93.0%, pushing Max K@90% from 0 to **2** — matching Step 2 single-op NAND's order of magnitude.
+2. **Delays are the sole beneficiary of more data**: w_and_d gains +7.8–13.2pp from 4× data; d0_control is essentially flat (−1.2 to +1.5pp). Delay advantage widens to **+27–34%** (from +19–25% at 1000/op).
+3. **Multi-function representational competition remains an independent ceiling**: even at NAND-equivalent data density (4000/op), mixed 4-op Max K@90%=2 is still 1 below single-op NAND's Max K@90%=3 (MLP readout) — data volume and representational competition are orthogonal bottlenecks.
+4. **Overall**: the core Step 3 claim — delay-driven temporal multiplexing generalises to mixed-op tasks — is confirmed at the same order of magnitude as single-op results, given sufficient data.

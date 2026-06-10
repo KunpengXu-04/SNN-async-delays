@@ -1,0 +1,80 @@
+# ============================================================
+# Step 3 Direction A — 4 Easy Ops (AND, OR, NAND, NOR), n_train=16000
+#
+# Motivation (Section 17.4.4 / 17.5):
+#   The 4-op follow-up (n_train=4000, ~1000/op) reached K=1
+#   w_and_d=87.7%, still 2.3pp short of the 90% threshold. A
+#   log-linear extrapolation from Step 2 (NAND, 4000 samples -> 95%)
+#   suggests ~4000 samples/op (n_train=16000 total) is needed to
+#   push K=1 past 90%.
+#
+# This config tests the "data sparsity is the bottleneck" hypothesis
+# directly: same 4 ops, same architecture, only n_train changes
+# 4000 -> 16000 (4x compute, ~6-8 hours for the 16-run sweep).
+#
+# Hypothesis:
+#   K=1 w_and_d reaches >=90%; delay advantage (+10-25%) persists;
+#   Max K@90% recovers to >=1.
+# ============================================================
+
+# ----- Fixed timing (same as Step 2 Plan D baseline) -----
+dt: 1.0
+sub_win: 10
+read_len: 10
+
+# ----- Op config -----
+n_ops: 4
+ops_list: [AND, OR, NAND, NOR]
+same_op: false
+op_sampling: uniform
+
+# ----- Network defaults -----
+n_hidden: 50
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+delay_step: 1.0
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset -----
+n_train: 16000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Sweep -----
+sweep:
+  K_values: [1, 2, 3, 4]
+  seeds: [42, 0]
+  accuracy_thresholds: [0.95, 0.90]
+
+  models:
+    - name: w_and_d
+      train_mode: weights_and_delays
+      fixed_delay_value: null
+      readout_type: mlp
+      num_hidden_layers: 1
+      hidden_sizes: [50]
+
+    - name: d0_control
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      readout_type: mlp
+      num_hidden_layers: 1
+      hidden_sizes: [50]

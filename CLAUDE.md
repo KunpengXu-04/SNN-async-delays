@@ -300,6 +300,22 @@ queries a shared 50-dim hidden layer can keep separable, independent of both arc
 (depth/readout, Sections 13–14) and timing constants (this section). Full log:
 `docs/EXPERIMENT_LOG.md` Section 15.
 
+### Is Max K@90%=3 (h=50) a reasonable order of magnitude?
+
+Yes — it's consistent with biological and artificial-SNN temporal multiplexing literature:
+- **Lisman & Idiart (1995, *Science*)**: theta-gamma coupling allows ~5–7 working-memory
+  items per theta cycle (~10,000 neurons). Cowan (2001) revised this to ~4±1.
+- **Izhikevich (2006, *Neural Computation*)**: polychronization in 1000-neuron SNNs with
+  delays yields ~20–50 polychronous groups; linearly scaled to h=50 → ~1–2.5 groups,
+  matching our K=2 (linear readout) / K=3 (MLP readout).
+- d=0 gives K=0 in our experiments — delays (phase/temporal coding) being necessary for
+  K>0 mirrors the theta-gamma model's requirement of phase coding for multiplexing.
+- The hard ceiling (unbreakable by depth/readout/timing) matches the "learnable capacity
+  vs. theoretical capacity" gap seen in associative memory networks (e.g. Hopfield: ~0.14N
+  theoretical vs ~0.05N practical).
+
+Full discussion and citations: `docs/EXPERIMENT_LOG.md` Section 18.
+
 ---
 
 ## Step 3 Results (Mixed-Op Temporal Multiplexing, Plan D)

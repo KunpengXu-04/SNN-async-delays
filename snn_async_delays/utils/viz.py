@@ -1094,8 +1094,14 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
     from data.encoding import encode_sequential_trial
 
     model.eval()
-    ds = MultiQueryDataset(K=K, n_samples=1, same_op=True, op_name=op,
-                           ops_list=cfg["ops_list"], seed=seed)
+    n_ops = cfg.get("n_ops", 0)
+    if op == "mixed":
+        ds = MultiQueryDataset(K=K, n_samples=1, same_op=False,
+                               ops_list=cfg["ops_list"], seed=seed,
+                               op_sampling=cfg.get("op_sampling", "uniform"))
+    else:
+        ds = MultiQueryDataset(K=K, n_samples=1, same_op=True, op_name=op,
+                               ops_list=cfg["ops_list"], seed=seed)
     A, B, op_ids, labels = ds[0]
     torch.manual_seed(seed)
 
@@ -1104,6 +1110,8 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
         win_len=cfg["win_len"], read_len=cfg["read_len"],
         r_on=cfg["r_on"], r_off=cfg["r_off"],
         dt=cfg["dt"], device=device,
+        op_ids=op_ids.unsqueeze(0) if n_ops > 0 else None,
+        n_ops=n_ops,
     )
 
     with torch.no_grad():
@@ -1757,43 +1765,40 @@ def plot_diagnostic_panel(
     plt.close(fig)
 
 
-def save_run_diagnostic_plots(
-    model,
-    cfg: dict,
-    log_rows: list,
-    eval_results: dict,
-    run_dir: str,
-    K: int,
-    op: str,
-    device: str,
-    seed: int = 999,
-):
-    """Orchestrate all per-run diagnostic plots.
-
-    Saves to `run_dir/plots/`:
-      diagnostic_panel.png
-      weight_heatmaps.png
-      delay_heatmaps.png
-      spike_raster_sample0.png
-      layer_to_layer_spike_flow_sample0.png
+def _save_diagnostic_data(plot_dir: str, traces: dict, weights_dict: dict,
+                           delays_dict: dict) -> None:
+    """Persist the raw arrays behind the diagnostic plots to
+    `plot_dir/diagnostic_data.npz`, so plots can be regenerated later
+    (new style/logic) without rerunning the model.
     """
-    plot_dir = os.path.join(run_dir, "plots")
-    os.makedirs(plot_dir, exist_ok=True)
+    flat = {}
+    for k, v in traces.items():
+        flat[f"traces__{k}"] = np.asarray(v)
+    for k, v in weights_dict.items():
+        flat[f"weights__{k}"] = np.asarray(v)
+    for k, v in delays_dict.items():
+        flat[f"delays__{k}"] = np.asarray(v)
+    np.savez_compressed(os.path.join(plot_dir, "diagnostic_data.npz"), **flat)
 
-    mname = eval_results.get("model_name", cfg.get("model_name", "model"))
-    acc   = eval_results.get("accuracy", float("nan"))
-    seed_ = cfg.get("seed", seed)
-    title_base = (f"Plan D | {mname} | K={K} | seed={seed_} | "
-                  f"acc={acc:.1%}")
 
-    try:
-        traces, weights_dict, delays_dict = _extract_run_traces(
-            model, cfg, K, op, device, seed)
-    except Exception as exc:
-        import logging
-        logging.getLogger("viz").warning(
-            f"save_run_diagnostic_plots: trace extraction failed: {exc}")
-        return
+def load_diagnostic_data(plot_dir: str) -> tuple:
+    """Inverse of `_save_diagnostic_data`. Returns (traces, weights_dict, delays_dict)."""
+    npz = np.load(os.path.join(plot_dir, "diagnostic_data.npz"))
+    traces, weights_dict, delays_dict = {}, {}, {}
+    for key in npz.files:
+        group, _, name = key.partition("__")
+        arr = npz[key]
+        if arr.ndim == 0:
+            arr = arr.item()
+        target = {"traces": traces, "weights": weights_dict, "delays": delays_dict}[group]
+        target[name] = arr
+    return traces, weights_dict, delays_dict
+
+
+def _make_diagnostic_plots(plot_dir: str, traces: dict, weights_dict: dict,
+                            delays_dict: dict, title_base: str, cfg: dict,
+                            K: int, log_rows: list, eval_results: dict) -> None:
+    """Render all diagnostic PNGs from already-extracted data."""
 
     def _safe(fn, path, **kw):
         try:
@@ -1822,6 +1827,69 @@ def save_run_diagnostic_plots(
           os.path.join(plot_dir, "diagnostic_panel.png"),
           traces=traces, weights_dict=weights_dict, delays_dict=delays_dict,
           cfg={**cfg, "K": K}, log_rows=log_rows, eval_results=eval_results)
+
+
+def replot_run_diagnostics(run_dir: str, cfg: dict, log_rows: list,
+                            eval_results: dict, K: int, seed: int = 999) -> None:
+    """Regenerate diagnostic PNGs from `plot_dir/diagnostic_data.npz`
+    (saved by `save_run_diagnostic_plots`) without rerunning the model.
+    Useful after changing plot styling/logic.
+    """
+    plot_dir = os.path.join(run_dir, "plots")
+    traces, weights_dict, delays_dict = load_diagnostic_data(plot_dir)
+
+    mname = eval_results.get("model_name", cfg.get("model_name", "model"))
+    acc   = eval_results.get("accuracy", float("nan"))
+    seed_ = cfg.get("seed", seed)
+    title_base = (f"Plan D | {mname} | K={K} | seed={seed_} | "
+                  f"acc={acc:.1%}")
+
+    _make_diagnostic_plots(plot_dir, traces, weights_dict, delays_dict,
+                            title_base, cfg, K, log_rows, eval_results)
+
+
+def save_run_diagnostic_plots(
+    model,
+    cfg: dict,
+    log_rows: list,
+    eval_results: dict,
+    run_dir: str,
+    K: int,
+    op: str,
+    device: str,
+    seed: int = 999,
+):
+    """Orchestrate all per-run diagnostic plots.
+
+    Saves to `run_dir/plots/`:
+      diagnostic_panel.png
+      weight_heatmaps.png
+      delay_heatmaps.png
+      spike_raster_sample0.png
+      layer_to_layer_spike_flow_sample0.png
+      diagnostic_data.npz   (raw traces/weights/delays for replotting later)
+    """
+    plot_dir = os.path.join(run_dir, "plots")
+    os.makedirs(plot_dir, exist_ok=True)
+
+    mname = eval_results.get("model_name", cfg.get("model_name", "model"))
+    acc   = eval_results.get("accuracy", float("nan"))
+    seed_ = cfg.get("seed", seed)
+    title_base = (f"Plan D | {mname} | K={K} | seed={seed_} | "
+                  f"acc={acc:.1%}")
+
+    try:
+        traces, weights_dict, delays_dict = _extract_run_traces(
+            model, cfg, K, op, device, seed)
+    except Exception as exc:
+        import logging
+        logging.getLogger("viz").warning(
+            f"save_run_diagnostic_plots: trace extraction failed: {exc}")
+        return
+
+    _save_diagnostic_data(plot_dir, traces, weights_dict, delays_dict)
+    _make_diagnostic_plots(plot_dir, traces, weights_dict, delays_dict,
+                            title_base, cfg, K, log_rows, eval_results)
 
 
 def plot_neuron_connection_raster(

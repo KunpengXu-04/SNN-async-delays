@@ -393,3 +393,30 @@ Full discussion and citations: `docs/EXPERIMENT_LOG.md` Section 18.
 2. **Delays are the sole beneficiary of more data**: w_and_d gains +7.8–13.2pp from 4× data; d0_control is essentially flat (−1.2 to +1.5pp). Delay advantage widens to **+27–34%** (from +19–25% at 1000/op).
 3. **Multi-function representational competition remains an independent ceiling**: even at NAND-equivalent data density (4000/op), mixed 4-op Max K@90%=2 is still 1 below single-op NAND's Max K@90%=3 (MLP readout) — data volume and representational competition are orthogonal bottlenecks.
 4. **Overall**: the core Step 3 claim — delay-driven temporal multiplexing generalises to mixed-op tasks — is confirmed at the same order of magnitude as single-op results, given sufficient data.
+
+---
+
+## Step 3 Direction C (h=100, 4-op mixed, n_train=16000)
+
+**Config**: same as Direction A but `n_hidden=100` and MLP readout `hidden_sizes=[100]` (single layer, matching the proven L1+MLP architecture from the depth ablation, just doubled). `configs/step3_planD_4ops_16k_h100.yaml`.
+**Summary**: `runs/step3_planD_4ops_16k_h100/step3_planD_summary.csv`
+**Log**: `docs/EXPERIMENT_LOG.md` Section 20
+
+### Accuracy by Model × K (mean ± range over 2 seeds)
+
+| K | `w_and_d` | `d0_control` | Delay gap | vs h=50 (Section 19) |
+|---|-----------|--------------|-----------|------------------------|
+| 1 | **97.0%** ± 0.0% | 65.6% ± 3.2% | **+31.4%** | +0.5% |
+| 2 | **94.2%** ± 3.1% | 60.0% ± 3.3% | **+34.2%** | +1.2% |
+| 3 | **90.2%** ± 1.8% | 56.3% ± 1.0% | **+33.9%** | +2.1% |
+| 4 | 85.3% ± 3.2% | 53.5% ± 1.5% | **+31.7%** | +4.9% |
+
+**Max K@95%**: 1. **Max K@90%**: **3** (up from 2 at h=50) — matches single-op NAND (Section 14).
+
+### Key Findings
+
+1. **Capacity hypothesis confirmed**: doubling hidden size (50→100, single layer) pushes K=3 from 88.1% to **90.2%**, crossing the 90% threshold and raising Max K@90% from 2 to **3** — now matching single-op NAND's ceiling exactly.
+2. **Gains concentrate at high K** (K=1: +0.5pp, K=2: +1.2pp, K=3: +2.1pp, K=4: +4.9pp): K=1/K=2 were already near-saturated at h=50; extra capacity mainly relieves the capacity-constrained K=3/4 regime.
+3. **d0_control is insensitive to hidden size** (65.6/60.0/56.3/53.5% vs 64.1/58.8/55.6/52.6% at h=50, within seed noise) — confirms delays (temporal coding), not raw neuron count, are what convert capacity into temporal-multiplexing capability.
+4. **Energy cost**: K/spk roughly halves (0.015–0.019 vs 0.027–0.035 at h=50) — Max K@90%=3 is bought with ~2x the spikes.
+5. **Overall**: combining Direction A (data) + Direction C (capacity), mixed 4-op Max K@90% goes 0 (Section 17) → 2 (Section 19) → **3** (Section 20), now fully matching single-op NAND — strong confirmation that delay-driven temporal multiplexing generalises to mixed-op tasks given sufficient data and capacity.

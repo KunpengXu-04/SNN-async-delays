@@ -1,0 +1,82 @@
+# ============================================================
+# Step 3 Direction C — 4 Easy Ops (AND, OR, NAND, NOR), n_train=16000, h=100
+#
+# Motivation (Section 19.4.4):
+#   At n_train=16000 (Section 19), w_and_d reached K=1=96.5%, K=2=93.0%,
+#   Max K@90%=2, but K=3 (88.1%) and K=4 (80.4%) remained below 90% --
+#   one Max K@90% short of single-op NAND (3, MLP readout, Section 14).
+#   This residual gap was attributed to "multi-function representational
+#   competition": the shared h=50 hidden layer must represent 4 Boolean
+#   functions AND K temporal queries simultaneously.
+#
+# This config tests whether more hidden capacity (not more data) relieves
+# that bottleneck: same 4 ops, same data volume, only n_hidden changes
+# 50 -> 100 (single layer, matching the proven L1+MLP architecture from
+# the depth ablation -- see Sections 13-14).
+#
+# Hypothesis:
+#   K=1/K=2 remain >=90%; K=3 (and possibly K=4) cross 90%, pushing
+#   Max K@90% from 2 to 3, matching single-op NAND's order of magnitude.
+# ============================================================
+
+# ----- Fixed timing (same as Step 2 Plan D baseline) -----
+dt: 1.0
+sub_win: 10
+read_len: 10
+
+# ----- Op config -----
+n_ops: 4
+ops_list: [AND, OR, NAND, NOR]
+same_op: false
+op_sampling: uniform
+
+# ----- Network defaults -----
+n_hidden: 100
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+delay_step: 1.0
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset -----
+n_train: 16000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Sweep -----
+sweep:
+  K_values: [1, 2, 3, 4]
+  seeds: [42, 0]
+  accuracy_thresholds: [0.95, 0.90]
+
+  models:
+    - name: w_and_d
+      train_mode: weights_and_delays
+      fixed_delay_value: null
+      readout_type: mlp
+      num_hidden_layers: 1
+      hidden_sizes: [100]
+
+    - name: d0_control
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      readout_type: mlp
+      num_hidden_layers: 1
+      hidden_sizes: [100]

@@ -1,0 +1,88 @@
+# ============================================================
+# Step 3 Direction D — 2-layer depth (50+50) at the h=100 budget
+# (4-op mixed, n_train=16000)
+#
+# Motivation (Section 20):
+#   Direction C found that L1-h100+MLP (single layer, readout_in=100) raises
+#   Max K@90% from 2 (h=50) to 3 for the 4-op mixed task, matching single-op
+#   NAND's ceiling. This config tests whether DEPTH (not just width) helps
+#   further, using the SAME 100-neuron budget split across 2 layers (50+50).
+#
+#   This mirrors the original depth ablation (Sections 13-14, single-op
+#   NAND, 50-neuron budget): there, L2-h25h25+MLP (readout_in=25) did NOT
+#   improve on L1-h50+MLP (readout_in=50) -- the MLP readout's input
+#   dimension was too small to gain from nonlinearity. At h=100 split as
+#   50+50, readout_in=50 -- exactly the dimension that gave Max K@90%=3 in
+#   the single-op depth ablation (L1-h50+MLP).
+#
+# Question: does a readout_in=50 MLP fed by a 2-layer (50+50) spiking
+# representation (100 neurons total) beat, match, or fall short of the
+# 1-layer h100 (readout_in=100) result from Section 20, on the 4-op mixed
+# task?
+#
+# Hypothesis: Max K@90% stays at 3 (depth-neutral, as in Sections 13-14)
+# rather than improving to 4, since the single-op depth ablation already
+# showed depth at fixed budget does not break the K@90% ceiling.
+# ============================================================
+
+# ----- Fixed timing (same as Step 2 Plan D baseline) -----
+dt: 1.0
+sub_win: 10
+read_len: 10
+
+# ----- Op config -----
+n_ops: 4
+ops_list: [AND, OR, NAND, NOR]
+same_op: false
+op_sampling: uniform
+
+# ----- Network defaults -----
+n_hidden: 50
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+delay_step: 1.0
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset -----
+n_train: 16000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Sweep -----
+sweep:
+  K_values: [1, 2, 3, 4]
+  seeds: [42, 0]
+  accuracy_thresholds: [0.95, 0.90]
+
+  models:
+    - name: w_and_d
+      train_mode: weights_and_delays
+      fixed_delay_value: null
+      readout_type: mlp
+      num_hidden_layers: 2
+      hidden_sizes: [50, 50]
+
+    - name: d0_control
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      readout_type: mlp
+      num_hidden_layers: 2
+      hidden_sizes: [50, 50]

@@ -420,3 +420,31 @@ Full discussion and citations: `docs/EXPERIMENT_LOG.md` Section 18.
 3. **d0_control is insensitive to hidden size** (65.6/60.0/56.3/53.5% vs 64.1/58.8/55.6/52.6% at h=50, within seed noise) — confirms delays (temporal coding), not raw neuron count, are what convert capacity into temporal-multiplexing capability.
 4. **Energy cost**: K/spk roughly halves (0.015–0.019 vs 0.027–0.035 at h=50) — Max K@90%=3 is bought with ~2x the spikes.
 5. **Overall**: combining Direction A (data) + Direction C (capacity), mixed 4-op Max K@90% goes 0 (Section 17) → 2 (Section 19) → **3** (Section 20), now fully matching single-op NAND — strong confirmation that delay-driven temporal multiplexing generalises to mixed-op tasks given sufficient data and capacity.
+
+---
+
+## Step 3 Direction D (2-layer h50+h50, 4-op mixed, fixed 100-neuron budget)
+
+**Config**: same as Direction C but `num_hidden_layers: 2, hidden_sizes: [50, 50]` (readout_in=50, splitting the same 100-neuron budget into two layers). `configs/step3_planD_4ops_16k_h100_L2.yaml`.
+**Summary**: `runs/step3_planD_4ops_16k_h100_L2/step3_planD_summary.csv`
+**Log**: `docs/EXPERIMENT_LOG.md` Section 21
+
+### Accuracy by Model × K (mean ± range over 2 seeds)
+
+| K | `w_and_d` | `d0_control` | Delay gap | vs Section 20 (L1-h100) |
+|---|-----------|--------------|-----------|--------------------------|
+| 1 | 94.75% ± 0.35% | 69.70% ± 0.30% | **+25.0%** | -2.25pp |
+| 2 | 92.08% ± 0.48% | 59.35% ± 1.15% | **+32.7%** | -2.12pp |
+| 3 | 88.72% ± 1.25% | 56.62% ± 1.29% | **+32.1%** | -1.48pp |
+| 4 | 86.15% ± 0.60% | 55.05% ± 1.10% | **+31.1%** | +0.85pp |
+
+**Max K@95%**: 0. **Max K@90%**: **2** (down from 3 at L1-h100) — matches Section 19 (single-layer h=50).
+
+### Key Findings
+
+1. **Depth hurts at fixed 100-neuron budget**: splitting 100 neurons into 2 layers (50+50) drops Max K@90% from 3 (Section 20, L1-h100) to 2 — equivalent to single-layer h=50 (Section 19). The 2-layer model fails to use its doubled neuron budget at all.
+2. **Total neuron count, not readout dimension, determines capacity**: the motivating hypothesis (readout_in=50 matches the dimension that gave Max K@90%=3 for single-op NAND in Sections 13-14) does not transfer — that result depended on 50 being the *total* budget, not one layer of a 100-neuron split. Splitting into layers introduces an inter-layer spike-discretization bottleneck that loses effective capacity (~50% loss observed here).
+3. **Delay mechanism is architecture-independent**: `d0_control` (69.7/59.4/56.6/55.1%) and the delay gap (+25-33%) match Section 19/20 within noise — delays remain the sole mechanism converting capacity into temporal multiplexing, regardless of depth/width split.
+4. **Energy efficiency also worse**: K/spk (0.011-0.016) is lower than Section 20 (0.015-0.019) — depth is a double loss (lower accuracy, lower energy efficiency), with no compensating benefit at any K.
+5. **3-layer model not pursued**: per the approved plan, a 3-layer refactor (model.py currently hardcodes `num_hidden_layers in (1,2)`) was only worth pursuing if 2-layer showed a clear *positive* depth trend. The result here is negative, so 3-layer is not attempted.
+6. **Practical conclusion**: for this task, single-layer + larger width (Section 20, Max K@90%=3) beats equal-split depth (this section, Max K@90%=2) at the same total neuron budget. Future capacity improvements should follow the width + data-volume path (Directions A+C), not depth.

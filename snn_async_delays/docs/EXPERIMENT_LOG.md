@@ -1753,3 +1753,82 @@ Section 21 的 K/spk（0.011-0.016）低于 Section 20（0.015-0.019），
    系列实验中第一次出现"架构改动导致能力倒退"的结果，为后续优化指明方向：
    提升 Max K@90% 应继续沿"单层宽度 + 数据量"路径（方向 A+C 的组合），而非
    深度方向。
+
+---
+
+## Section 22 — Spiking Output Layer: Extended Training (NAND K=1)
+
+**Config**: `NAND_spiking_out` (200 epochs) → `NAND_spiking_out_1k` (continued to 1000 epochs).
+NAND K=1, Plan D timing (sub_win=10, read_len=10), h=50, `use_output_spikes=True`.
+Output layer: `DelayedSynapticLayer(50→1)` + `LIFNeurons(1)`, spike count during readout = logit.
+Loss: `BCEWithLogitsLoss(spike_count, label)`.
+
+### Results
+
+| Epochs | wad acc | d0 acc | Delay gap | Notes |
+|--------|---------|--------|-----------|-------|
+| 200 | 54% | 35% | +19% | Dead zone: output neuron fires 0 spikes for first ~90 epochs |
+| 1000 | **71.8%** | **43.6%** | **+28%** | Still improving at epoch 1000; far below linear readout (95%) |
+
+### Analysis
+
+**Why accuracy is low despite 1000 epochs:**
+Training difficulty arises from using spike counts as BCEWithLogitsLoss logits:
+- `sigmoid(0) = 0.5` — initial state (no output spikes) places every sample at the decision boundary
+- NAND is 75% positive → initial accuracy ≈ 25% (all-negative prediction); model takes ~90 epochs to escape
+- Gradient flows through two surrogate approximations (input→hidden, hidden→output), each introducing noise
+- Spike counts are discrete integers — limited resolution vs. continuous logit values
+
+**Delay advantage persists:** wad consistently outperforms d0 (+28% at 1000 ep). The spiking output layer does learn temporal routing, just less efficiently than a linear/MLP readout.
+
+**Conclusion:** Spiking output is viable for mechanistic visualisation (3-layer spike rasters) but is not a practical readout for Plan D. Linear/MLP readout (95%+) remains the recommended decoder. The spiking output experiment serves its diagnostic purpose: confirming that the hidden→output delay pathway can carry temporal information, even if convergence is slow.
+
+**Folder:** `runs/NAND_spiking_out/` (200 ep), `runs/NAND_spiking_out_1k/` (1000 ep).
+
+---
+
+## Section 23 — Infrastructure: Enhanced Visualisation & Folder Renaming
+
+### 23.1 Enhanced Diagnostic Plots
+
+Two new plot types added to `utils/viz.py` and generated for every run via `scripts/regen_enhanced_plots.py`:
+
+**`enhanced_raster.png`** — Improvements over `spike_raster_sample0.png`:
+- Hidden neurons sorted by first-spike time (reveals temporal wave structure)
+- Spikes coloured by sub-window (Q0 blue, Q1 orange, Q2 green, readout dark-red)
+- Right-side sidebar: readout-window spike count per neuron
+
+**`enhanced_flow.png`** — Improvements over `layer_to_layer_spike_flow_sample0.png`:
+- **(A)** Fan lines: input spike → delayed arrival at hidden (blue=inhibitory, red=excitatory)
+- **(B)** Orange horizontal spans: arrival window → actual hidden neuron fire (★)
+  - Gold ★ = fires in input window (not counted by readout)
+  - Green ★ = fires in readout window (counted ✓)
+- **(C)** Crimson/blue verticals: green ★ → readout bar (only for linear readout; colored by readout weight sign)
+
+Both enhanced plots use the **same recorded trial** from `diagnostic_data.npz` as the original plots — no model re-run, no random seeds. `regen_enhanced_plots.py` reads directly from the saved npz.
+
+### 23.2 Folder Renaming
+
+All `runs/` subdirectories renamed to descriptive characteristic-first names. Experiment codes (step1/2/3, planA/B/C/D) moved to parenthetical annotations.
+
+| Old name | New name |
+|---|---|
+| `step1` | `single_op_(step1)` |
+| `step2_planA` | `NAND_serial_slots_(step2_planA)` |
+| `step2_planC` | `NAND_simul_channels_(step2_planC)` |
+| `step2_planD` | `NAND_time_mux_(step2_planD)` |
+| `step3_planD` | `8op_mixed_(step3)` |
+| `step3_planD_4ops` | `4op_mixed_1k_(step3)` |
+| `step3_planD_4ops_16k` | `4op_mixed_16k_(step3)` |
+| `step3_planD_4ops_16k_h100` | `4op_mixed_16k_h100_(step3)` |
+| `step3_planD_4ops_16k_h100_L2` | `4op_mixed_16k_2layer_(step3)` |
+| `planD_h_sweep` | `NAND_neuron_sweep_(planD)` |
+| `depth_ablation` | `NAND_depth_ablation` |
+| `timing_ablation` | `NAND_timing_ablation` |
+| `spiking_output` | `NAND_spiking_out` |
+| `spiking_output_continued` | `NAND_spiking_out_1k` |
+
+Individual run folders also simplified (redundant experiment-code prefix removed):  
+`w_and_d_K3_seed42` → `wad_K3_seed42`, `d0_control_K3_seed42` → `d0_K3_seed42`, etc.
+
+**Script:** `scripts/rename_runs.py --execute` applies all renames; default is dry-run preview.

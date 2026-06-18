@@ -217,7 +217,7 @@ Trainable delays are the **sole necessary mechanism** for shared-channel tempora
 ## Depth Ablation Results (2-Layer SNN, Plan D)
 
 **Config**: 4 models × K∈{2,3,4} × 2 seeds = 24 runs, 200 epochs, NAND, h=50 total neurons.  
-**Summary**: `runs/depth_ablation/depth_ablation_summary.csv`  
+**Summary**: `runs/NAND_depth_ablation/depth_ablation_summary.csv`  
 **Log**: `docs/EXPERIMENT_LOG.md` Sections 13–14
 
 ### Complete 2×2 Ablation Matrix (depth × readout, all with trainable delays unless noted)
@@ -321,7 +321,7 @@ Full discussion and citations: `docs/EXPERIMENT_LOG.md` Section 18.
 ## Step 3 Results (Mixed-Op Temporal Multiplexing, Plan D)
 
 **Config**: L1-h50 + MLP readout, Plan D sequential, n_input=10 (2 A/B + 8 one-hot op), K=1~4, seeds 42+0, 200 epochs, 8 ops uniformly sampled per query, n_train=4000.
-**Summary**: `runs/step3_planD/step3_planD_summary.csv`
+**Summary**: `runs/8op_mixed_(step3)/step3_planD_summary.csv`
 **Log**: `docs/EXPERIMENT_LOG.md` Section 16
 
 ### Accuracy by Model × K (mean ± range over 2 seeds)
@@ -347,7 +347,7 @@ Full discussion and citations: `docs/EXPERIMENT_LOG.md` Section 18.
 ## Step 3 Follow-Up (4 Easy Ops: AND/OR/NAND/NOR)
 
 **Config**: same as Step 3 but `n_ops=4, ops_list=[AND,OR,NAND,NOR]`, n_input=6, n_train=4000 (~1000/op × 4 ops).
-**Summary**: `runs/step3_planD_4ops/step3_planD_summary.csv`
+**Summary**: `runs/4op_mixed_1k_(step3)/step3_planD_summary.csv`
 **Log**: `docs/EXPERIMENT_LOG.md` Section 17
 
 ### Accuracy by Model × K (mean ± range over 2 seeds)
@@ -373,7 +373,7 @@ Full discussion and citations: `docs/EXPERIMENT_LOG.md` Section 18.
 ## Step 3 Direction A (n_train=16000, 4-op mixed)
 
 **Config**: same as the 4-ops follow-up but `n_train=16000` (~4000/op, matching Step 2 NAND density). `configs/step3_planD_4ops_16k.yaml`.
-**Summary**: `runs/step3_planD_4ops_16k/step3_planD_summary.csv`
+**Summary**: `runs/4op_mixed_16k_(step3)/step3_planD_summary.csv`
 **Log**: `docs/EXPERIMENT_LOG.md` Section 19
 
 ### Accuracy by Model × K (mean ± range over 2 seeds)
@@ -399,7 +399,7 @@ Full discussion and citations: `docs/EXPERIMENT_LOG.md` Section 18.
 ## Step 3 Direction C (h=100, 4-op mixed, n_train=16000)
 
 **Config**: same as Direction A but `n_hidden=100` and MLP readout `hidden_sizes=[100]` (single layer, matching the proven L1+MLP architecture from the depth ablation, just doubled). `configs/step3_planD_4ops_16k_h100.yaml`.
-**Summary**: `runs/step3_planD_4ops_16k_h100/step3_planD_summary.csv`
+**Summary**: `runs/4op_mixed_16k_h100_(step3)/step3_planD_summary.csv`
 **Log**: `docs/EXPERIMENT_LOG.md` Section 20
 
 ### Accuracy by Model × K (mean ± range over 2 seeds)
@@ -426,7 +426,7 @@ Full discussion and citations: `docs/EXPERIMENT_LOG.md` Section 18.
 ## Step 3 Direction D (2-layer h50+h50, 4-op mixed, fixed 100-neuron budget)
 
 **Config**: same as Direction C but `num_hidden_layers: 2, hidden_sizes: [50, 50]` (readout_in=50, splitting the same 100-neuron budget into two layers). `configs/step3_planD_4ops_16k_h100_L2.yaml`.
-**Summary**: `runs/step3_planD_4ops_16k_h100_L2/step3_planD_summary.csv`
+**Summary**: `runs/4op_mixed_16k_2layer_(step3)/step3_planD_summary.csv`
 **Log**: `docs/EXPERIMENT_LOG.md` Section 21
 
 ### Accuracy by Model × K (mean ± range over 2 seeds)
@@ -448,3 +448,54 @@ Full discussion and citations: `docs/EXPERIMENT_LOG.md` Section 18.
 4. **Energy efficiency also worse**: K/spk (0.011-0.016) is lower than Section 20 (0.015-0.019) — depth is a double loss (lower accuracy, lower energy efficiency), with no compensating benefit at any K.
 5. **3-layer model not pursued**: per the approved plan, a 3-layer refactor (model.py currently hardcodes `num_hidden_layers in (1,2)`) was only worth pursuing if 2-layer showed a clear *positive* depth trend. The result here is negative, so 3-layer is not attempted.
 6. **Practical conclusion**: for this task, single-layer + larger width (Section 20, Max K@90%=3) beats equal-split depth (this section, Max K@90%=2) at the same total neuron budget. Future capacity improvements should follow the width + data-volume path (Directions A+C), not depth.
+
+---
+
+## Spiking Output Layer Results (NAND K=1)
+
+**Config**: `NAND_spiking_out` (200 ep) → `NAND_spiking_out_1k` (1000 ep total, warm-started).
+NAND K=1, Plan D timing, h=50. Output: `DelayedSynapticLayer(50→1)` + `LIFNeurons(1)`.
+Loss: `BCEWithLogitsLoss(output_spike_count, label)`.
+
+| Epochs | wad acc | d0 acc | Delay gap |
+|--------|---------|--------|-----------|
+| 200    | 54%     | 35%    | +19%      |
+| 1000   | **71.8%** | **43.6%** | **+28%** |
+
+**Findings**: Training is hard (spike counts as logits → dead neuron problem for first ~90 epochs;
+double surrogate gradient path). Delay advantage persists at +28% but absolute accuracy
+far below linear readout (95%+). Spiking output is useful for 3-layer visualisation
+(input→hidden→output spike rasters) but not recommended as a practical readout.
+Full log: `docs/EXPERIMENT_LOG.md` Section 22.
+
+---
+
+## Runs Folder Naming Convention (as of 2026-06)
+
+Folders under `runs/` use descriptive characteristic-first names; experiment codes in parentheses:
+
+| Old | New |
+|---|---|
+| `step1` | `single_op_(step1)` |
+| `step2_planD` | `NAND_time_mux_(step2_planD)` |
+| `step3_planD_4ops_16k` | `4op_mixed_16k_(step3)` |
+| `step3_planD_4ops_16k_h100` | `4op_mixed_16k_h100_(step3)` |
+| `step3_planD_4ops_16k_h100_L2` | `4op_mixed_16k_2layer_(step3)` |
+| `planD_h_sweep` | `NAND_neuron_sweep_(planD)` |
+| `depth_ablation` | `NAND_depth_ablation` |
+| `timing_ablation` | `NAND_timing_ablation` |
+| `spiking_output` | `NAND_spiking_out` |
+| `spiking_output_continued` | `NAND_spiking_out_1k` |
+
+Individual runs: `w_and_d_K3_seed42` → `wad_K3_seed42`, `d0_control_K3_seed42` → `d0_K3_seed42`.
+Rename script: `scripts/rename_runs.py`.
+
+## Enhanced Visualisation (as of 2026-06)
+
+Two new plots added to every run's `plots/` folder (generated from `diagnostic_data.npz`
+— same trial as original plots, no model re-run):
+
+- **`enhanced_raster.png`**: neurons sorted by first-spike time, coloured by sub-window
+- **`enhanced_flow.png`**: fan lines + arrival→fire orange spans + vote lines (linear readout)
+
+Regenerate all: `python -m scripts.regen_enhanced_plots` (reads npz, no GPU needed).

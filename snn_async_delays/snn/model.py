@@ -331,6 +331,8 @@ class SNNSimultaneousModel(nn.Module):
         readout_type: str = "linear",
         num_hidden_layers: int = 1,
         hidden_sizes: List[int] | None = None,
+        use_output_spikes: bool = False,
+        n_output_neurons: int | None = None,
     ):
         super().__init__()
 
@@ -391,18 +393,30 @@ class SNNSimultaneousModel(nn.Module):
             self.syn_h1h2 = DelayedSynapticLayer(h1, h2, **syn_kw)
             self.lif_h2   = LIFNeurons(h2, **lif_kw)
 
-        # ── Readout (always trainable) ──
+        # ── Readout ──
         readout_in = h2 if (num_hidden_layers == 2) else h1
-        self.readout_type = readout_type
-        if readout_type == "mlp":
-            hidden_r = max(readout_in, n_queries * 8)
-            self.readout = nn.Sequential(
-                nn.Linear(readout_in, hidden_r),
-                nn.ReLU(),
-                nn.Linear(hidden_r, n_queries),
-            )
+        self.readout_in    = readout_in
+        self.readout_type  = readout_type
+        self.use_output_spikes = use_output_spikes
+
+        if use_output_spikes:
+            # Spiking output layer: hidden → LIF output → spike counts = logits
+            n_out = n_output_neurons if n_output_neurons is not None else n_queries
+            self.n_output_neurons = n_out
+            self.syn_ho = DelayedSynapticLayer(readout_in, n_out, **syn_kw)
+            self.lif_o  = LIFNeurons(n_out, **lif_kw)
+            self.readout = None   # not used; set to None to avoid confusion
         else:
-            self.readout = nn.Linear(readout_in, n_queries)
+            self.n_output_neurons = 0
+            if readout_type == "mlp":
+                hidden_r = max(readout_in, n_queries * 8)
+                self.readout = nn.Sequential(
+                    nn.Linear(readout_in, hidden_r),
+                    nn.ReLU(),
+                    nn.Linear(hidden_r, n_queries),
+                )
+            else:
+                self.readout = nn.Linear(readout_in, n_queries)
 
     def weight_params(self):
         # Captures syn_ih.weight and syn_h1h2.weight (if present)
@@ -415,18 +429,24 @@ class SNNSimultaneousModel(nn.Module):
                 if "delay_raw" in name and p.requires_grad]
 
     def readout_params(self):
+        if self.use_output_spikes or self.readout is None:
+            return []
         return list(self.readout.parameters())
 
     def get_delays(self) -> Dict[str, torch.Tensor]:
         d = {"ih": self.syn_ih.get_delays()}
         if self._num_layers == 2:
             d["h1h2"] = self.syn_h1h2.get_delays()
+        if self.use_output_spikes:
+            d["ho"] = self.syn_ho.get_delays()
         return d
 
     def delay_regularization(self) -> torch.Tensor:
         reg = self.syn_ih.get_delays().mean()
         if self._num_layers == 2:
             reg = reg + self.syn_h1h2.get_delays().mean()
+        if self.use_output_spikes:
+            reg = reg + self.syn_ho.get_delays().mean()
         return reg
 
     def forward(
@@ -472,6 +492,16 @@ class SNNSimultaneousModel(nn.Module):
         hidden_train: list = [] if record else None  # type: ignore[assignment]
         h1_train:     list = [] if (record and self._num_layers == 2) else None  # type: ignore[assignment]
 
+        # Spiking output layer extras
+        if self.use_output_spikes:
+            v_o, ref_o    = self.lif_o.init_state(B, device)
+            buf_ho        = torch.zeros(B, d_max_1, self.readout_in, device=device)
+            buf_ho_ptr    = 0
+            d_cont_ho     = self.syn_ho.get_delays()
+            output_acc    = torch.zeros(B, self.n_output_neurons, device=device)
+            total_o_spk   = torch.zeros(B, device=device)
+            output_train: list = [] if record else None  # type: ignore[assignment]
+
         for t in range(T):
             x_t   = spike_input[:, t, :]
             I_h   = self.syn_ih(buf_in, d_cont_ih, buf_ptr)
@@ -499,6 +529,9 @@ class SNNSimultaneousModel(nn.Module):
                 if record:
                     h1_train.append(spike_h.detach().cpu())     # layer 1
                     hidden_train.append(spike_h2.detach().cpu()) # layer 2
+
+                if self.use_output_spikes:
+                    spike_last_h = spike_h2
             else:
                 total_h_spk      = total_h_spk + spike_h.sum(dim=1)
                 hidden_fired_any = torch.maximum(hidden_fired_any, (spike_h > 0).float())
@@ -509,7 +542,25 @@ class SNNSimultaneousModel(nn.Module):
                 if record:
                     hidden_train.append(spike_h.detach().cpu())
 
-        logits = self.readout(last_acc)  # [B, K]
+                if self.use_output_spikes:
+                    spike_last_h = spike_h
+
+            # Spiking output layer (after last hidden layer, every timestep)
+            if self.use_output_spikes:
+                I_o = self.syn_ho(buf_ho, d_cont_ho, buf_ho_ptr)
+                spike_o, v_o, ref_o = self.lif_o(I_o, v_o, ref_o)
+                buf_ho[:, buf_ho_ptr, :] = spike_last_h
+                buf_ho_ptr = (buf_ho_ptr + 1) % d_max_1
+                total_o_spk = total_o_spk + spike_o.sum(dim=1)
+                if t >= self.win_len:
+                    output_acc = output_acc + spike_o
+                if record:
+                    output_train.append(spike_o.detach().cpu())
+
+        if self.use_output_spikes:
+            logits = output_acc   # [B, n_output_neurons]  spike counts as logits
+        else:
+            logits = self.readout(last_acc)  # [B, K]
 
         if self._num_layers == 2:
             active_h2 = h2_fired_any.sum(dim=1)
@@ -530,11 +581,16 @@ class SNNSimultaneousModel(nn.Module):
                 "trial_steps":            T,
             }
 
+        if self.use_output_spikes:
+            info["total_output_spikes"] = total_o_spk
+
         if record:
             # [B, T, last_hidden_size] — always present
             info["hidden_spike_train"] = torch.stack(hidden_train, dim=1)
             if self._num_layers == 2:
                 # [B, T, h1] — first hidden layer (only for 2-layer models)
                 info["hidden1_spike_train"] = torch.stack(h1_train, dim=1)
+            if self.use_output_spikes:
+                info["output_spike_train"] = torch.stack(output_train, dim=1)  # [B,T,n_out]
 
         return logits, info

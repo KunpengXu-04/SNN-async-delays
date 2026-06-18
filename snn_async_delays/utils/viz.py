@@ -1126,7 +1126,10 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
         "sub_win":  cfg.get("sub_win"),
         "K":        K,
         "T":        T_val,
+        "output_logits": logits[0].detach().cpu().numpy(),        # [K] per-query logits
     }
+    if "output_spike_train" in info:
+        traces["output_spikes"] = info["output_spike_train"][0].cpu().numpy()  # [T, n_out]
     if "hidden1_spike_train" in info:
         # 2-layer: hidden_spike_train = h2; hidden1_spike_train = h1
         traces["hidden2_spikes"] = traces.pop("hidden1_spikes")      # rename h_last→h2
@@ -1138,7 +1141,9 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
     }
     if hasattr(model, "syn_h1h2"):
         weights_dict["h1h2"] = model.syn_h1h2.weight.detach().cpu().numpy()
-    if model.readout_type == "linear":
+    if hasattr(model, "syn_ho"):
+        weights_dict["ho"] = model.syn_ho.weight.detach().cpu().numpy()
+    if model.readout_type == "linear" and model.readout is not None:
         weights_dict["readout"] = model.readout.weight.detach().cpu().numpy()
 
     # Delays
@@ -1582,9 +1587,12 @@ def plot_diagnostic_panel(
     ax_acc.set_title("Training Accuracy", fontsize=9)
 
     # ── Row 1: weight heatmaps ────────────────────────────────────────────
-    w_keys  = [k for k in ("ih", "h1h2", "readout") if k in weights_dict]
+    w_keys  = [k for k in ("ih", "h1h2", "ho", "readout") if k in weights_dict]
     n_wkeys = len(w_keys)
-    w_titles = {"ih": "W: Input→H1", "h1h2": "W: H1→H2", "readout": "W: H→Readout"}
+    w_titles = {"ih": "W: Input→Hidden",
+                "h1h2": "W: H1→H2",
+                "ho": "W: Hidden→Output",
+                "readout": "W: H→Readout"}
     w_axes = [fig.add_subplot(gs[1, i*2:(i+1)*2]) for i in range(min(n_wkeys, 3))]
     for ax, key in zip(w_axes, w_keys):
         W = weights_dict[key]
@@ -1598,9 +1606,11 @@ def plot_diagnostic_panel(
         ax.tick_params(labelsize=6)
 
     # ── Row 2: delay heatmaps ─────────────────────────────────────────────
-    d_keys  = [k for k in ("ih", "h1h2") if k in delays_dict]
+    d_keys  = [k for k in ("ih", "h1h2", "ho") if k in delays_dict]
     n_dkeys = len(d_keys)
-    d_titles = {"ih": "D: Input→H1", "h1h2": "D: H1→H2"}
+    d_titles = {"ih": "D: Input→Hidden",
+                "h1h2": "D: H1→H2",
+                "ho": "D: Hidden→Output"}
     d_axes = [fig.add_subplot(gs[2, i*3:(i+1)*3]) for i in range(min(n_dkeys, 2))]
     for ax, key in zip(d_axes, d_keys):
         D = delays_dict[key]
@@ -1612,9 +1622,7 @@ def plot_diagnostic_panel(
         ax.set_ylabel("Pre neuron", fontsize=7)
         ax.tick_params(labelsize=6)
 
-    # ── Row 3 left: spike raster ──────────────────────────────────────────
-    # Build a mini raster inline (can't call plot_spike_raster_layers directly
-    # into a pre-allocated axes since it uses subplots internally — so inline it)
+    # ── Row 3 left: spike raster (Input / Hidden / Output) ───────────────
     s_in  = traces["input_spikes"]
     s_h1  = traces["hidden1_spikes"]
     s_h2  = traces.get("hidden2_spikes")
@@ -1623,19 +1631,31 @@ def plot_diagnostic_panel(
     rl    = traces.get("read_len", 0)
     sw    = traces.get("sub_win")
     K_val = traces.get("K", 1)
+    out_logits   = traces.get("output_logits")   # [K] or None (old npz files)
+    out_spikes   = traces.get("output_spikes")   # [T, n_out] real LIF output, or None
+    has_real_out = out_spikes is not None         # true spiking output layer
+    has_logit_out = (not has_real_out) and (out_logits is not None)
 
-    layer_data = [("Input",   s_in,  "#444444"),
-                  ("Hidden1", s_h1,  "steelblue")]
+    layer_data = [("Input",  s_in, "#444444"),
+                  ("Hidden", s_h1, "steelblue")]
     if s_h2 is not None:
         layer_data.append(("Hidden2", s_h2, "darkorange"))
+    if has_real_out:
+        layer_data.append(("Output", out_spikes, "#2ca02c"))
 
-    n_lyr = len(layer_data)
+    # Decision-marker strip shown only when no real output spikes
+    has_out   = has_logit_out
+    n_lyr     = len(layer_data) + (1 if has_out else 0)
     heights_r = [max(ld[1].shape[1], 2) for ld in layer_data]
+    if has_out:
+        heights_r.append(max(K_val, 2))
+
     gs_r3 = gs[3, :3].subgridspec(n_lyr, 1,
                                    height_ratios=heights_r, hspace=0.06)
     rax = [fig.add_subplot(gs_r3[i, 0]) for i in range(n_lyr)]
     COLORS_t10 = list(plt.cm.tab10.colors)
-    for ax, (lname, ldata, col) in zip(rax, layer_data):
+
+    for ax, (lname, ldata, col) in zip(rax[:len(layer_data)], layer_data):
         n_nrn = ldata.shape[1]
         for n in range(n_nrn):
             ts = np.where(ldata[:, n] > 0)[0]
@@ -1656,49 +1676,81 @@ def plot_diagnostic_panel(
             for k in range(K_val):
                 ax.axvline(k * sw, color=COLORS_t10[k % len(COLORS_t10)],
                            ls="--", lw=0.7, alpha=0.7)
-    rax[0].set_title("Spike Raster (sample 0)", fontsize=9)
-    rax[-1].set_xlabel("Timestep (ms)", fontsize=7)
-    if len(rax) > 1:
-        for a in rax[:-1]:
-            a.tick_params(labelbottom=False)
 
-    # ── Row 3 right: layer-to-layer flow ──────────────────────────────────
+    # Output strip: one row per query, decision marker at readout window centre
+    if has_out:
+        ax_out = rax[len(layer_data)]
+        t_rc   = wl + max(rl // 2, 0)    # readout centre timestep
+        for k in range(K_val):
+            lv  = float(out_logits[k])
+            col_k = "#2ca02c" if lv > 0 else "#d62728"
+            mrk_k = "|"       if lv > 0 else "x"
+            ax_out.scatter([t_rc], [float(k)], s=32, color=col_k,
+                           marker=mrk_k, linewidths=1.5, zorder=4)
+            ax_out.text(-0.5, float(k), f"Q{k}", ha="right", va="center",
+                        fontsize=5.5, color="#555")
+        ax_out.set_ylim(-0.5, K_val - 0.5)
+        ax_out.set_ylabel("Output", fontsize=7)
+        ax_out.set_yticks([])
+        ax_out.axvspan(0, wl, alpha=0.07, color="royalblue")
+        ax_out.axvspan(wl, wl + rl, alpha=0.18, color="tomato")
+        ax_out.set_xlim(-0.5, T_val - 0.5)
+        ax_out.tick_params(labelsize=6)
+
+    rax[0].set_title("Spike Raster: Input / Hidden / Output  (sample 0)",
+                     fontsize=9)
+    rax[-1].set_xlabel("Timestep (ms)", fontsize=7)
+    for a in rax[:-1]:
+        a.tick_params(labelbottom=False)
+
+    # ── Row 3 right: layer-by-layer directed spike graph ─────────────────
     ax_flow = fig.add_subplot(gs[3, 3:])
 
-    GAP_f = max(3, s_in.shape[1] // 4 + 1)
-    n_h1 = s_h1.shape[1]
-    y0_in_f   = 0
-    y0_h1_f   = s_in.shape[1] + GAP_f
-    y0_h2_f   = (y0_h1_f + n_h1 + GAP_f) if s_h2 is not None else None
-    y_read_f  = (y0_h2_f + s_h2.shape[1] + GAP_f if s_h2 is not None
-                 else y0_h1_f + n_h1 + GAP_f)
+    GAP_f    = max(3, s_in.shape[1] // 4 + 1)
+    n_h1     = s_h1.shape[1]
+    y0_in_f  = 0
+    y0_h1_f  = s_in.shape[1] + GAP_f
+    y0_h2_f  = (y0_h1_f + n_h1 + GAP_f) if s_h2 is not None else None
+    y_read_f = (y0_h2_f + s_h2.shape[1] + GAP_f if s_h2 is not None
+                else y0_h1_f + n_h1 + GAP_f)
 
     def _yf_in(n):  return float(y0_in_f + n)
     def _yf_h1(n):  return float(y0_h1_f + n)
     def _yf_h2(n):  return float(y0_h2_f + n) if y0_h2_f is not None else 0.0
 
-    # Spikes
+    # Spike ticks per layer
     for n in range(s_in.shape[1]):
         ts = np.where(s_in[:, n] > 0)[0]
         if len(ts):
             ax_flow.scatter(ts, np.full(len(ts), _yf_in(n)),
-                            s=4, color="#444", marker="|", linewidths=0.7, zorder=3)
+                            s=5, color="#333", marker="|", linewidths=0.8, zorder=3)
     for n in range(n_h1):
         ts = np.where(s_h1[:, n] > 0)[0]
         if len(ts):
             ax_flow.scatter(ts, np.full(len(ts), _yf_h1(n)),
-                            s=4, color="steelblue", marker="|", linewidths=0.7, zorder=3)
+                            s=5, color="steelblue", marker="|",
+                            linewidths=0.8, zorder=3)
     if s_h2 is not None:
         for n in range(s_h2.shape[1]):
             ts = np.where(s_h2[:, n] > 0)[0]
             if len(ts):
                 ax_flow.scatter(ts, np.full(len(ts), _yf_h2(n)),
-                                s=4, color="darkorange", marker="|", linewidths=0.7, zorder=3)
+                                s=5, color="darkorange", marker="|",
+                                linewidths=0.8, zorder=3)
 
-    # Connections
-    wt  = 0.1  # weight_threshold for panel (slightly lower than standalone)
-    alp = 0.06
-    mx  = 1500  # max_edges for panel
+    # ── Fan-shaped delay connections ──────────────────────────────────────
+    # Edges: (t_spike, y_pre, t_arrival, y_post, weight, delay)
+    # Sorted by delay ascending — short-delay lines drawn first (underneath);
+    # long-delay fan lines render on top, making the fan shape prominent.
+    # Excitatory (w>0): orange-red gradient by delay (d=0 → orange, d=max → crimson).
+    # Inhibitory (w<0): thin translucent blue.
+    wt_f = 0.05
+    mx_f = 2500
+
+    d_all_arrs = [delays_dict[k].ravel() for k in ("ih", "h1h2", "ho")
+                  if k in delays_dict]
+    d_max_f = float(np.concatenate(d_all_arrs).max()) if d_all_arrs else 1.0
+    d_max_f = max(d_max_f, 1.0)
 
     def _panel_edges(spk_tr, pre_yf, post_yf, W, D):
         edges = []
@@ -1709,15 +1761,22 @@ def plot_diagnostic_panel(
                 continue
             for j in range(nq):
                 w = float(W[i, j])
-                if abs(w) <= wt:
+                if abs(w) <= wt_f:
                     continue
                 d = float(D[i, j])
                 for t in ts_p:
                     arr = t + d
                     if 0 <= arr < T_val:
                         edges.append((float(t), pre_yf(i),
-                                      float(arr), post_yf(j), w))
+                                      float(arr), post_yf(j), w, d))
         return edges
+
+    # Output layer y-positions (for spiking output layer)
+    last_h_spikes = (s_h2 if s_h2 is not None else s_h1)
+    n_last_h = last_h_spikes.shape[1]
+    y0_last_h_f = y0_h2_f if s_h2 is not None else y0_h1_f
+    y0_out_f = y0_last_h_f + n_last_h + GAP_f if "ho" in weights_dict else None
+    def _yf_o(n): return float(y0_out_f + n) if y0_out_f is not None else 0.0
 
     all_fe = []
     if "ih" in weights_dict and "ih" in delays_dict:
@@ -1726,27 +1785,54 @@ def plot_diagnostic_panel(
     if "h1h2" in weights_dict and "h1h2" in delays_dict and s_h2 is not None:
         all_fe += _panel_edges(s_h1, _yf_h1, _yf_h2,
                                weights_dict["h1h2"], delays_dict["h1h2"])
-    all_fe.sort(key=lambda e: -abs(e[4]))
-    sel = all_fe[:mx]
-    if sel:
-        segs_f = [[(e[0], e[1]), (e[2], e[3])] for e in sel]
-        cols_f = [(1., 0., 0., alp) if e[4] > 0 else (0., 0., 1., alp)
-                  for e in sel]
-        ax_flow.add_collection(
-            LineCollection(segs_f, colors=cols_f, linewidths=0.4, zorder=2))
+    if "ho" in weights_dict and "ho" in delays_dict and out_spikes is not None:
+        all_fe += _panel_edges(last_h_spikes, _yf_h2 if s_h2 is not None else _yf_h1,
+                               _yf_o, weights_dict["ho"], delays_dict["ho"])
 
-    # Band shading + labels
-    bds = [(y0_in_f - 0.6,  y0_in_f + s_in.shape[1] - 0.4,  "royalblue", "Input"),
-           (y0_h1_f - 0.6,  y0_h1_f + n_h1 - 0.4,           "steelblue", "H1")]
+    all_fe.sort(key=lambda e: e[5])   # ascending delay: fan tip on top
+    sel = all_fe[:mx_f]
+
+    if sel:
+        segs_f, cols_f = [], []
+        for e in sel:
+            t0, y0, t1, y1, w, d = e
+            segs_f.append([(t0, y0), (t1, y1)])
+            if w > 0:
+                dn = min(d / d_max_f, 1.0)   # 0=small delay, 1=large delay
+                cols_f.append((1.0, 0.35 * (1.0 - dn), 0.0, 0.28))
+            else:
+                cols_f.append((0.1, 0.3, 0.9, 0.10))
+        ax_flow.add_collection(
+            LineCollection(segs_f, colors=cols_f, linewidths=0.9, zorder=2))
+
+    # Draw output spikes in flow graph if spiking output layer present
+    if out_spikes is not None and y0_out_f is not None:
+        n_out_s = out_spikes.shape[1]
+        for n in range(n_out_s):
+            ts = np.where(out_spikes[:, n] > 0)[0]
+            if len(ts):
+                ax_flow.scatter(ts, np.full(len(ts), _yf_o(n)),
+                                s=5, color="#2ca02c", marker="|",
+                                linewidths=0.9, zorder=3)
+
+    # Layer band shading and labels
+    bds = [(y0_in_f - 0.6, y0_in_f + s_in.shape[1] - 0.4, "royalblue", "Input"),
+           (y0_h1_f - 0.6, y0_h1_f + n_h1 - 0.4,          "steelblue", "Hidden")]
     if s_h2 is not None and y0_h2_f is not None:
         bds.append((y0_h2_f - 0.6, y0_h2_f + s_h2.shape[1] - 0.4,
                     "sandybrown", "H2"))
+    if out_spikes is not None and y0_out_f is not None:
+        n_out_s = out_spikes.shape[1]
+        bds.append((y0_out_f - 0.6, y0_out_f + n_out_s - 0.4,
+                    "#2ca02c", "Output"))
     for yb, yt, col, lbl in bds:
         ax_flow.axhspan(yb, yt, alpha=0.07, color=col)
         ax_flow.text(-1.5, (yb + yt) / 2, lbl, ha="right", va="center",
                      fontsize=7, fontweight="bold", color=col)
-    ax_flow.axhline(y_read_f, xmin=wl / T_val, xmax=1.0,
-                    color="tomato", lw=1.5, alpha=0.6)
+
+    y_top = (y0_out_f + out_spikes.shape[1] + 1
+             if (out_spikes is not None and y0_out_f is not None)
+             else y_read_f + 1.2)
     ax_flow.axvspan(0, wl, alpha=0.05, color="royalblue")
     ax_flow.axvspan(wl, wl + rl, alpha=0.08, color="tomato")
     if sw and K_val > 1:
@@ -1754,10 +1840,11 @@ def plot_diagnostic_panel(
             ax_flow.axvline(k * sw, color=COLORS_t10[k % len(COLORS_t10)],
                             ls=":", lw=0.8, alpha=0.6)
     ax_flow.set_xlim(-2, T_val)
-    ax_flow.set_ylim(y0_in_f - 1, y_read_f + 1.2)
+    ax_flow.set_ylim(y0_in_f - 1, y_top)
     ax_flow.set_yticks([])
     ax_flow.set_xlabel("Timestep (ms)", fontsize=7)
-    ax_flow.set_title("Layer-to-Layer Spike Flow", fontsize=9)
+    ax_flow.set_title("Layer-by-Layer Directed Spike Graph\n"
+                      "(red=excitatory, fan width = delay range)", fontsize=8.5)
     ax_flow.tick_params(labelsize=6)
 
     _ensure_dir(save_path)
@@ -1795,6 +1882,26 @@ def load_diagnostic_data(plot_dir: str) -> tuple:
     return traces, weights_dict, delays_dict
 
 
+def _find_richest_traces(model, cfg: dict, K: int, op: str, device: str,
+                          n_seeds: int = 15) -> Optional[dict]:
+    """Return the traces dict (from _extract_run_traces) with the most hidden spikes.
+
+    Tries up to n_seeds different random seeds and picks the sample with the
+    highest total hidden spike count — giving enhanced plots more visual content.
+    Returns None if every seed fails.
+    """
+    best_tr, best_n = None, -1
+    for s in range(n_seeds):
+        try:
+            tr, _, _ = _extract_run_traces(model, cfg, K, op, device, seed=50 * (s + 1))
+            n = int(tr["hidden1_spikes"].sum())
+            if n > best_n:
+                best_tr, best_n = tr, n
+        except Exception:
+            continue
+    return best_tr
+
+
 def _make_diagnostic_plots(plot_dir: str, traces: dict, weights_dict: dict,
                             delays_dict: dict, title_base: str, cfg: dict,
                             K: int, log_rows: list, eval_results: dict) -> None:
@@ -1827,6 +1934,15 @@ def _make_diagnostic_plots(plot_dir: str, traces: dict, weights_dict: dict,
           os.path.join(plot_dir, "diagnostic_panel.png"),
           traces=traces, weights_dict=weights_dict, delays_dict=delays_dict,
           cfg={**cfg, "K": K}, log_rows=log_rows, eval_results=eval_results)
+
+    # Enhanced plots — same recorded traces as the original raster / flow plots
+    _safe(plot_enhanced_raster_layers,
+          os.path.join(plot_dir, "enhanced_raster.png"),
+          traces=traces, title=title_base)
+    _safe(plot_enhanced_spike_flow,
+          os.path.join(plot_dir, "enhanced_flow.png"),
+          traces=traces, weights_dict=weights_dict, delays_dict=delays_dict,
+          title=title_base)
 
 
 def replot_run_diagnostics(run_dir: str, cfg: dict, log_rows: list,
@@ -1890,6 +2006,277 @@ def save_run_diagnostic_plots(
     _save_diagnostic_data(plot_dir, traces, weights_dict, delays_dict)
     _make_diagnostic_plots(plot_dir, traces, weights_dict, delays_dict,
                             title_base, cfg, K, log_rows, eval_results)
+
+
+# ── Enhanced visualisations ──────────────────────────────────────────────────
+
+def plot_enhanced_raster_layers(traces: dict, save_path: str,
+                                 title: str = "") -> None:
+    """Enhanced spike raster.
+
+    Improvements over plot_spike_raster_layers:
+      - Hidden neurons sorted by first-spike time (reveals temporal wave structure)
+      - Spikes coloured by sub-window (Q0/Q1/Q2/readout)
+      - Right-side sidebar shows readout-window spike count per neuron
+    """
+    s_in  = traces["input_spikes"]
+    s_h1  = traces["hidden1_spikes"]
+    T, n_in = s_in.shape
+    _, h1   = s_h1.shape
+
+    win_len  = traces.get("win_len", T)
+    read_len = traces.get("read_len", 0)
+    sub_win  = traces.get("sub_win") or win_len   # None-safe fallback
+    K        = traces.get("K", 1)
+    COLORS   = list(plt.cm.tab10.colors)
+
+    def _window_color(t):
+        for k in range(K):
+            if k * sub_win <= t < (k + 1) * sub_win:
+                return COLORS[k % len(COLORS)]
+        return "darkred"
+
+    fig, ax = plt.subplots(figsize=(12, max(4, 0.14 * (h1 + n_in) + 2)))
+
+    # Background shading
+    ax.axvspan(0,       win_len,            alpha=0.07, color="royalblue", zorder=0)
+    ax.axvspan(win_len, win_len + read_len, alpha=0.10, color="tomato",    zorder=0)
+    for k in range(K):
+        ax.axvline(k * sub_win, color=COLORS[k % len(COLORS)],
+                   ls="--", lw=0.9, alpha=0.65, zorder=1)
+        ax.text(k * sub_win + 0.3, h1 + n_in - 0.3,
+                f"Q{k}", fontsize=6.5, color=COLORS[k % len(COLORS)],
+                va="top", fontweight="bold")
+
+    # Sort hidden neurons by first-spike time
+    first = np.full(h1, T + 1, dtype=float)
+    for j in range(h1):
+        ts = np.where(s_h1[:, j] > 0)[0]
+        if len(ts):
+            first[j] = ts[0]
+    order = np.argsort(first)
+
+    # Input spikes (original row order)
+    for i in range(n_in):
+        ts = np.where(s_in[:, i] > 0)[0]
+        if len(ts):
+            c = COLORS[(i // 2) % len(COLORS)] if n_in > 2 else "#333333"
+            ax.scatter(ts, np.full(len(ts), h1 + i + 0.5),
+                       s=7, color=c, marker="|", linewidths=1.0, zorder=3)
+
+    # Hidden spikes (sorted, window-coloured)
+    for rank, j in enumerate(order):
+        ts = np.where(s_h1[:, j] > 0)[0]
+        if len(ts) == 0:
+            continue
+        ax.scatter(ts, np.full(len(ts), rank),
+                   s=7, c=[_window_color(t) for t in ts],
+                   marker="|", linewidths=1.0, zorder=3)
+
+    # Sidebar: readout-window spike count per neuron
+    ro = s_h1[win_len:].sum(axis=0)
+    max_ro = max(ro.max(), 1)
+    for rank, j in enumerate(order):
+        if ro[j] > 0:
+            ax.barh(rank, ro[j] / max_ro * 3,
+                    left=T + 0.3, height=0.8, color="darkred", alpha=0.55)
+
+    ax.axhline(h1 + 0.1, color="gray", lw=0.7)
+    ax.set_xlim(-0.5, T + 4.5)
+    ax.set_ylim(-0.5, h1 + n_in + 0.5)
+    ax.set_xlabel("Time (ms)", fontsize=9)
+    ax.set_ylabel("Neuron (sorted by 1st spike)", fontsize=8)
+    ax.set_yticks([0, h1 // 4, h1 // 2, 3 * h1 // 4, h1])
+    ax.set_yticklabels([f"n=0", f"n={h1//4}", f"n={h1//2}",
+                        f"n={3*h1//4}", "↑In"], fontsize=7)
+
+    import matplotlib.patches as mpatches
+    legend_patches = [mpatches.Patch(color=COLORS[k % len(COLORS)], label=f"Q{k} window")
+                      for k in range(K)]
+    legend_patches.append(mpatches.Patch(color="darkred", label="Readout window"))
+    ax.legend(handles=legend_patches, fontsize=7, loc="upper right", framealpha=0.85)
+
+    total_spk = int(s_h1.sum())
+    active    = int((s_h1.sum(axis=0) > 0).sum())
+    ro_spk    = int(s_h1[win_len:].sum())
+    ax.text(0.01, 0.01,
+            f"total_spk={total_spk}  active={active}/{h1}  ro_spk={ro_spk}",
+            transform=ax.transAxes, fontsize=6.5, va="bottom", color="gray")
+    if title:
+        ax.set_title(title, fontsize=8)
+
+    fig.tight_layout()
+    _ensure_dir(save_path)
+    fig.savefig(save_path, dpi=130, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_enhanced_spike_flow(traces: dict, weights_dict: dict, delays_dict: dict,
+                              save_path: str, title: str = "",
+                              w_threshold: float = 0.08,
+                              ro_threshold: float = 0.05) -> None:
+    """Enhanced layer-to-layer spike flow.
+
+    Three connection types:
+      (A) Blue/red fan lines  : Input spike → delayed arrival at Hidden (excit./inhib.)
+      (B) Orange spans + stars: Arrivals within tau_m → actual Hidden fire (gold/green ★)
+      (C) Crimson/blue verticals: Hidden fires in readout window → Readout bar
+          Only drawn when linear readout weights are available (weights_dict["readout"]).
+    """
+    from matplotlib.collections import LineCollection
+    from matplotlib.lines import Line2D
+    import matplotlib.patches as mpatches
+
+    s_in  = traces["input_spikes"]
+    s_h1  = traces["hidden1_spikes"]
+    T, n_in = s_in.shape
+    _, h1   = s_h1.shape
+
+    win_len  = traces.get("win_len", T)
+    read_len = traces.get("read_len", 0)
+    sub_win  = traces.get("sub_win")
+    K        = traces.get("K", 1)
+    tau_m    = 10.0
+    COLORS   = list(plt.cm.tab10.colors)
+
+    W_ih = weights_dict.get("ih")
+    D_ih = delays_dict.get("ih")
+    W_ro = weights_dict.get("readout")   # None for MLP readout
+
+    if W_ih is None or D_ih is None:
+        return   # can't draw anything without input→hidden weights
+
+    GAP    = max(3, n_in // 4 + 1)
+    y0_in  = 0
+    y0_h1  = n_in + GAP
+    y_read = y0_h1 + h1 + GAP
+
+    def yi(n): return float(y0_in + n)
+    def yh(n): return float(y0_h1 + n)
+
+    fig_h = max(7, int(y_read * 0.30 + 3))
+    fig, ax = plt.subplots(figsize=(13, fig_h))
+
+    # Background shading
+    ax.axvspan(0,       win_len,            alpha=0.06, color="royalblue", zorder=0)
+    ax.axvspan(win_len, win_len + read_len, alpha=0.09, color="tomato",    zorder=0)
+    ax.axhspan(y0_in - 0.6, y0_in + n_in - 0.4, alpha=0.07, color="royalblue", zorder=0)
+    ax.axhspan(y0_h1 - 0.6, y0_h1 + h1  - 0.4, alpha=0.05, color="steelblue", zorder=0)
+    if sub_win and K > 1:
+        for k in range(K):
+            ax.axvline(k * sub_win, color=COLORS[k % len(COLORS)],
+                       ls=":", lw=0.9, alpha=0.5, zorder=1)
+
+    # (A) Fan lines: input spike → delayed arrival at hidden
+    segs, seg_cols = [], []
+    for i in range(n_in):
+        ts_pre = np.where(s_in[:, i] > 0)[0]
+        for j in range(h1):
+            w = float(W_ih[i, j])
+            if abs(w) <= w_threshold:
+                continue
+            c = (0.9, 0.1, 0.1, 0.07) if w > 0 else (0.1, 0.1, 0.9, 0.07)
+            d = float(D_ih[i, j])
+            for t in ts_pre:
+                arr = t + d
+                if 0 <= arr < T:
+                    segs.append([(float(t), yi(i)), (float(arr), yh(j))])
+                    seg_cols.append(c)
+    if segs:
+        ax.add_collection(LineCollection(segs, colors=seg_cols, linewidths=0.5, zorder=2))
+
+    # Input spike markers
+    for i in range(n_in):
+        ts = np.where(s_in[:, i] > 0)[0]
+        if len(ts):
+            ax.scatter(ts, np.full(len(ts), yi(i)),
+                       s=16, color="#222222", marker="|", linewidths=1.0, zorder=4)
+
+    # (C) Vote lines drawn FIRST (low zorder) so stars appear on top
+    if W_ro is not None:
+        ro_w   = W_ro[0] if W_ro.ndim == 2 else W_ro
+        max_wr = np.max(np.abs(ro_w)) + 1e-8
+        for j in range(h1):
+            wrj = float(ro_w[j])
+            if abs(wrj) <= ro_threshold:
+                continue
+            t_fires_ro = np.where(s_h1[win_len:, j] > 0)[0] + win_len
+            if len(t_fires_ro) == 0:
+                continue
+            col = "crimson" if wrj > 0 else "mediumblue"
+            mag = min(abs(wrj) / max_wr, 1.0)
+            lw  = 3.0 + 4.0 * mag
+            for t_fire in t_fires_ro:
+                ax.plot([t_fire, t_fire], [0, y_read],
+                        color=col, lw=lw, alpha=0.85, zorder=3)
+                ax.scatter(t_fire, y_read, s=100, color=col, marker="^",
+                           alpha=1.0, zorder=13, linewidths=0)
+
+    # (B) Arrival→fire spans + stars
+    for j in range(h1):
+        t_fires = np.where(s_h1[:, j] > 0)[0]
+        if len(t_fires) == 0:
+            continue
+        for t_fire in t_fires:
+            arrivals = []
+            for i in range(n_in):
+                for t in np.where(s_in[:, i] > 0)[0]:
+                    arr = t + float(D_ih[i, j])
+                    if (t_fire - tau_m) <= arr <= t_fire and abs(float(W_ih[i, j])) > w_threshold:
+                        arrivals.append(arr)
+            if arrivals:
+                ax.plot([min(arrivals), t_fire], [yh(j), yh(j)],
+                        color="darkorange", lw=1.8, alpha=0.7,
+                        solid_capstyle="round", zorder=5)
+                for arr in arrivals:
+                    ax.scatter(arr, yh(j), s=15, color="darkorange",
+                               marker="o", alpha=0.55, zorder=6, linewidths=0)
+            star_col  = "limegreen" if t_fire >= win_len else "gold"
+            star_edge = "darkgreen"  if t_fire >= win_len else "darkorange"
+            ax.scatter(t_fire, yh(j), s=90, color=star_col, marker="*",
+                       edgecolors=star_edge, linewidths=0.5, zorder=12)
+
+    # Readout bar + labels
+    ax.axhline(y_read, xmin=win_len / T, xmax=1.0,
+               color="tomato", lw=2.0, alpha=0.6, zorder=2)
+    ax.text(win_len + (T - win_len) / 2, y_read + 0.3, "Readout",
+            ha="center", va="bottom", fontsize=7, color="tomato")
+    for lbl, yl in [("Input", y0_in + n_in / 2), ("Hidden", y0_h1 + h1 / 2)]:
+        ax.text(-1.5, yl, lbl, ha="right", va="center",
+                fontsize=8, fontweight="bold", color="steelblue")
+
+    ax.set_xlim(-2, T + 0.5)
+    ax.set_ylim(y0_in - 1.0, y_read + 1.5)
+    ax.set_yticks([])
+    ax.set_xlabel("Time (ms)", fontsize=10)
+
+    legend_elems = [
+        Line2D([0],[0], color=(0.9,0.1,0.1,0.5), lw=1.5, label="(A) arrival — excitatory"),
+        Line2D([0],[0], color=(0.1,0.1,0.9,0.5), lw=1.5, label="(A) arrival — inhibitory"),
+        mpatches.Patch(color="darkorange", alpha=0.75,
+                       label="(B) integration window → fire"),
+        Line2D([0],[0], marker="*", color="gold",      markeredgecolor="darkorange",
+               markersize=9, lw=0, label="(B) fire — input window (not counted)"),
+        Line2D([0],[0], marker="*", color="limegreen", markeredgecolor="darkgreen",
+               markersize=9, lw=0, label="(B) fire — readout window (counted ✓)"),
+    ]
+    if W_ro is not None:
+        legend_elems += [
+            Line2D([0],[0], color="crimson",    lw=3, label="(C) → readout  pos. weight"),
+            Line2D([0],[0], color="mediumblue", lw=3, label="(C) → readout  neg. weight"),
+        ]
+    else:
+        legend_elems.append(
+            mpatches.Patch(color="gray", alpha=0.4, label="(C) MLP readout — votes not shown"))
+
+    ax.legend(handles=legend_elems, fontsize=7, loc="upper left", framealpha=0.9)
+    if title:
+        ax.set_title(title, fontsize=8)
+
+    fig.tight_layout()
+    _ensure_dir(save_path)
+    fig.savefig(save_path, dpi=130, bbox_inches="tight")
+    plt.close(fig)
 
 
 def plot_neuron_connection_raster(

@@ -1,0 +1,76 @@
+\begin{thebibliography}{10}
+
+\bibitem{lisman1995storage}
+J.~E. Lisman and M.~A.~P. Idiart, ``Storage of $7\pm 2$ short-term memories in
+  oscillatory subcycles,'' {\em Science}, vol.~267, no.~5203, pp.~1512--1515,
+  1995.
+
+\bibitem{cowan2001magical}
+N.~Cowan, ``The magical number 4 in short-term memory: A reconsideration of
+  mental storage capacity,'' {\em Behavioral and Brain Sciences}, vol.~24,
+  no.~1, pp.~87--114, 2001.
+
+\bibitem{izhikevich2006polychronization}
+E.~M. Izhikevich, ``Polychronization: computation with spikes,'' {\em Neural
+  Computation}, vol.~18, no.~2, pp.~245--282, 2006.
+
+\bibitem{fries2005mechanism}
+P.~Fries, ``A mechanism for cognitive dynamics: neuronal communication through
+  neuronal coherence,'' {\em Trends in Cognitive Sciences}, vol.~9, no.~10,
+  pp.~474--480, 2005.
+
+\bibitem{buzsaki2010neural}
+G.~Buzs{\'a}ki, ``Neural syntax: cell assemblies, synfire chains, and reading
+  codes,'' {\em Neuron}, vol.~68, no.~3, pp.~362--385, 2010.
+
+\bibitem{hammouamri2024learning}
+I.~Hammouamri, I.~Khalfaoui-Hassani, and T.~Masquelier, ``Learning delays in
+  spiking neural networks using dilated convolutions with learnable spacings,''
+  in {\em International Conference on Learning Representations (ICLR)}, 2024.
+
+\bibitem{sun2022axonal}
+P.~Sun, L.~Zhu, and D.~Botteldooren, ``Axonal delay as a short-term memory for
+  feed forward deep spiking neural networks,'' in {\em IEEE International
+  Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  pp.~8932--8936, IEEE, 2022.
+
+\bibitem{sun2023adaptive}
+P.~Sun, Y.~Chua, P.~Devos, and D.~Botteldooren, ``Adaptive axonal delays in
+  feedforward spiking neural networks for accurate spoken word recognition,''
+  in {\em IEEE International Conference on Acoustics, Speech and Signal
+  Processing (ICASSP)}, IEEE, 2023.
+
+\bibitem{patino2024colearning}
+A.~Patino-Saucedo, A.~Yousefzadeh, G.~Tang, F.~Corradi, B.~Linares-Barranco,
+  and M.~Sifalakis, ``Co-learning synaptic delays, weights and adaptation in
+  spiking neural networks,'' {\em Frontiers in Neuroscience}, vol.~18,
+  p.~1360300, 2024.
+
+\bibitem{neftci2019surrogate}
+E.~O. Neftci, H.~Mostafa, and F.~Zenke, ``Surrogate gradient learning in
+  spiking neural networks: Bringing the power of gradient-based optimization to
+  spiking neural networks,'' {\em IEEE Signal Processing Magazine}, vol.~36,
+  no.~6, pp.~51--63, 2019.
+
+\bibitem{shrestha2018slayer}
+S.~B. Shrestha and G.~Orchard, ``Slayer: Spike layer error reassignment in
+  time,'' in {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  vol.~31, 2018.
+
+\bibitem{bellec2020solution}
+G.~Bellec, F.~Scherr, A.~Subramoney, E.~Hajek, D.~Salaj, R.~Legenstein, and
+  W.~Maass, ``A solution to the learning dilemma for recurrent networks of
+  spiking neurons,'' {\em Nature Communications}, vol.~11, no.~1, p.~3625,
+  2020.
+
+\bibitem{hopfield1982neural}
+J.~J. Hopfield, ``Neural networks and physical systems with emergent collective
+  computational abilities,'' {\em Proceedings of the National Academy of
+  Sciences}, vol.~79, no.~8, pp.~2554--2558, 1982.
+
+\bibitem{amit1985storing}
+D.~J. Amit, H.~Gutfreund, and H.~Sompolinsky, ``Storing infinite numbers of
+  patterns in a spin-glass model of neural networks,'' {\em Physical Review
+  Letters}, vol.~55, no.~14, pp.~1530--1533, 1985.
+
+\end{thebibliography}

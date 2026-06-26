@@ -1104,25 +1104,41 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
     n_ops = cfg.get("n_ops", 0)
     if dataset_override is not None:
         A, B, op_ids, labels = dataset_override
-    elif op == "mixed":
-        ds = MultiQueryDataset(K=K, n_samples=1, same_op=False,
-                               ops_list=cfg["ops_list"], seed=seed,
-                               op_sampling=cfg.get("op_sampling", "uniform"))
-        A, B, op_ids, labels = ds[0]
+        torch.manual_seed(seed)
+        spike_input = encode_sequential_trial(
+            A.unsqueeze(0), B.unsqueeze(0),
+            win_len=cfg["win_len"], read_len=cfg["read_len"],
+            r_on=cfg["r_on"], r_off=cfg["r_off"],
+            dt=cfg["dt"], device=device,
+            op_ids=op_ids.unsqueeze(0) if n_ops > 0 else None,
+            n_ops=n_ops,
+        )
     else:
-        ds = MultiQueryDataset(K=K, n_samples=1, same_op=True, op_name=op,
-                               ops_list=cfg["ops_list"], seed=seed)
-        A, B, op_ids, labels = ds[0]
-    torch.manual_seed(seed)
-
-    spike_input = encode_sequential_trial(
-        A.unsqueeze(0), B.unsqueeze(0),
-        win_len=cfg["win_len"], read_len=cfg["read_len"],
-        r_on=cfg["r_on"], r_off=cfg["r_off"],
-        dt=cfg["dt"], device=device,
-        op_ids=op_ids.unsqueeze(0) if n_ops > 0 else None,
-        n_ops=n_ops,
-    )
+        # Retry with increasing seeds until we get non-zero input spikes.
+        # Needed because K=1 + short 10ms window + r_off=10Hz gives ~90%
+        # chance of all-zero spikes when A=0 or B=0.
+        for _try in range(10):
+            _seed = seed + _try
+            if op == "mixed":
+                ds = MultiQueryDataset(K=K, n_samples=1, same_op=False,
+                                       ops_list=cfg["ops_list"], seed=_seed,
+                                       op_sampling=cfg.get("op_sampling", "uniform"))
+            else:
+                ds = MultiQueryDataset(K=K, n_samples=1, same_op=True,
+                                       op_name=op, ops_list=cfg["ops_list"],
+                                       seed=_seed)
+            A, B, op_ids, labels = ds[0]
+            torch.manual_seed(_seed)
+            spike_input = encode_sequential_trial(
+                A.unsqueeze(0), B.unsqueeze(0),
+                win_len=cfg["win_len"], read_len=cfg["read_len"],
+                r_on=cfg["r_on"], r_off=cfg["r_off"],
+                dt=cfg["dt"], device=device,
+                op_ids=op_ids.unsqueeze(0) if n_ops > 0 else None,
+                n_ops=n_ops,
+            )
+            if spike_input.sum() > 0:
+                break
 
     with torch.no_grad():
         logits, info = model(spike_input.to(device), record=True)

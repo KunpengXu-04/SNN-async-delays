@@ -75,7 +75,7 @@ many-query-multi-op   K (A,B) × K diff ops       K logits           [Step 3]
 ─────────────────────────────────────────────────────────────────
 one-query-many-op     1 (A,B) × K_ops ops        K_ops logits       [Step 4a, Done]
 many-query-one-out    K (A,B) × same op          1 aggregate        [Step 4b, Done]
-many-many-one-out     K (A,B) × K diff ops       1 aggregate        [Step 4c, Future]
+many-many-one-out     K (A,B) × K diff ops       1 aggregate        [Step 4c, Done — Sec 26, Max K@90%=1]
 ```
 
 ---

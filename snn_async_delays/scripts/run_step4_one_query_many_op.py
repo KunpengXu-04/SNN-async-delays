@@ -189,10 +189,16 @@ def run_single(
     })
     save_eval_results(results, eval_path)
 
-    # Diagnostic plots: single shared-query sample, bypassing MultiQueryDataset
-    # via dataset_override (BroadcastOpDataset's (A,B,op_ids,labels) shapes
-    # differ from the K-sequential-sub-window dataset the default path expects).
-    viz_sample = BroadcastOpDataset(n_samples=1, ops_list=ops_subset, seed=999)[0]
+    # Diagnostic plots: single shared-query sample with A=1, B=1 guaranteed,
+    # bypassing MultiQueryDataset via dataset_override.
+    # K=1 passed (broadcast has ONE input window, not K_ops sequential windows).
+    _ds_viz = BroadcastOpDataset(n_samples=100, ops_list=ops_subset, seed=42)
+    _viz_idx = next(
+        (i for i in range(100)
+         if _ds_viz.A[i, 0] > 0.5 and _ds_viz.B[i, 0] > 0.5),
+        0,
+    )
+    viz_sample = _ds_viz[_viz_idx]
     save_run_diagnostic_plots(
         model=model,
         cfg={**run_cfg, "model_name": mname,
@@ -204,7 +210,7 @@ def run_single(
         log_rows=log_rows,
         eval_results=results,
         run_dir=run_dir,
-        K=K_ops,
+        K=1,           # broadcast: 1 shared input window (not K_ops output heads)
         op="broadcast",
         device=device,
         seed=999,

@@ -124,7 +124,16 @@ class MultiQueryDataset(Dataset):
         op_sampling: str = "uniform",
         hard_ops: Optional[List[str]] = None,
         hard_weight: float = 2.0,
+        aggregate: Optional[str] = None,
     ):
+        """
+        aggregate : None (default, per-query labels [K]) | "majority" | "and"
+            Many-query-one-out topologies: collapses the K per-query labels
+            into a single aggregate label (shape [1]) while A/B/op_ids stay
+            [K] -- the encoder still needs the full K-sub-window structure,
+            only the readout target changes. "majority" requires K odd to
+            avoid ties.
+        """
         rng = np.random.RandomState(seed)
         n_ops = len(ops_list)
 
@@ -152,11 +161,78 @@ class MultiQueryDataset(Dataset):
             dtype=np.float32,
         )
 
+        if aggregate is not None:
+            if aggregate == "majority":
+                if K % 2 == 0:
+                    raise ValueError(
+                        f"aggregate='majority' requires odd K to avoid ties, got K={K}"
+                    )
+                agg = (labels.sum(axis=1) > K / 2).astype(np.float32)
+            elif aggregate == "and":
+                agg = (labels.sum(axis=1) == K).astype(np.float32)
+            else:
+                raise ValueError(f"Unsupported aggregate: {aggregate!r}")
+            labels = agg.reshape(n_samples, 1)
+
         self.A = torch.from_numpy(A)
         self.B = torch.from_numpy(B)
         self.op_ids = torch.from_numpy(op_ids)
         self.labels = torch.from_numpy(labels)
         self.K = K
+        self.ops_list = ops_list
+        self.aggregate = aggregate
+
+    def __len__(self):
+        return len(self.A)
+
+    def __getitem__(self, idx):
+        return self.A[idx], self.B[idx], self.op_ids[idx], self.labels[idx]
+
+
+class BroadcastOpDataset(Dataset):
+    """
+    Topology: one-query, many-op. Each sample has ONE shared (A, B) pair,
+    broadcast to K_ops = len(ops_list) parallel readout heads, each trained
+    on a different boolean function of that same (A, B).
+
+    Returns:
+        A       : [1]      float
+        B       : [1]      float
+        op_ids  : [n_ops]  long   identity index 0..n_ops-1 -- metadata only;
+                                  NOT consumed as one-hot input channels (the
+                                  encoder is called with n_ops=0 since op
+                                  identity here lives in the output head, not
+                                  the input encoding)
+        labels  : [n_ops]  float  labels[i] = ops_list[i](A, B)
+    """
+
+    def __init__(
+        self,
+        n_samples: int,
+        ops_list: List[str] = OPS_LIST,
+        seed: int = 42,
+    ):
+        rng = np.random.RandomState(seed)
+        n_ops = len(ops_list)
+
+        A = rng.randint(0, 2, n_samples).astype(np.float32)
+        B = rng.randint(0, 2, n_samples).astype(np.float32)
+
+        labels = np.array(
+            [
+                [compute_label(op, int(A[s]), int(B[s])) for op in ops_list]
+                for s in range(n_samples)
+            ],
+            dtype=np.float32,
+        )
+
+        self.A = torch.from_numpy(A).unsqueeze(1)   # [n_samples, 1]
+        self.B = torch.from_numpy(B).unsqueeze(1)   # [n_samples, 1]
+        self.op_ids = torch.arange(n_ops, dtype=torch.long).unsqueeze(0).expand(
+            n_samples, n_ops
+        ).clone()
+        self.labels = torch.from_numpy(labels)      # [n_samples, n_ops]
+        self.n_ops = n_ops
         self.ops_list = ops_list
 
     def __len__(self):

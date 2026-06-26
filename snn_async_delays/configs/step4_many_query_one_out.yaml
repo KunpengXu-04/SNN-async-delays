@@ -1,0 +1,113 @@
+# ============================================================
+# Step 4 — Topology 2: many-query, one-out (single op)
+#
+# Motivation (paper Future Work, EXPERIMENT_TABLE.md Pattern Taxonomy row
+# "many-query-one-out"): keeps the existing Plan D (SC) input structure
+# EXACTLY -- K queries on the same op (NAND) injected sequentially into 2
+# shared channels -- but collapses the K-logit readout into a SINGLE
+# aggregate logit (majority vote of the K per-query labels).
+#
+# Hypothesis: d=0 should fail just as structurally as in Plan D (Section 9
+# of EXPERIMENT_LOG.md / paper Section "Shared-Channel design"), because
+# without delays the K queries' hidden spikes collide in time and the
+# aggregator has no way to recover which query contributed what -- this
+# tests whether the "delay is structurally necessary" conclusion survives
+# a change in OUTPUT semantics (aggregation vs. K independent decisions).
+#
+# Reuses SNNSimultaneousModel / encode_sequential_trial unchanged: win_len
+# = K * sub_win exactly as Plan D, but n_queries=1 (single aggregate head)
+# while K (the real multiplexing load) is passed explicitly to
+# evaluate_simultaneous(K_query=K) and to the diagnostic-plot K parameter,
+# since model.n_queries no longer equals the input's sub-window count.
+# ============================================================
+
+# ----- Fixed timing (same as Step 2 Plan D baseline) -----
+dt: 1.0
+sub_win: 10
+read_len: 10
+
+# ----- Op config: single fixed op, no op-identity input channels -----
+op_name: NAND
+ops_list: [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+same_op: true
+n_ops: 0
+
+# ----- Aggregation -----
+# Primary: majority vote (label positivity stays near 50% by construction,
+# avoiding the class-imbalance confound of AND-of-results). K must be odd.
+aggregate: majority
+
+# Secondary stress condition: AND-of-results, run ONLY at K in this list
+# (positivity rate = 0.5^K -> severe imbalance at higher K; report balanced
+# accuracy/F1 and the "always predict 0" trivial baseline alongside raw
+# accuracy for these runs -- see run_step4_many_query_one_out.py).
+secondary_aggregate:
+  value: and
+  K_values: [3, 5]
+
+# ----- Network defaults -----
+n_hidden: 50
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+delay_step: 1.0
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset -----
+n_train: 4000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Sweep -----
+# K_values: odd only, to avoid majority-vote ties. K=1 is a sanity check
+# (degenerates to Step 2 single-query).
+sweep:
+  K_values: [1, 3, 5]
+  seeds: [42, 0]
+  accuracy_thresholds: [0.95, 0.90]
+
+  models:
+    - name: wad_mlp
+      train_mode: weights_and_delays
+      fixed_delay_value: null
+      readout_type: mlp
+      num_hidden_layers: 1
+      hidden_sizes: [50]
+
+    - name: wad_linear
+      train_mode: weights_and_delays
+      fixed_delay_value: null
+      readout_type: linear
+      num_hidden_layers: 1
+      hidden_sizes: [50]
+
+    - name: d0_mlp
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      readout_type: mlp
+      num_hidden_layers: 1
+      hidden_sizes: [50]
+
+    - name: d0_linear
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      readout_type: linear
+      num_hidden_layers: 1
+      hidden_sizes: [50]

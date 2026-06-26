@@ -2,6 +2,7 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{subcaption}
 \usepackage{multirow}
 \usepackage{xcolor}
@@ -76,9 +77,10 @@ fixed hidden-neuron budget. We compare three training regimes: \texttt{weights\_
 
 \textbf{Contributions.}
 \begin{itemize}
-\item A progressive three-design protocol (Plan A $\to$ C $\to$ D, Section
+\item A progressive three-design protocol (serial-readout $\to$ dedicated-channel $\to$
+shared-channel, abbreviated SR/DC/SC below; Section
 \ref{sec:step2}) that decomposes the benefit of delays into \emph{alignment} and
-\emph{capacity} components, and isolates a design (Plan D) in which weights are
+\emph{capacity} components, and isolates a design (the SC design) in which weights are
 \emph{structurally} incapable of solving the task without delays.
 \item A causal $2\times2$ ablation (readout type $\times$ delay configuration, Section
 \ref{sec:ablation}) showing the capacity gain is attributable to delay-structured
@@ -100,8 +102,17 @@ remain to make this submission-ready.
 so practical SNN training relies on surrogate gradients
 \cite{neftci2019surrogate}, temporal credit-assignment schemes such as SLAYER
 \cite{shrestha2018slayer}, or biologically-motivated eligibility-trace methods such as
-e-prop \cite{bellec2020solution}. We use a standard surrogate-gradient approach with
-backpropagation through simulated time, in the spirit of \cite{neftci2019surrogate}.
+e-prop \cite{bellec2020solution}. SLAYER defines a probability-density-function-based
+spike ``escape rate'' surrogate and additionally backpropagates error through the
+synaptic temporal kernel itself, rather than only through a per-timestep membrane
+derivative; e-prop replaces backpropagation-through-time (BPTT) with a forward-running,
+purely local \emph{eligibility trace} per synapse combined with a top-down learning
+signal, avoiding the biologically-implausible backward-in-time pass and the need to store
+a full trial's activations that BPTT requires. We use neither: our trials are short
+($T\leq55$ steps) and our networks shallow (one or two layers), so there is no long-sequence
+memory pressure or biological-plausibility requirement that would justify either method's
+added complexity over plain surrogate-gradient BPTT, in the spirit of
+\cite{neftci2019surrogate}.
 
 \textbf{Learnable delays.} The most directly comparable recent work treats synaptic or
 axonal delay as a first-class trainable parameter alongside weights. Hammouamri et
@@ -117,18 +128,66 @@ number of simultaneous queries $K$, using delay-vs-no-delay as the controlled va
 
 \textbf{Temporal multiplexing in neuroscience.} Our framing of $K$ as ``items
 multiplexed per cycle'' follows the theta--gamma working-memory literature
-\cite{lisman1995storage,cowan2001magical} and the polychronous-group account of
-delay-based combinatorial coding \cite{izhikevich2006polychronization}. We return to
-these as a quantitative point of comparison in Section \ref{sec:discussion}.
+\cite{lisman1995storage,cowan2001magical} -- in which a slow ($\theta$, 4--8\,Hz)
+oscillation is divided into faster ($\gamma$, 30--80\,Hz) sub-cycles, and a population of
+cortical neurons is argued to carry one discrete memory item per sub-cycle, i.e.\ a
+phase-multiplexing code -- and the polychronous-group account of delay-based
+combinatorial coding \cite{izhikevich2006polychronization}, where fixed axonal delays
+cause spikes from different neurons, fired at different times, to arrive at a shared
+downstream target simultaneously, producing a reproducible spike chain without requiring
+any synchronous firing. We return to these as a quantitative point of comparison in
+Section \ref{sec:discussion}.
 
 \section{Methods}
 
 \subsection{Neuron and synapse model}
 All experiments use leaky integrate-and-fire (LIF) neurons with a refractory period,
-simulated at $dt{=}1\,\mathrm{ms}$. Discrete synaptic delays $d_{ij}\in[0,d_{\max}]$ are
-parameterised by a sigmoid mapping into the valid range and trained by gradient descent
-jointly with (or independently of, depending on training mode) the weights $w_{ij}$,
-using separate learning rates $lr_w$, $lr_d$.
+simulated at $dt{=}1\,\mathrm{ms}$. The membrane potential updates as
+\begin{equation}
+V_i[t] = \lambda V_i[t-1] + (1-\lambda)\,I_i^{syn}[t]\cdot\mathbb{1}[\text{ref}_i[t]\leq0],
+\quad \lambda = e^{-dt/\tau_m},
+\label{eq:lif}
+\end{equation}
+with a spike $s_i[t]=\mathbb{1}[V_i[t]-V_{th}\geq0]$ whenever the membrane crosses
+threshold, after which $V_i$ resets to $V_{reset}$ and the neuron enters refractory for
+$n_{ref}$ steps. Because $s_i[t]$ is non-differentiable, the backward pass uses a
+fast-sigmoid surrogate gradient,
+\begin{equation}
+\frac{\partial s_i[t]}{\partial V_i[t]} \approx \frac{\beta}{(1+\beta|V_i[t]-V_{th}|)^2},
+\label{eq:surrogate}
+\end{equation}
+with steepness $\beta{=}4$.
+
+Discrete synaptic delays $d_{ij}\in[0,d_{\max}]$ are parameterised by a sigmoid mapping
+into the valid range,
+\begin{equation}
+d_{ij} = d_{\max}\cdot\sigma(\theta_{ij}),
+\label{eq:delayparam}
+\end{equation}
+trained by gradient descent jointly with (or independently of, depending on training
+mode) the weights $w_{ij}$, using separate learning rates $lr_w$, $lr_d$. The delayed
+synaptic current is read out by linearly interpolating between the floor and ceiling of
+the (continuous) delay,
+\begin{equation}
+I_j^{syn}[t] = \sum_i w_{ij}\Big[(1-\alpha_{ij})\,s_i[t{-}\lfloor d_{ij}\rfloor]
++ \alpha_{ij}\,s_i[t{-}\lceil d_{ij}\rceil]\Big],
+\label{eq:delayread}
+\end{equation}
+with $\alpha_{ij}=d_{ij}-\lfloor d_{ij}\rfloor$ -- this interpolation is what gives a
+continuous delay a smooth gradient, rather than blocking it at a discrete buffer index.
+
+Our parameter choices ($\tau_m{=}10\,\mathrm{ms}$, $V_{th}{=}1.0$, $dt{=}1\,\mathrm{ms}$,
+$n_{ref}{=}2\,\mathrm{ms}$) sit inside the range used elsewhere in the surrogate-gradient
+SNN literature: Neftci et al.\ \cite{neftci2019surrogate} report $\tau_m\in[5,20]\,\mathrm{ms}$
+as a typical range; Bellec et al.\ \cite{bellec2020solution} use $\tau_m{=}20\,\mathrm{ms}$
+for standard (non-adaptive) LIF units in e-prop; Fang et al.\ \cite{fang2021plif}'s
+learnable-$\tau_m$ networks converge to values across roughly the same 2--20\,ms range.
+We did not tune $\tau_m$ or $V_{th}$ for this task -- they are literature-typical
+defaults, not task-fit hyperparameters -- but Section~\ref{sec:ablation}'s
+timing-parameter ablation tests this choice directly: raising $\tau_m$ from 10 to
+20\,ms \emph{lowers} Max K@90\% to 0 by weakening the sub-window isolation the SR and SC
+designs rely on, so the inherited default also happens to be the locally task-optimal
+point, not merely an unexamined convention.
 
 \subsection{Training modes}
 Three training modes are compared throughout: \texttt{weights\_only} (delays fixed at 0
@@ -138,20 +197,59 @@ and \texttt{weights\_and\_delays} (both trained). Unless noted, ``$d{=}0$'' refe
 
 \subsection{Task and encoding}
 The task is two-input boolean logic (AND, OR, NAND, NOR, XOR, XNOR, and the two
-implications) with inputs $(A,B)\in\{0,1\}^2$. Inputs are rate-coded: $A{=}1$ drives a
-Poisson-like spike train at $r_{\text{on}}\approx 400\,\mathrm{Hz}$, $A{=}0$ at
-$r_{\text{off}}\approx 10\,\mathrm{Hz}$. Output is decoded as spike count or mean membrane
-potential over a readout window, trained with \texttt{BCEWithLogitsLoss}.
+implications) with inputs $(A,B)\in\{0,1\}^2$. Inputs are rate-coded: each timestep, a
+Bernoulli spike is drawn independently per channel with
+\begin{equation}
+p_{\text{on/off}} = r_{\text{on/off}}\cdot dt / 1000, \qquad s[t]\sim\mathrm{Bernoulli}(p),
+\label{eq:ratecode}
+\end{equation}
+using $r_{\text{on}}\approx400\,\mathrm{Hz}$ when the corresponding input bit is 1 and
+$r_{\text{off}}\approx10\,\mathrm{Hz}$ when it is 0. We rate-code rather than inject
+$(A,B)$ as analog 0/1 values directly because an LIF neuron has no channel for a
+single-timestep real-valued input -- its only vocabulary is binary spike/no-spike events,
+so any quantity must be represented as a temporally-extended pattern of such events, which
+Eq.~\eqref{eq:ratecode} provides and Eq.~\eqref{eq:lif}'s leaky integration is designed to
+read out. More specific to this paper: our central question is whether \emph{spike
+arrival timing} can be routed by delays, so the input itself must carry genuine
+spike-timing structure for a delay to act on -- a constant analog current has no timing
+structure to delay, which would make the temporal-multiplexing mechanism under study
+inapplicable by construction.
+
+Output is decoded as spike count or mean membrane potential over the readout window,
+$z=\mathrm{readout}(h)$, trained with
+\begin{equation}
+\mathcal{L} = -\tfrac{1}{N}\textstyle\sum_n\big[y_n\log\sigma(z_n)
++ (1{-}y_n)\log(1-\sigma(z_n))\big],
+\label{eq:loss}
+\end{equation}
+i.e.\ \texttt{BCEWithLogitsLoss}. Each query is an independent binary decision, so this is
+the standard maximum-likelihood loss for Bernoulli-distributed labels given a raw logit
+$z$; computing it directly from $z$ (rather than via a separate sigmoid followed by BCE)
+is numerically stable for large $|z|$ and gives well-behaved gradients near
+confidently-wrong predictions. Eq.~\eqref{eq:loss} does not care whether $z$ is a spike
+count, a membrane potential, or an MLP output, so the readout variants compared in
+Sections~\ref{sec:pland}--\ref{sec:ablation} (linear, MLP, and the fully-spiking output
+layer of Section~\ref{sec:future}) are directly loss-comparable; Sections~\ref{sec:pland}
+and~\ref{sec:ablation} discuss the accuracy/interpretability/trainability trade-offs
+between them.
 
 \subsection{Evaluation metrics}
 \textbf{Max K@$\tau$} -- the largest $K$ at which trial accuracy $\geq\tau$ under fixed
-$h$. \textbf{Energy-normalised throughput} $K/\text{spikes}$ -- queries answered per
+$h$. This follows the same ``capacity at a fixed error tolerance'' convention used to
+define storage capacity in associative-memory networks -- the largest pattern count
+recallable below a retrieval-error threshold \cite{hopfield1982neural,amit1985storing},
+which we revisit quantitatively in Section~\ref{sec:discussion}. There is no universally
+correct value of $\tau$ (much as a 95\% confidence level in statistics is a convention,
+not a derived quantity), so we report results at both $\tau{=}90\%$ and $\tau{=}95\%$
+throughout and confirm our qualitative conclusions hold at either threshold.
+\textbf{Energy-normalised throughput} $K/\text{spikes}$ -- queries answered per
 hidden spike emitted. \textbf{Latency} -- time from input-window end to readout decision.
 
 \subsection{Three multi-query trial designs}
 Table \ref{tab:designs} summarises the three progressively-constrained experimental
-designs used in Section \ref{sec:step2}; Fig.~\ref{fig:method} shows the trial structure
-of the most constrained one (Plan D) directly, with per-query sub-windows and the shared
+designs used in Section \ref{sec:step2}; Fig.~\ref{fig:designschematic} shows their
+trial structure schematically, and Fig.~\ref{fig:method} shows the trial structure
+of the most constrained one (the SC design) directly, with per-query sub-windows and the shared
 readout window visible in the raster.
 
 \begin{table}[t]
@@ -160,19 +258,31 @@ readout window visible in the raster.
 \label{tab:designs}
 \begin{tabular}{lccc}
 \toprule
-Plan & Input ch.\ & Readout & Tests \\
+Design & Input ch.\ & Readout & Tests \\
 \midrule
-A (serial) & 2 (shared) & $K$ windows & alignment vs.\ multiplexing \\
-C (sync.) & $2K$ (dedicated) & 1 (shared) & alignment vs.\ capacity \\
-D (sequential) & 2 (shared) & 1 (shared) & \textbf{pure temporal routing} \\
+SR (serial) & 2 (shared) & $K$ windows & alignment vs.\ multiplexing \\
+DC (sync.) & $2K$ (dedicated) & 1 (shared) & alignment vs.\ capacity \\
+SC (sequential) & 2 (shared) & 1 (shared) & \textbf{pure temporal routing} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{figure}[t]
 \centering
+\includegraphics[width=\columnwidth]{fig_design_schematics.png}
+\caption{Schematic trial structure of the three designs ($K{=}3$ shown). SR: $K$
+independent (input, readout) blocks on 2 shared channels, trial length $\propto K$. DC:
+$2K$ dedicated channel pairs fire simultaneously in one fixed-length input window,
+followed by one shared readout window. SC: the same 2 channels are reused sequentially
+across $K$ input sub-windows, followed by one shared readout window -- the only design in
+which weights alone cannot distinguish which query a given input spike belongs to.}
+\label{fig:designschematic}
+\end{figure}
+
+\begin{figure}[t]
+\centering
 \includegraphics[width=\columnwidth]{fig_method_planD_flow.png}
-\caption{Plan D mechanism (NAND, $h{=}50$, $K{=}1$, \texttt{weights\_and\_delays},
+\caption{SC-design mechanism (NAND, $h{=}50$, $K{=}1$, \texttt{weights\_and\_delays},
 linear readout). Three connection types are drawn explicitly: (A) red/blue fan lines
 trace every input spike to its delayed arrival at each hidden neuron; (B) orange spans
 mark the most recent arrivals that drove a hidden neuron to fire, with the fire itself
@@ -184,7 +294,7 @@ quantitatively.}
 \label{fig:method}
 \end{figure}
 
-\section{Step 1: Single-Query Baseline}
+\section{Single-Operation Baseline}
 \label{sec:step1}
 
 Before testing multi-query designs we confirmed that each training mode can reliably
@@ -193,7 +303,7 @@ $h\in\{10,20,50\}$ (200 epochs, seed 42).
 
 \begin{table}[t]
 \centering
-\caption{Step 1: accuracy by training mode (mean over 8 ops $\times$ 3 $h$ values).}
+\caption{Single-operation baseline: accuracy by training mode (mean over 8 ops $\times$ 3 $h$ values).}
 \label{tab:step1mode}
 \begin{tabular}{lcccc}
 \toprule
@@ -208,7 +318,7 @@ Mode & Mean & Min & Max & Runs $\geq$95\% \\
 
 \begin{table}[t]
 \centering
-\caption{Step 1: accuracy by mode $\times$ hidden size.}
+\caption{Single-operation baseline: accuracy by mode $\times$ hidden size.}
 \label{tab:step1h}
 \begin{tabular}{lccc}
 \toprule
@@ -225,7 +335,8 @@ $h$ & \texttt{w\_only} & \texttt{d\_only} & \texttt{w\_and\_d} \\
 over \texttt{weights\_only} that holds across hidden sizes; \texttt{delays\_only}
 collapses on XOR/XNOR (mean 0.584 vs.\ 0.800 on the simpler operations), confirming that
 delays alone cannot implement the nonlinear decision boundary XOR requires. At $h{=}50$,
-NAND reaches 0.989 and was selected as the Step 2 operation for its stability; XOR is the
+NAND reaches 0.989 and was selected as the operation used for all multi-query experiments
+below, for its stability; XOR is the
 hardest operation at 0.932 (just below the 95\% threshold), setting a difficulty floor.
 As a side effect, \texttt{weights\_and\_delays} uses 19\% fewer spikes per trial than
 \texttt{weights\_only} at $h{=}50$ (27.7 vs.\ 34.1) while achieving higher accuracy.
@@ -241,10 +352,10 @@ consistent with different hidden neurons specialising to different latencies.
 \label{fig:step1delay}
 \end{figure}
 
-\section{Step 2: Progressive Multi-Query Designs}
+\section{Multi-Query Design Comparison}
 \label{sec:step2}
 
-\subsection{Plan A -- serial time slots}
+\subsection{Sequential-Readout (SR) design -- serial time slots}
 
 Each of $K$ queries is given its own $35\,\mathrm{ms}$ slot (20 ms input, 10 ms readout, 5
 ms gap); trial length grows as $K\times35\,\mathrm{ms}$. \texttt{weights\_and\_delays}
@@ -260,12 +371,12 @@ spikes into the readout window (median learned delay $\tilde d\approx9$ steps) -
 degradation follows because LIF decay ($\tau_m{=}10\,\mathrm{ms} \ll$ slot length
 $35\,\mathrm{ms}$, residual $e^{-3.5}\approx3\%$) provides natural slot isolation --
 serial processing of $K$ independent single-query problems, not a shared
-representation. \textbf{Lesson:} Plan A cannot test true temporal multiplexing because
+representation. \textbf{Lesson:} the SR design cannot test true temporal multiplexing because
 each query has its own independent readout.
 
-\subsection{Plan C -- synchronous, dedicated channels}
+\subsection{Dedicated-Channel (DC) design -- synchronous channels}
 
-To quantify alignment vs.\ capacity directly, Plan C injects all $K$ queries
+To quantify alignment vs.\ capacity directly, the DC design injects all $K$ queries
 simultaneously, each on its own dedicated channel pair ($2K$ input channels total), with
 trial length fixed at 30 ms regardless of $K$. Three conditions are compared: (A)
 \texttt{weights\_and\_delays}; (B) \texttt{weights\_only} with delays fixed at 20 ms
@@ -274,7 +385,7 @@ adaptivity).
 
 \begin{table}[t]
 \centering
-\caption{Plan C: three-condition decomposition (NAND, $h{=}20$).}
+\caption{DC design: three-condition decomposition (NAND, $h{=}20$).}
 \label{tab:planc}
 \begin{tabular}{lccccc}
 \toprule
@@ -296,13 +407,13 @@ $+2.7\%$ -- a $4.3\times$ ratio. In Max K@90\% terms: fully trainable reaches $K
 fixed-alignment reaches $K{=}3$, zero-delay reaches $K{=}0$. The capacity effect is small
 here because each query already has a dedicated channel pair: weights alone can route
 the right channel to the right output, so delay's marginal contribution is small. This
-motivates Plan D: remove the dedicated channels entirely and force the network to rely on
+motivates the SC design: remove the dedicated channels entirely and force the network to rely on
 timing alone.
 
-\subsection{Plan D -- shared channels, single shared readout}
+\subsection{Shared-Channel (SC) design -- single shared readout}
 \label{sec:pland}
 
-Plan D is the central experiment. Only two input channels (A, B) are shared across all
+The SC design is the central experiment. Only two input channels (A, B) are shared across all
 $K$ queries; query $k$ is injected in sub-window $[k\!\cdot\!\text{sw}, (k\!+\!1)\!\cdot\!\text{sw})$
 (sw $=10\,\mathrm{ms}$), and a single shared readout window follows all $K$ sub-windows,
 outputting $K$ logits via \texttt{Linear($h$,$K$)}. Because the input weight
@@ -314,7 +425,7 @@ structural, not merely empirical, failure mode.}
 
 \begin{table}[t]
 \centering
-\caption{Plan D, linear readout: accuracy vs.\ $K$, $h{=}20$ vs.\ $h{=}50$.}
+\caption{SC design, linear readout: accuracy vs.\ $K$, $h{=}20$ vs.\ $h{=}50$.}
 \label{tab:pland}
 \begin{tabular}{lccc}
 \toprule
@@ -359,7 +470,7 @@ different query-position latencies.
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.85\textwidth]{fig_planD_k1_enhanced.png}
-\caption{Plan D, $K{=}1$, $h{=}20$: enhanced raster (hidden neurons sorted by
+\caption{SC design, $K{=}1$, $h{=}20$: enhanced raster (hidden neurons sorted by
 first-spike time, spikes coloured by sub-window), \texttt{weights\_and\_delays} (left,
 acc.\ 94.9\%) vs.\ $d{=}0$ (right, acc.\ 76.4\%). With trainable delays a clear band of
 neurons fires inside the readout window (dark-red sidebar); with $d{=}0$ the network
@@ -370,7 +481,7 @@ falls back on the readout bias.}
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_planD_k2_enhanced.png}
-\caption{Plan D, $K{=}2$, $h{=}20$: enhanced raster, \texttt{weights\_and\_delays}
+\caption{SC design, $K{=}2$, $h{=}20$: enhanced raster, \texttt{weights\_and\_delays}
 (left, 91.2\%) vs.\ $d{=}0$ (right, 76.4\%). With delays, Q0 (long delay) and Q1 (short
 delay) converge on overlapping hidden neurons inside the readout window; with $d{=}0$,
 both queries arrive at the same neurons at the same time -- a temporal collision rather
@@ -415,6 +526,24 @@ linear-vs-nonlinear transform distributing the decision across all of them rathe
 any one weighted vote -- consistent with the network exploiting overlapping,
 non-linearly-separable temporal codes that a linear decoder cannot extract.
 
+These two readouts, plus a third we tried, trade off accuracy against
+interpretability and trainability. \textbf{Linear} readout gives each hidden neuron a
+single weighted vote (Eq.~\eqref{eq:loss}'s $z$ is one dot product), is cheapest and most
+interpretable (Fig.~\ref{fig:k3}'s vote lines are literally the readout weights), but can
+only extract linearly-separable structure from the hidden code, capping Max K@90\% at 2.
+\textbf{MLP} readout adds one ReLU layer, can extract the non-linearly-separable temporal
+codes above, and raises Max K@90\% to 3, at the cost of losing the single-vote-line
+interpretation (the decision is distributed across more neurons with no one channel
+responsible). We also tried a fully \textbf{spiking output layer} (a third LIF layer
+reading the hidden spikes, trained with the same Eq.~\eqref{eq:loss} on its own output
+spike count) -- the most hardware-faithful, end-to-end-event-driven option, but the
+hardest to train: stacking a second surrogate-gradient nonlinearity on top of the hidden
+layer's own surrogate gradient produces a severe dead-neuron problem for the first
+$\sim$90 epochs, and even after 1000 epochs it reaches only 71.8\% at $K{=}1$ (vs.\
+43.6\% for $d{=}0$, preserving the usual delay gap, but far below the 95\%+ that linear or
+MLP readout reach at the same $K$). We therefore use it only for fully-spiking
+visualisation (Section~\ref{sec:future}), not as a primary readout.
+
 \begin{figure}[t]
 \centering
 \begin{subfigure}{0.48\columnwidth}
@@ -426,7 +555,7 @@ non-linearly-separable temporal codes that a linear decoder cannot extract.
 \includegraphics[width=\linewidth]{fig_planD_k3_mlp_flow.png}
 \caption{MLP (92.3\%)}
 \end{subfigure}
-\caption{Plan D, $K{=}3$, $h{=}50$, \texttt{weights\_and\_delays}, enhanced spike flow:
+\caption{SC design, $K{=}3$, $h{=}50$, \texttt{weights\_and\_delays}, enhanced spike flow:
 linear readout (left, explicit vote lines) vs.\ MLP readout (right, no single weighted
 channel -- decision distributed across more readout-window fires, green stars).}
 \label{fig:k3}
@@ -482,36 +611,66 @@ At a fixed 50-neuron total budget, splitting into two spiking layers
 readout (Max K@90\%$=2$ for both), and for the MLP readout the two-layer variant is
 \emph{worse} (Max K@90\%$=2$ vs.\ 3 for one layer) -- depth and MLP gains are not
 additive, because the MLP's benefit scales with the dimensionality of the
-representation it reads from ($h_2{=}25$ here vs.\ $h{=}50$ for the one-layer case).
+representation it reads from ($h_2{=}25$ here vs.\ $h{=}50$ for the one-layer case). This
+raises an obvious follow-up: is it \emph{depth itself} that is unhelpful, or only depth
+\emph{at a fixed budget} that halves the readout's input dimension? We re-ran the
+two-layer architecture without the budget constraint -- $h_1{=}50,h_2{=}50$ (100 neurons
+total, double the single-layer budget, but $\text{readout\_in}{=}50$ matches the
+single-layer case exactly) -- with both readouts, $K\in\{2,3,4\}$, 2 seeds.
 
 \begin{table}[t]
 \centering
-\caption{Depth ablation, NAND, fixed 50-neuron budget (mean of 2 seeds).}
+\caption{Depth ablation, NAND (mean of 2 seeds). Top: fixed 50-neuron budget. Bottom:
+unconstrained depth (100 neurons, $\text{readout\_in}{=}50$).}
 \label{tab:depth}
 \begin{tabular}{lcccc}
 \toprule
 Model & $K{=}2$ & $K{=}3$ & $K{=}4$ & Max K@90\% \\
 \midrule
 L1-h50-linear & 92.4\% & 87.3\% & 84.9\% & 2 \\
-L1-h50-MLP & \textbf{95.9\%} & \textbf{92.7\%} & \textbf{89.9\%} & \textbf{3} \\
+L1-h50-MLP & 95.9\% & 92.7\% & 89.9\% & 3 \\
 L2-h25h25-linear & 91.4\% & 88.6\% & 88.2\% & 2 \\
 L2-h25h25-MLP & 91.6\% & 88.3\% & 86.5\% & 2 \\
 L2-h25h25-$d{=}0$ & 77.7\% & 77.4\% & 76.9\% & 0 \\
+\midrule
+L2-h50h50-linear & 93.6\% & 92.5\% & \textbf{91.1\%} & \textbf{4} \\
+L2-h50h50-MLP & \textbf{94.6\%} & \textbf{92.0\%} & 89.7\% & 3 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\textbf{Unconstrained depth helps substantially.} L2-h50h50-linear reaches 91.1\% at
+$K{=}4$ -- \textbf{Max K@90\% rises to 4}, the best result anywhere in this paper for
+single-operation NAND, surpassing even L1-h50-MLP (Max K@90\%$=$3). This confirms that
+the earlier ``depth hurts'' finding was an artefact of the \emph{fixed-budget}
+constraint specifically: depth that adds capacity (rather than splitting existing
+capacity) helps, and helps more than swapping in a nonlinear readout at the original
+budget. We do not have a single-layer $h{=}100$ control for single-operation NAND (the
+analogous comparison exists only for the mixed-operation task, Section \ref{sec:step3},
+where it also reaches Max K@90\%$=$3), so we cannot yet fully attribute this gain to
+depth \emph{per se} as opposed to simply having twice the neurons; disentangling the two
+is flagged as a remaining experiment in Section~\ref{sec:future}.
+
+A second, unexpected result: at $K{=}4$, \textbf{the linear readout now beats the MLP
+readout} (91.1\% vs.\ 89.7\%), reversing the pattern seen everywhere else in this paper.
+We interpret this as the two spiking layers' own layer-to-layer nonlinearity (the
+LIF spike function in $h_1\to h_2$) already supplying much of the non-linear separability
+that the MLP readout was previously needed to extract from a single spiking layer; adding
+a further non-spiking nonlinearity on top of two spiking layers does not help further,
+and its extra parameters ($\mathrm{Linear}(50,50)\to\mathrm{ReLU}\to\mathrm{Linear}(50,4)$
+vs.\ $\mathrm{Linear}(50,4)$) may mildly overfit the fixed 4000-trial training set.
+
 Fig.~\ref{fig:depthraster} additionally shows the raw raster for the linear-readout
-single-vs-two-layer comparison at $K{=}3$: the two architectures produce qualitatively
-similar (sparse, query-staggered) hidden activity, consistent with the conclusion that
-depth itself is architecture-neutral here -- the bottleneck is the decoder, as in Section
-\ref{sec:2x2}. The $d{=}0$ control collapses to $\sim$77\% regardless of depth,
-confirming delays remain the necessary mechanism independent of architecture.
-Fig.~\ref{fig:depthcurve} shows the corresponding accuracy/throughput-vs-$K$ curves for
-the two-layer MLP variant: accuracy degrades gracefully but stays below the 90\%
-threshold from $K{=}3$ onward, while energy-normalised throughput is non-monotonic
-(0.072 $\to$ 0.084 $\to$ 0.082), reflecting the same capacity-boundary effects discussed
-in Section \ref{sec:pland}.
+single-vs-two-layer comparison at $K{=}3$ (fixed-budget case): the two architectures
+produce qualitatively similar (sparse, query-staggered) hidden activity, consistent with
+the fixed-budget conclusion that depth alone does not change the qualitative mechanism --
+delays still do the routing, as in Section \ref{sec:2x2}. The $d{=}0$ control collapses to
+$\sim$77\% regardless of depth, confirming delays remain the necessary mechanism
+independent of architecture. Fig.~\ref{fig:depthcurve} shows the corresponding
+accuracy/throughput-vs-$K$ curves for the two-layer MLP variant (fixed-budget case):
+accuracy degrades gracefully but stays below the 90\% threshold from $K{=}3$ onward,
+while energy-normalised throughput is non-monotonic (0.072 $\to$ 0.084 $\to$ 0.082),
+reflecting the same capacity-boundary effects discussed in Section \ref{sec:pland}.
 
 \begin{figure*}[t]
 \centering
@@ -553,57 +712,93 @@ combined & 5 & 20 & 20.0 & 82.6\% / 0 \\
 \end{tabular}
 \end{table}
 
-Every intervention performs at or below baseline; none breaks the ceiling. Increasing
-$\tau_m$ makes neurons fire \emph{less} often (slower membrane dynamics $\Rightarrow$
-fewer threshold crossings) and \emph{weakens} the natural slot isolation Plan A relied
-on, increasing cross-query interference rather than reducing information loss; shrinking
-the sub-window gives rate-coded inputs less time to generate spikes at all. \textbf{The
-$K{=}3$ ceiling is not a tunable timing artefact} -- it survives retuning of every timing
-constant in the simulation.
+Every intervention performs at or below baseline; none breaks the ceiling. To see why, we
+re-ran a forward pass from the saved \texttt{baseline}, \texttt{tau20}, and
+\texttt{combined} checkpoints ($K{=}3$) and compared the richest-of-20 sampled trial for
+each (Fig.~\ref{fig:timingflow}). Raising $\tau_m$ does \emph{not} simply make neurons
+fire less overall: total hidden spikes barely change (39 baseline vs.\ 35 for both
+\texttt{tau20} and \texttt{combined}). What changes is \emph{when} they fire. Counting
+spikes by sub-window (Q0/Q1/Q2), baseline concentrates input-phase activity in the
+\emph{last} sub-window before the shared readout window opens (0/3/15 spikes); both
+\texttt{tau20} and \texttt{combined} shift this activity systematically \emph{earlier}
+(0/9/10 and 0/6/10) -- slower membrane decay lets each query's signal persist into the
+\emph{next} query's sub-window, exactly the cross-query bleed the natural-slot-isolation
+argument warns about. This earlier firing comes directly at the expense of the readout
+window: spikes landing inside it drop from 21 (baseline) to 16 (\texttt{tau20}, $-24\%$)
+and 19 (\texttt{combined}), with active readout-contributing neurons falling from 20 to
+16 and 17 respectively. The mean arrival-to-fire integration span for readout-window
+fires is essentially unchanged across conditions (8.0--8.9 simulation steps), confirming
+this is a \emph{timing-shift}, not a wholesale collapse of integration dynamics: raising
+$\tau_m$ \emph{weakens} the natural slot isolation the SR design relied
+on by letting one query's representation leak into the next, increasing cross-query
+interference rather than reducing information; shrinking the sub-window (\texttt{subwin5},
+\texttt{combined}) compounds this by giving rate-coded inputs less time to generate
+spikes in the first place. \textbf{The $K{=}3$ ceiling is not a tunable timing artefact}
+-- it survives retuning of every timing constant in the simulation.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.31\textwidth]{timing_baseline_K3_flow.png}\hfill
+\includegraphics[width=0.31\textwidth]{timing_tau20_K3_flow.png}\hfill
+\includegraphics[width=0.31\textwidth]{timing_combined_K3_flow.png}
+\caption{Enhanced spike flow, $K{=}3$, L1-h50+MLP+delay, left to right:
+\texttt{baseline} (92.7\%), \texttt{tau20} (88.6\%), \texttt{combined} (82.6\%).
+Raising $\tau_m$ visibly shifts orange integration spans and hidden fires earlier
+(into the Q1 sub-window rather than just before the readout window), leaving fewer
+green (readout-window) stars relative to gold (input-window) stars than baseline.}
+\label{fig:timingflow}
+\end{figure*}
 
 \subsection{Capacity scaling: is it neuron count?}
-A hidden-size sweep ($h\in\{10,20,30,50\}$, $K\in\{1,...,5\}$, Plan D, MLP readout,
-$\tau{=}90\%$) directly tests whether more neurons can buy a higher $K$.
-Fig.~\ref{fig:capacity} -- arguably the central figure of this paper -- plots the minimum
-$h$ needed to reach 90\% accuracy as a function of $K$: $K{=}1$ and $K{=}2$ both need only
+A hidden-size sweep ($h\in\{10,20,30,50\}$, $K\in\{1,...,5\}$, SC design, MLP readout,
+$\tau{=}90\%$) directly tests whether more neurons can buy a higher $K$, by finding the
+minimum $h$ needed to reach 90\% accuracy at each $K$. $K{=}1$ and $K{=}2$ both need only
 $h{=}10$, but $K{=}3$ requires jumping to $h{=}50$, and $K{=}4,5$ \emph{never} reach 90\%
 at any tested $h\leq50$ (best: 89.8\% at $K{=}4$, 86.3\% at $K{=}5$, both with $h{=}50$).
 The $d{=}0$ control never reaches 90\% at any $h\in\{10,20,30,50\}$ (max 84.9\%),
 confirming the ceiling is about \emph{delay-enabled routing capacity}, not raw neuron
 budget.
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.75\textwidth]{fig_capacity_core.png}
-\caption{Minimum hidden neurons needed to reach 90\% accuracy vs.\ query load $K$
-(Plan D, MLP readout, NAND). Filled circles: $K$ values that reach $\tau$; open circles:
-best achieved accuracy when $\tau$ is never reached. Grey dashed: neurons-per-query
-$h/K$.}
-\label{fig:capacity}
-\end{figure*}
-
-Fig.~\ref{fig:capacity} answers "how many neurons does $K$ cost"; the complementary
+This neuron-count sweep answers "how many neurons does $K$ cost"; the complementary
 question is "how much energy does $K$ cost" at a \emph{fixed} neuron budget.
 Fig.~\ref{fig:energy} takes the $h{=}50$, MLP-readout, \texttt{weights\_and\_delays} run
-from Section~\ref{sec:ablation} (95.9/93.5/92.7/89.8\% at $K{=}1$--$4$) and re-plots its
-accuracy against total hidden spikes per trial, against a synchronous baseline that runs
-$K$ independent trials at the Step~1 single-op spike cost ($\sim$34 spikes/query). Because
-Plan D shares
-one hidden layer and one readout window across all $K$ queries, its spike cost grows far
-slower than linearly in $K$ (8 $\to$ 19 $\to$ 28 $\to$ 41 spikes for $K{=}1$--$4$),
-yielding a consistent \textbf{73\% energy reduction} for the same number of computations
-at $K{=}2$ and $K{=}3$ -- the same delay-enabled routing capacity from Fig.~\ref{fig:capacity},
-viewed through the energy-normalised-throughput lens (Section~\ref{sec:step1}) rather than
-the neuron-count lens.
+from Section~\ref{sec:ablation} (95.9/93.5/92.7/89.8\% at $K{=}1$--$4$) and plots, on the
+$y$-axis, the number of independent computations $K$ reliably answered per trial against,
+on the $x$-axis, the energy that costs -- measured as total hidden spikes per trial, our
+hardware-realistic proxy for compute budget (Section~\ref{sec:step1}'s
+energy-normalised-throughput metric). The async (blue) series is \emph{measured}: real
+spike counts from the actual multi-$K$ SC-design runs. The sync (grey) series is
+\emph{not} measured the same way -- it is the analytic cost of $K$ \emph{independent}
+single-query trials at the single-operation baseline's spike cost ($\sim$34
+spikes/query), i.e.\ $E_{\text{sync}}(K)=K\times34.1$. This is not an unfair comparison: a
+sync trial's accuracy is, by construction, independent of $K$ (the $K$ trials do not
+share any resource, so one trial's outcome cannot interfere with another's), so the sync
+series trivially clears the 90\% threshold at every $K$ -- the threshold is doing real
+filtering work only on the async series, where shared-resource interference is exactly
+the effect under study. Because the SC design shares one hidden layer and one readout
+window across all $K$ queries, its spike cost grows far slower than linearly in $K$ (8
+$\to$ 19 $\to$ 28 $\to$ 41 spikes for $K{=}1$--$4$), yielding a consistent
+\textbf{73\% energy reduction} for the same number of computations at $K{=}2$ and
+$K{=}3$ -- the same delay-enabled routing capacity described above, viewed through the
+energy-normalised-throughput lens rather than the neuron-count lens. We scope this claim
+explicitly to $K\!\leq\!3$, where \emph{both} series clear 90\%: at $K{=}4,5$ the async
+series itself falls below threshold (the same capacity ceiling characterised above, not
+an energy phenomenon), so we mark those points with $\times$ rather than either omitting
+them or lowering $\tau$ to make them appear to clear it -- doing the latter would make
+this figure inconsistent with the $\tau{=}90\%/95\%$ convention used everywhere else in
+the paper.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.6\textwidth]{fig_computation_energy.png}
-\caption{Energy cost of $K$ computations at a fixed $h{=}50$ budget (NAND, Plan D, MLP
-readout, \texttt{weights\_and\_delays}). Async (blue): $K$ queries multiplexed in one
-trial. Sync (grey): $K$ independent single-query trials at the Step~1 spike cost. The
-two crossed points at $K{=}4,5$ fall below the 90\% threshold (capacity limit, matching
-Fig.~\ref{fig:capacity}).}
+\caption{Energy cost of $K$ computations at a fixed $h{=}50$ budget (NAND, SC design, MLP
+readout, \texttt{weights\_and\_delays}). Async (blue, measured): $K$ queries multiplexed
+in one trial. Sync (grey, analytic): $K$ independent single-query trials at the
+single-operation baseline's spike cost -- accuracy is $K$-invariant by construction, so
+this series always clears the 90\% line. The two crossed async points at $K{=}4,5$ fall
+below the 90\% threshold (the same delay-enabled-capacity ceiling characterised by the
+neuron-count sweep above); the 73\% energy-reduction claim is scoped to $K\!\leq\!3$,
+where both series are at or above threshold.}
 \label{fig:energy}
 \end{figure*}
 
@@ -630,11 +825,11 @@ shallowly-nonlinearly) separable -- not a defect of our specific architecture, t
 procedure, or timing constants (Section \ref{sec:ablation} rules out the latter
 directly).
 
-\section{Step 3: Generalisation to Mixed Operations}
+\section{Mixed-Operation Generalisation}
 \label{sec:step3}
 
 Sections \ref{sec:step2}--\ref{sec:ablation} use a single fixed operation (NAND) across
-all $K$ queries in a trial. Step 3 asks whether the same mechanism survives when each of
+all $K$ queries in a trial. This section asks whether the same mechanism survives when each of
 the $K$ queries in a trial uses a \emph{different} boolean operation (one-hot
 op-identity channels are added to the input), on the best-known architecture from Section
 \ref{sec:ablation} (L1+MLP+trainable delays).
@@ -666,7 +861,7 @@ NAND in Section \ref{sec:ablation}.
 
 \begin{table}[t]
 \centering
-\caption{Step 3 progression, mixed-op accuracy (mean of 2 seeds) and Max K@90\%.}
+\caption{Mixed-operation progression, accuracy (mean of 2 seeds) and Max K@90\%.}
 \label{tab:step3}
 \begin{tabular}{lcccc}
 \toprule
@@ -681,23 +876,26 @@ Variant & $K{=}1$ & $K{=}2$ & $K{=}3$ & Max K@90\% \\
 \end{tabular}
 \end{table}
 
-Fig.~\ref{fig:step3raster} shows the raw rasters for Direction A at $K{=}1,2,3$: as $K$
-grows, \texttt{weights\_and\_delays} maintains a clear query-staggered delay structure
-(visible diagonal banding of spike times across Q0/Q1/Q2) while $d{=}0$ shows
-unstructured, temporally-collapsed firing -- the same qualitative signature as the
-single-operation case (Section \ref{sec:pland}), now reproduced under operation
-heterogeneity. The $d{=}0$ control is essentially insensitive to both data volume and
-hidden size across all four Step 3 variants (Table \ref{tab:step3} omits this for space;
-it stays in the 53--70\% range throughout), confirming delays -- not data or capacity
-alone -- are what convert available capacity into temporal-multiplexing capability.
+Fig.~\ref{fig:step3raster} shows the \texttt{weights\_and\_delays} rasters for Direction A
+at $K{=}1,2,3$: as $K$ grows, the network maintains a clear query-staggered delay
+structure (visible diagonal banding of spike times across Q0/Q1/Q2) -- the same
+qualitative signature as the single-operation case (Section \ref{sec:pland},
+Fig.~\ref{fig:k1}/\ref{fig:k2}, where the $d{=}0$ comparison is shown directly), now
+reproduced under operation heterogeneity. The $d{=}0$ control is essentially insensitive
+to both data volume and hidden size across all four mixed-operation variants (Table
+\ref{tab:step3} omits this for space; it stays in the 53--70\% range throughout),
+confirming delays -- not data or capacity alone -- are what convert available capacity
+into temporal-multiplexing capability.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.31\textwidth]{fig_step3_k1.png}\hfill
-\includegraphics[width=0.31\textwidth]{fig_step3_k2.png}\hfill
-\includegraphics[width=0.31\textwidth]{fig_step3_k3.png}
-\caption{Mixed-op (4-op, $n{=}16$k, $h{=}50$, MLP) rasters, \texttt{weights\_and\_delays}
-vs.\ $d{=}0$, left to right $K{=}1,2,3$.}
+\includegraphics[width=0.31\textwidth]{fig_step3_k1_wad_only.png}\hfill
+\includegraphics[width=0.31\textwidth]{fig_step3_k2_wad_only.png}\hfill
+\includegraphics[width=0.31\textwidth]{fig_step3_k3_wad_only.png}
+\caption{Mixed-op (4-op, $n{=}16$k, $h{=}50$, MLP), \texttt{weights\_and\_delays} rasters,
+left to right $K{=}1,2,3$ (each panel cropped to the wad condition only, for legibility at
+this width; the $d{=}0$ contrast for this task follows the same pattern already shown for
+single-operation NAND in Fig.~\ref{fig:k1}/\ref{fig:k2}).}
 \label{fig:step3raster}
 \end{figure*}
 
@@ -725,17 +923,26 @@ input pair is broadcast and the network must compute $K$ \emph{different} functi
 it simultaneously. This inverts the current setup (shared computation, divergent inputs
 $\to$ divergent computation, shared input) and would test whether delay-based routing
 can fan a single signal out to $K$ independent computational branches. Proposed design:
-reuse the Plan D architecture but replace the $K$ sequential input sub-windows with a
+reuse the SC-design architecture but replace the $K$ sequential input sub-windows with a
 single input window and $K$ parallel readout heads, each trained on a different boolean
 function.
 \item \textbf{Many-query, one-out} ($K$ same-op queries $\to$ 1 aggregate output, e.g.\
 majority vote or AND-of-results): tests temporal \emph{integration} rather than
-separation. Proposed design: keep the Plan D sequential-injection structure but replace
+separation. Proposed design: keep the SC design's sequential-injection structure but replace
 the $K$-logit readout with a single-logit readout trained on an aggregate label.
 \item \textbf{Many-query, many-op, one-out}: the combination of the above -- $K$
 heterogeneous queries aggregated to a single decision. Natural next step once the first
 two are characterised.
 \end{itemize}
+
+\subsection{Isolating depth from neuron count}
+Section \ref{sec:ablation}'s unconstrained-depth follow-up (L2-h50h50, 100 neurons,
+$\text{readout\_in}{=}50$) reaches Max K@90\%$=$4 on single-operation NAND, better than
+any single-layer configuration tested -- but we lack a single-layer $h{=}100$ control for
+this task to confirm whether the gain comes from \emph{depth} or simply from
+\emph{doubling the neuron count}. Running L1-h100-linear/MLP on single-operation NAND
+(the same architecture already used for the mixed-operation task in
+Section~\ref{sec:step3}, just retargeted) would directly settle this.
 
 \subsection{Energy-matched accuracy comparison}
 Our throughput metric ($K/\text{spikes}$) compares energy at whatever accuracy each
@@ -756,7 +963,7 @@ propagation lines as a function of $K$, both extractable from the existing
 
 \subsection{A non-SNN baseline}
 We have not compared against a non-spiking sequence model (e.g.\ an LSTM or a small MLP
-reading the raw $[T,2]$ binned-spike tensor) on the Plan D task. This is the single
+reading the raw $[T,2]$ binned-spike tensor) on the SC-design task. This is the single
 biggest gap if targeting a machine-learning venue rather than a neuromorphic-systems
 venue: if a generic RNN matches our Max K@90\%$=$3 with comparable or fewer parameters,
 the claim narrows to ``SNNs are one way to implement temporal routing'' rather than

@@ -1,0 +1,105 @@
+# ============================================================
+# Step 4 — Topology 1: one-query, many-op
+#
+# Motivation (paper Future Work, EXPERIMENT_TABLE.md Pattern Taxonomy row
+# "one-query-many-op"): a SINGLE shared (A,B) pair is broadcast into ONE
+# input window (no K sub-windows -- there is no "which query is this"
+# ambiguity for delays to resolve), and K_ops parallel readout heads each
+# learn a DIFFERENT boolean function of that same (A,B).
+#
+# This is the mirror image of the existing Plan D (SC) design: there, K
+# distinct queries share one readout and delays are structurally necessary
+# to avoid temporal collision. Here, K_ops distinct OUTPUTS share one input
+# and one hidden population, but each output head already gets its own
+# row of readout weights -- no input-side collision exists by construction.
+#
+# Hypothesis (to test, not assume): the wad-vs-d0 gap should be much
+# smaller here than Plan D's +20~34%, closer to Plan C's alignment-only
+# +11.8% (Section 8 of EXPERIMENT_LOG.md), because delays can only help via
+# alignment (shifting hidden spikes into the readout window), not via
+# resolving a routing ambiguity that doesn't exist in this design.
+#
+# Reuses SNNSimultaneousModel / encode_sequential_trial unchanged (called
+# with K_in=1, i.e. a single sub-window == win_len). n_queries is set to
+# n_ops (4 parallel readout heads), n_input_channels explicitly fixed at 2
+# (NOT the model's 2*n_queries Plan-C default -- there is only one query).
+# ============================================================
+
+# ----- Fixed timing: identical to existing Plan D K=1 condition, so K_ops=1
+# (degenerate case, not swept) is directly comparable to single-op NAND -----
+dt: 1.0
+win_len: 10
+read_len: 10
+
+# ----- Op config: the K_ops readout heads, one per op in this list -----
+ops_list: [AND, OR, NAND, NOR]
+
+# ----- Network defaults -----
+n_hidden: 50
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+delay_step: 1.0
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset: single shared (A,B) per sample, no per-op data sparsity
+# (every sample contributes a label to every op head), so n_train stays at
+# the single-op-baseline scale -- no need for Step 3's 16k scale-up -----
+n_train: 4000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Sweep -----
+# K_values here means K_ops: how many of the leading ops_list entries get
+# a readout head (e.g. K_ops=2 -> [AND, OR] only). K_ops=1 is the trivial
+# single-op-equivalent sanity check.
+sweep:
+  K_values: [2, 3, 4]
+  seeds: [42, 0]
+  accuracy_thresholds: [0.95, 0.90]
+
+  models:
+    - name: wad_mlp
+      train_mode: weights_and_delays
+      fixed_delay_value: null
+      readout_type: mlp
+      num_hidden_layers: 1
+      hidden_sizes: [50]
+
+    - name: wad_linear
+      train_mode: weights_and_delays
+      fixed_delay_value: null
+      readout_type: linear
+      num_hidden_layers: 1
+      hidden_sizes: [50]
+
+    - name: d0_mlp
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      readout_type: mlp
+      num_hidden_layers: 1
+      hidden_sizes: [50]
+
+    - name: d0_linear
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      readout_type: linear
+      num_hidden_layers: 1
+      hidden_sizes: [50]

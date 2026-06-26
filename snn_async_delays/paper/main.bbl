@@ -63,6 +63,12 @@ G.~Bellec, F.~Scherr, A.~Subramoney, E.~Hajek, D.~Salaj, R.~Legenstein, and
   spiking neurons,'' {\em Nature Communications}, vol.~11, no.~1, p.~3625,
   2020.
 
+\bibitem{fang2021plif}
+W.~Fang, Z.~Yu, Y.~Chen, T.~Masquelier, T.~Huang, and Y.~Tian, ``Incorporating
+  learnable membrane time constant to enhance learning of spiking neural
+  networks,'' in {\em IEEE/CVF International Conference on Computer Vision
+  (ICCV)}, pp.~2661--2671, 2021.
+
 \bibitem{hopfield1982neural}
 J.~J. Hopfield, ``Neural networks and physical systems with emergent collective
   computational abilities,'' {\em Proceedings of the National Academy of

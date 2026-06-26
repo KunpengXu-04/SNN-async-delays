@@ -167,14 +167,23 @@ def evaluate_simultaneous(
     cfg: Dict,
     device: str = "cpu",
     encode_fn=None,
+    K_query: int | None = None,
 ) -> Dict:
     """
     Evaluation for SNNSimultaneousModel (true temporal multiplexing).
 
     Returns the same keys as evaluate() for direct comparison.
+
+    K_query : actual input multiplexing load (number of sequential
+        sub-windows), used for the K / throughput_K_per_spk /
+        ops_per_neuron_per_ms fields. Defaults to model.n_queries (the
+        readout output dimension), which is correct whenever input
+        sub-windows and output logits are in 1:1 correspondence (Step 2/3).
+        Aggregate-output topologies (many-query-one-out) decouple the two
+        (model.n_queries=1 while K_query>1) and must pass it explicitly.
     """
     model.eval()
-    K = model.n_queries
+    K = K_query if K_query is not None else model.n_queries
 
     all_preds, all_labels, all_h_spk, all_active_frac = [], [], [], []
     all_h1_spk: list = []

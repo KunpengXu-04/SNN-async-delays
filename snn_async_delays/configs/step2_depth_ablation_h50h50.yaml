@@ -1,0 +1,83 @@
+# ============================================================
+# Depth Ablation Follow-up: unconstrained 2-layer width (50+50)
+#
+# Scientific question:
+#   The original depth ablation (step2_depth_ablation.yaml) splits a FIXED
+#   50-neuron budget into 25+25, so its 2-layer readout sees only 25 dims
+#   (vs. 50 for the L1-h50 baseline) -- confounding "depth" with "smaller
+#   readout input". This config removes that confound: hidden_sizes=[50,50]
+#   keeps readout_in=50 (matching L1-h50) at the cost of doubling the total
+#   neuron budget to 100. Tests whether the MLP-readout benefit (and the
+#   "depth doesn't help" conclusion) was really about readout_in dimension,
+#   not depth itself.
+#
+# Experiment matrix (NOT budget-matched -- 100 total neurons):
+#   - L2-h50h50-linear : 2-layer, 50+50, readout_in=50, trainable delays
+#   - L2-h50h50-mlp    : 2-layer, 50+50, readout_in=50, trainable delays
+#
+# Compare against (already exist, no rerun needed):
+#   - L1-h50-linear / L1-h50-mlp     (runs/NAND_depth_ablation/)
+#   - L2-h25h25-linear / L2-h25h25-mlp (runs/NAND_depth_ablation/)
+#   - L1-h100 single-layer (runs/4op_mixed_16k_h100_(step3)/ family, Max K@90%=3)
+# ============================================================
+
+# ----- Timing (same as step2_depth_ablation.yaml) -----
+dt: 1.0
+sub_win: 10        # steps per query; win_len = K * sub_win (computed per run)
+read_len: 10       # readout window [win_len, win_len+read_len)
+
+# ----- Default network params -----
+n_hidden: 50
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset -----
+ops_list: [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+op_name: NAND
+same_op: true
+n_train: 4000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Depth Ablation Sweep: unconstrained 2x50 width -----
+sweep:
+  K_values: [2, 3, 4]
+  seeds: [42, 0]
+  accuracy_thresholds: [0.95, 0.90]
+
+  models:
+    # 2-layer, 50+50 = 100 total neurons, readout_in=50 (matches L1-h50)
+    - name: L2-h50h50-linear
+      num_hidden_layers: 2
+      hidden_sizes: [50, 50]
+      readout_type: linear
+      train_mode: weights_and_delays
+      delay_param_type: sigmoid
+
+    # Same architecture, MLP readout -- does MLP benefit return when
+    # readout_in=50 instead of 25?
+    - name: L2-h50h50-mlp
+      num_hidden_layers: 2
+      hidden_sizes: [50, 50]
+      readout_type: mlp
+      train_mode: weights_and_delays
+      delay_param_type: sigmoid

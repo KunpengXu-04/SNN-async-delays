@@ -37,6 +37,8 @@ Folder naming convention (as of 2026-06):
 | `4op_mixed_16k_2layer_(step3)` | 1–4 | 4 | 50+50 | MLP | 2-layer at fixed 100-neuron budget drops K@90% back to 2 | **Done** |
 | `NAND_spiking_out` | 1 | 1 | 50 | spiking LIF | 200 ep: wad=54%, d0=35%; BCELoss on spike counts is hard to train | **Done** |
 | `NAND_spiking_out_1k` | 1 | 1 | 50 | spiking LIF | 1000 ep: wad=71.8%, d0=43.6%; delay advantage +28%; still far below linear (95%) | **Done** |
+| `one_query_many_op_(step4)` | — | 1 broadcast → K_ops=2..4 | 50 | linear + MLP | Gap +14–19pp (flat, K_ops-invariant); linear>MLP (reversal); no ceiling at K_ops=4 | **Done** |
+| `many_query_one_out_(step4)` | 1,3,5 | 1 (NAND) | 50 | linear + MLP | d0 BalAcc≈50% (trivial prior); majority Max K@BalAcc≥70%=3; AND Max K@BalAcc≥70%=5 | **Done** |
 
 ---
 
@@ -55,6 +57,9 @@ Folder naming convention (as of 2026-06):
 | Step 3: 4op 16k h=100 | **K=3** | K=1 | Capacity + delays |
 | Step 3: 4op 16k 2-layer | K=2 | 0 | Depth costs effective capacity |
 | Spiking output (1000 ep) | 0 | 0 | BCELoss on spike counts: hard to optimise |
+| Step 4a: 1-query K_ops=4 (linear) | — | — | Gap flat +18pp (alignment only); linear>MLP; no ceiling found |
+| Step 4b: K=3 NAND, majority (MLP) | K=3 (BalAcc=76.4%) | — | MLP>linear for aggregation; d0 BalAcc≈50% at K≥3 |
+| Step 4b: K=5 NAND, AND-of-results | K=5 (BalAcc=75.0%) | — | AND-of-results gives cleanest d=0 structural-failure evidence |
 
 ---
 
@@ -68,9 +73,9 @@ many-query-one-op     K (A,B) × same op          K logits           [Plan A/C]
 many-query-one-op     K (A,B) × same op          1 shared MLP       [Plan D]  ← primary
 many-query-multi-op   K (A,B) × K diff ops       K logits           [Step 3]
 ─────────────────────────────────────────────────────────────────
-one-query-many-op     1 (A,B) × K_ops ops        K_ops logits       [Future]
-many-query-one-out    K (A,B) × same op          1 aggregate        [Future]
-many-many-one-out     K (A,B) × K diff ops       1 aggregate        [Future]
+one-query-many-op     1 (A,B) × K_ops ops        K_ops logits       [Step 4a, Done]
+many-query-one-out    K (A,B) × same op          1 aggregate        [Step 4b, Done]
+many-many-one-out     K (A,B) × K diff ops       1 aggregate        [Step 4c, Future]
 ```
 
 ---

@@ -1084,10 +1084,17 @@ def plot_capacity_clean(
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
-                        seed: int = 999) -> tuple:
+                        seed: int = 999, dataset_override: tuple | None = None) -> tuple:
     """Record one sample forward pass; return (traces, weights_dict, delays_dict).
 
     Imports are local to avoid circular dependencies at module level.
+
+    dataset_override : optional pre-built single-sample (A, B, op_ids, labels)
+        tuple, bypassing the internal MultiQueryDataset construction. Needed
+        by topologies whose input doesn't fit the K-sequential-sub-window
+        dataset shape assumed below (e.g. one-query-many-op's
+        BroadcastOpDataset, where A/B are a single shared query while labels
+        span n_ops output heads).
     """
     import torch
     from data.boolean_dataset import MultiQueryDataset
@@ -1095,14 +1102,17 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
 
     model.eval()
     n_ops = cfg.get("n_ops", 0)
-    if op == "mixed":
+    if dataset_override is not None:
+        A, B, op_ids, labels = dataset_override
+    elif op == "mixed":
         ds = MultiQueryDataset(K=K, n_samples=1, same_op=False,
                                ops_list=cfg["ops_list"], seed=seed,
                                op_sampling=cfg.get("op_sampling", "uniform"))
+        A, B, op_ids, labels = ds[0]
     else:
         ds = MultiQueryDataset(K=K, n_samples=1, same_op=True, op_name=op,
                                ops_list=cfg["ops_list"], seed=seed)
-    A, B, op_ids, labels = ds[0]
+        A, B, op_ids, labels = ds[0]
     torch.manual_seed(seed)
 
     spike_input = encode_sequential_trial(
@@ -1677,11 +1687,13 @@ def plot_diagnostic_panel(
                 ax.axvline(k * sw, color=COLORS_t10[k % len(COLORS_t10)],
                            ls="--", lw=0.7, alpha=0.7)
 
-    # Output strip: one row per query, decision marker at readout window centre
+    # Output strip: one row per query, decision marker at readout window centre.
+    # len(out_logits) can be < K_val for aggregate-output topologies (one
+    # readout head, K_val sub-windows) -- draw only the rows that exist.
     if has_out:
         ax_out = rax[len(layer_data)]
         t_rc   = wl + max(rl // 2, 0)    # readout centre timestep
-        for k in range(K_val):
+        for k in range(min(K_val, len(out_logits))):
             lv  = float(out_logits[k])
             col_k = "#2ca02c" if lv > 0 else "#d62728"
             mrk_k = "|"       if lv > 0 else "x"
@@ -1974,6 +1986,7 @@ def save_run_diagnostic_plots(
     op: str,
     device: str,
     seed: int = 999,
+    dataset_override: tuple | None = None,
 ):
     """Orchestrate all per-run diagnostic plots.
 
@@ -1984,6 +1997,10 @@ def save_run_diagnostic_plots(
       spike_raster_sample0.png
       layer_to_layer_spike_flow_sample0.png
       diagnostic_data.npz   (raw traces/weights/delays for replotting later)
+
+    dataset_override : forwarded to _extract_run_traces() -- see its
+        docstring. Pass K as the true sub-window count (K_query) for
+        aggregate-output topologies, not model.n_queries.
     """
     plot_dir = os.path.join(run_dir, "plots")
     os.makedirs(plot_dir, exist_ok=True)
@@ -1996,7 +2013,7 @@ def save_run_diagnostic_plots(
 
     try:
         traces, weights_dict, delays_dict = _extract_run_traces(
-            model, cfg, K, op, device, seed)
+            model, cfg, K, op, device, seed, dataset_override=dataset_override)
     except Exception as exc:
         import logging
         logging.getLogger("viz").warning(

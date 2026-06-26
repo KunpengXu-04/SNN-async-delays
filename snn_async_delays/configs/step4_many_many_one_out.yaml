@@ -1,0 +1,89 @@
+# ============================================================
+# Step 4 — Topology 3: many-query, many-op, one-out (mixed op + aggregate)
+#
+# Motivation (paper Future Work, EXPERIMENT_TABLE.md Pattern Taxonomy row
+# "many-many-one-out"): combines Step 3's mixed-op input (K queries, each a
+# DIFFERENT op, one-hot op-identity channels) with Topology 2's aggregate
+# single-logit readout (majority vote). Tests whether the delay mechanism
+# survives input heterogeneity AND output aggregation stacked together.
+#
+# Reuses Step 3's data-volume / capacity findings directly rather than
+# re-deriving them: n_train=16000 (Direction A) and h=100 (Direction C) are
+# carried over unchanged, since this task is at least as hard as Step 3's
+# mixed-op many-out task (same op-representational competition) plus the
+# added aggregation difficulty.
+#
+# Scope deliberately narrower than Topology 1/2 (mlp readout only, majority
+# vote only) to keep total run count bounded given the doubled difficulty.
+# ============================================================
+
+# ----- Fixed timing (same as Step 2/3 Plan D baseline) -----
+dt: 1.0
+sub_win: 10
+read_len: 10
+
+# ----- Op config: mixed ops, one-hot op-identity input channels -----
+n_ops: 4
+ops_list: [AND, OR, NAND, NOR]
+same_op: false
+op_sampling: uniform
+
+# ----- Aggregation: majority vote only (AND-of-results would stack two
+# imbalance sources -- op heterogeneity + AND shrinkage -- out of scope for
+# this first pass; revisit only if Topology 2's results motivate it) -----
+aggregate: majority
+
+# ----- Network defaults: h=100, matching Step 3 Direction C's finding that
+# mixed-op tasks need 2x capacity to match the single-op ceiling -----
+n_hidden: 100
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+delay_step: 1.0
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset: n_train=16000 matching Step 3 Direction A (mixed-op data
+# sparsity finding applies identically here) -----
+n_train: 16000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Sweep -----
+# K_values: odd only (majority-vote ties), matches Step 3 Direction A/C's
+# K range otherwise (1-4 there; here restricted to odd values).
+sweep:
+  K_values: [1, 3]
+  seeds: [42, 0]
+  accuracy_thresholds: [0.95, 0.90]
+
+  models:
+    - name: wad_mlp
+      train_mode: weights_and_delays
+      fixed_delay_value: null
+      readout_type: mlp
+      num_hidden_layers: 1
+      hidden_sizes: [100]
+
+    - name: d0_mlp
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      readout_type: mlp
+      num_hidden_layers: 1
+      hidden_sizes: [100]

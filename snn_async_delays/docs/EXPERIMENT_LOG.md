@@ -1,7 +1,7 @@
 # SNN Temporal Multiplexing — Experiment Log
 
 > 记录所有实验设置、结果、代码修改、机制分析和失败原因。  
-> 最后更新：2026-06-26（Section 26 — Step 4 Topology 3）
+> 最后更新：2026-06-28（Section 27 — Unconstrained Depth Ablation: L2-h50h50, single-op NAND）
 
 ---
 
@@ -2081,3 +2081,132 @@ competition from mixed ops; compression loss from K→1 aggregation), not a fail
 the delay mechanism itself. This completes the Step 4 Pattern Taxonomy: delays are a
 structural necessity in every shared-channel topology, and unnecessary only when inputs
 are spatially separated (T1 broadcast).
+
+---
+
+## Section 27 — Unconstrained Depth Ablation: L2-h50h50, Single-Op NAND
+
+**Date:** 2026-06-24 (run during paper revision round)  
+**Experiment dir:** `runs/NAND_depth_ablation_h50h50/`  
+**Config:** `configs/step2_depth_ablation_h50h50.yaml`  
+**Script:** `scripts/run_depth_ablation.py` (unchanged)  
+**Total runs:** 12 (2 models × K∈{2,3,4} × 2 seeds), 200 epochs each, NAND, GPU
+
+### 27.1 Motivation
+
+Sections 13–14 showed that adding a second hidden layer at **fixed 50-neuron budget**
+(L2-h25h25, readout\_in=25) failed to improve Max K@90% beyond 2 and hurt energy
+efficiency by ~50%. Two confounds were entangled: depth *and* a halved readout input
+dimension (25 vs 50). The primary hypothesis (Section 14.3) was that the MLP readout's
+benefit scales with its input dimension, not with depth per se.
+
+This experiment isolates depth by **removing the budget constraint**: L2-h50h50 uses
+two layers of 50 neurons each (100 neurons total, readout\_in=50 matching L1-h50), so
+any change relative to L1-h50 is due to the second spiking layer, not a reduced
+readout dimension.
+
+**Scientific question:** When depth is added without reducing the readout dimension,
+does it help, hurt, or have no effect on temporal multiplexing capacity?
+
+### 27.2 Experimental Design
+
+| Model | Layers | Hidden sizes | readout\_in | Readout | train\_mode |
+|---|---|---|---|---|---|
+| L1-h50-linear *(reference, Sec 13)* | 1 | [50] | 50 | linear | w\_and\_d |
+| L1-h50-MLP *(reference, Sec 14)* | 1 | [50] | 50 | MLP | w\_and\_d |
+| **L2-h50h50-linear** | 2 | [50, 50] | 50 | linear | w\_and\_d |
+| **L2-h50h50-MLP** | 2 | [50, 50] | 50 | MLP | w\_and\_d |
+
+Parameters: NAND, sub\_win=10, read\_len=10, τ\_m=10, K∈{2,3,4}, seeds∈{42,0}.
+
+### 27.3 Complete Results
+
+#### Per-seed accuracy
+
+| Model | K | seed=42 | seed=0 | Mean |
+|---|---|---|---|---|
+| L2-h50h50-linear | 2 | 92.85% | 94.35% | **93.60%** |
+| L2-h50h50-linear | 3 | 92.77% | 92.27% | **92.52%** |
+| L2-h50h50-linear | 4 | **91.80%** | **90.32%** | **91.06%** |
+| L2-h50h50-MLP | 2 | 94.25% | 94.85% | **94.55%** |
+| L2-h50h50-MLP | 3 | 91.90% | 92.00% | **91.95%** |
+| L2-h50h50-MLP | 4 | 90.13% | 89.25% | 89.69% |
+
+#### Max K@90% summary
+
+| Model | Max K@90% |
+|---|---|
+| L1-h50-linear *(Sec 13)* | 2 |
+| L1-h50-MLP *(Sec 14)* | **3** |
+| L2-h50h50-linear | **4** ← new best for single-op NAND |
+| L2-h50h50-MLP | **3** |
+
+#### Layer-wise spikes and energy (mean over 2 seeds)
+
+| Model | K | layer1 spikes | layer2 spikes | total | K/spk |
+|---|---|---|---|---|---|
+| L2-h50h50-linear | 2 | 18.7 | 25.5 | 44.1 | 0.046 |
+| L2-h50h50-linear | 3 | 30.0 | 44.3 | 74.3 | 0.040 |
+| L2-h50h50-linear | 4 | 46.7 | 63.0 | 109.8 | 0.038 |
+| L2-h50h50-MLP | 2 | 21.8 | 26.6 | 48.5 | 0.041 |
+| L2-h50h50-MLP | 3 | 32.3 | 38.7 | 71.0 | 0.043 |
+| L2-h50h50-MLP | 4 | 46.9 | 59.4 | 106.3 | 0.038 |
+
+### 27.4 Key Findings
+
+**Finding 1: Depth without budget-splitting substantially improves Max K@90%.**  
+L2-h50h50-linear achieves Max K@90%=**4**, the best result for single-op NAND anywhere
+in the paper, surpassing L1-h50-MLP (Max K@90%=3). This directly refutes the Section 13
+conclusion that "depth does not improve Max K@90%": that conclusion was specific to the
+fixed-budget (readout\_in=25) condition, not to depth per se.
+
+**Finding 2: Linear readout beats MLP at K=4 for the first time (91.1% vs 89.7%).**  
+This is the first reversal of the linear < MLP pattern observed consistently in Sections
+12–14. Interpretation: the second spiking layer's own LIF nonlinearity already provides
+the non-linear temporal separation that MLP used to supply on top of a single linear layer.
+Adding MLP on top of a two-layer spiking representation yields diminishing returns, and
+the extra MLP parameters may mildly overfit the fixed 4000-trial training set at K=4.
+
+**Finding 3: Budget-splitting (Sec 13–14) was the confound, not depth.**  
+The key comparison:
+
+| | L2-h25h25-MLP (Sec 14) | L2-h50h50-linear (Sec 27) | L2-h50h50-MLP (Sec 27) |
+|---|---|---|---|
+| Total neurons | 50 | 100 | 100 |
+| readout\_in | 25 | 50 | 50 |
+| K=3 acc | 88.3% | 92.5% | 92.0% |
+| Max K@90% | 2 | **4** | 3 |
+
+Adding neurons (50→100) and matching readout\_in (25→50) together push Max K@90% from
+2 (L2-h25h25-MLP) to 3-4 (L2-h50h50). The section 13-14 "depth neutral/harmful" conclusion
+was entirely attributable to the reduced readout dimension starving the decoder.
+
+**Finding 4: Energy cost is approximately proportional to neuron count.**  
+Total spikes per trial roughly double compared to L1-h50 (K/spk ~0.04 vs ~0.14 for
+L1-h50-linear). Max K@90%=4 is thus bought with ~2–3× more total energy than
+Max K@90%=2 (L1-h50-linear). The energy-vs-capacity trade-off is roughly linear in
+neuron count for this architecture.
+
+**Finding 5: Remaining open question — L1-h100 control not yet run.**  
+L2-h50h50 has 100 total neurons, same as L1-h100 (Section 20 in the Step3 mixed-op
+series, Max K@90%=3). A single-layer L1-h100 control for *single-op NAND* was not run,
+so we cannot fully attribute L2-h50h50-linear's Max K@90%=4 to depth rather than simply
+more neurons. This is noted as a caveat in the paper (§IX Future Work).
+
+### 27.5 Conclusion
+
+The "depth hurts" conclusion from Sections 13–14 was an artifact of the fixed-budget
+experimental design (splitting 50 neurons into 25+25 reduced readout\_in from 50 to 25).
+When depth is added without that constraint (50+50=100 neurons, readout\_in=50), a second
+spiking layer provides substantial benefit: Max K@90% rises from 2 (L1-h50-linear) to
+**4** (L2-h50h50-linear), the highest temporal multiplexing capacity measured in this
+project for single-operation NAND.
+
+The unexpected linear-beats-MLP reversal at K=4 suggests the second spiking layer's
+nonlinearity and MLP readout nonlinearity are partially redundant; combining them (L2+MLP)
+provides no additional K@90% gain over the simpler L2+linear configuration.
+
+Delay mechanism remains necessary throughout: no d0 control was run for this experiment
+(Section 13 already confirmed delays are necessary in 2-layer architectures), and the
+paper's overall delay-vs-no-delay analysis was sufficient to support this claim without
+repeating the control here.

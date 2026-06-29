@@ -449,6 +449,30 @@ Full discussion and citations: `docs/EXPERIMENT_LOG.md` Section 18.
 5. **3-layer model not pursued**: per the approved plan, a 3-layer refactor (model.py currently hardcodes `num_hidden_layers in (1,2)`) was only worth pursuing if 2-layer showed a clear *positive* depth trend. The result here is negative, so 3-layer is not attempted.
 6. **Practical conclusion**: for this task, single-layer + larger width (Section 20, Max K@90%=3) beats equal-split depth (this section, Max K@90%=2) at the same total neuron budget. Future capacity improvements should follow the width + data-volume path (Directions A+C), not depth.
 
+### Follow-up: does a linear readout rescue Direction D? (No.)
+
+A single-op depth ablation (NAND, `docs/EXPERIMENT_LOG.md` Section 27) later found that
+switching `L2-h50h50` from MLP to **linear** readout *improves* Max K@90% from 3 to 4 — the
+project's first linear-beats-MLP reversal. The natural question: does the same swap rescue
+Direction D's mixed-op regression? Re-run: `configs/step3_planD_4ops_16k_h100_L2_linear.yaml`,
+`runs/4op_mixed_16k_2layer_linear_(step3)/`, **Log**: Section 28.
+
+**Result: no.** `wad_linear` ties `wad_mlp` within noise (K=2: 91.68% vs 92.08%; K=3: 87.90%
+vs 88.72%; K=4: 86.37% vs 86.15%) — Max K@90% stays at **2**, not recovered to 3. Linear
+readout *does* use 11–27% fewer spikes per computation (K/spk) at every K, a free efficiency
+win, but it does not break the capacity ceiling.
+
+**Why the single-op reversal doesn't transfer**: in single-op NAND the only computation is
+temporal disambiguation, and the 2nd spiking layer's own LIF nonlinearity already suffices —
+so the readout (linear vs MLP) was the bottleneck, and simplifying it helped. In the mixed-op
+task the network must *also* compute a different Boolean function per query (conditioned on
+one-hot op identity), which requires forming an op×input interaction **inside** the hidden
+representation, before any readout sees it. The inter-layer spike-discretization bottleneck
+(Finding 2 above) degrades that interaction upstream of the readout, so no readout choice can
+recover it. Depth helps when the only added computation is temporal routing (single-op);
+depth hurts when it must also carry a second, op-conditioned computation jointly with routing
+(mixed-op) — readout type is irrelevant to that distinction.
+
 ---
 
 ## Spiking Output Layer Results (NAND K=1)

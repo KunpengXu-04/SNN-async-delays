@@ -1,7 +1,7 @@
 # SNN Temporal Multiplexing — Experiment Log
 
 > 记录所有实验设置、结果、代码修改、机制分析和失败原因。  
-> 最后更新：2026-06-28（Section 27 — Unconstrained Depth Ablation: L2-h50h50, single-op NAND）
+> 最后更新：2026-06-29（Section 28 — Direction D Linear-Readout Follow-up: reversal does NOT transfer to mixed ops）
 
 ---
 
@@ -2210,3 +2210,117 @@ Delay mechanism remains necessary throughout: no d0 control was run for this exp
 (Section 13 already confirmed delays are necessary in 2-layer architectures), and the
 paper's overall delay-vs-no-delay analysis was sufficient to support this claim without
 repeating the control here.
+
+---
+
+## Section 28 — Step 3 Direction D Follow-up: Linear Readout Does NOT Recover the Single-Op Reversal for Mixed Ops
+
+**Date:** 2026-06-29  
+**Experiment dir:** `runs/4op_mixed_16k_2layer_linear_(step3)/`  
+**Config:** `configs/step3_planD_4ops_16k_h100_L2_linear.yaml`  
+**Script:** `scripts/run_step3_planD.py` (unchanged)  
+**Total runs:** 6 (`wad_linear` × K∈{2,3,4} × 2 seeds), 200 epochs each, 4-op mixed
+(AND/OR/NAND/NOR), `n_train=16000`, GPU (user's RTX 4070).
+
+### 28.1 Motivation
+
+Section 27 found that for **single-op NAND**, switching `L2-h50h50` from MLP to linear
+readout *improved* Max K@90% from 3 to **4** — the first reversal of the project's
+consistent "MLP ≥ linear" pattern, attributed to the second spiking layer's own LIF
+nonlinearity already supplying the temporal separation that MLP used to add on top of a
+single layer.
+
+Step 3 Direction D (Section 21) tested only the MLP readout for the analogous **mixed-op**
+configuration (`L2-h50h50`, 4 ops, h=100 total) and found Max K@90% *regressed* from 3
+(Direction C, `L1-h100+MLP`) to 2. The natural follow-up question, raised after reviewing
+Section 27: **does the single-op linear-readout reversal also rescue Direction D's
+regression for mixed ops?** If the mechanism is the same (2nd spiking layer's nonlinearity
+substitutes for the MLP), `L2-h50h50-linear` should match or beat Direction C's Max K@90%=3
+on the mixed-op task, the same way it beat `L1-h50-MLP` for single-op NAND.
+
+### 28.2 Results
+
+**Accuracy (mean ± range over 2 seeds), `wad_linear`:**
+
+| K | seed=42 | seed=0 | Mean | Range |
+|---|---|---|---|---|
+| 2 | 91.95% | 91.40% | **91.68%** | 0.55pp |
+| 3 | 87.73% | 88.07% | **87.90%** | 0.34pp |
+| 4 | 86.25% | 86.48% | **86.37%** | 0.23pp |
+
+**Max K@95%: 0. Max K@90%: 2** (same as `wad_mlp`, Section 21 — **not** improved).
+
+**Direct comparison, `wad_linear` vs `wad_mlp` (Section 21), same architecture (`L2-h50h50`, h=100 total, mixed ops):**
+
+| K | wad_linear | wad_mlp (Sec 21) | Δ (linear − MLP) |
+|---|---|---|---|
+| 2 | 91.68% | 92.08% | −0.41pp |
+| 3 | 87.90% | 88.72% | −0.82pp |
+| 4 | 86.37% | 86.15% | +0.22pp |
+
+**Energy (K/spk, mean over 2 seeds) — linear is consistently more efficient:**
+
+| K | wad_linear K/spk | wad_mlp K/spk (Sec 21) | Linear advantage |
+|---|---|---|---|
+| 2 | 0.0169 | 0.0133 | +27% |
+| 3 | 0.0171 | 0.0151 | +14% |
+| 4 | 0.0176 | 0.0159 | +11% |
+
+### 28.3 Key Findings
+
+**Finding 1: The single-op reversal does NOT transfer to mixed ops — hypothesis refuted.**  
+`wad_linear` is statistically indistinguishable from `wad_mlp` at K=2,3 (−0.4 to −0.8pp,
+within/near seed noise) and ties at K=4 (+0.2pp). Max K@90% stays at **2** for both readout
+types. Unlike single-op NAND, where `L2-h50h50-linear` clearly beat `L2-h50h50-MLP` by
+1.4pp at K=4 and unlocked an extra unit of Max K@90% (3→4), neither readout type recovers
+Direction C's mixed-op ceiling (Max K@90%=3, `L1-h100+MLP`, single layer).
+
+**Finding 2: Why the mechanism doesn't transfer — the bottleneck has moved upstream of the readout.**  
+Section 21 (Finding 1) already identified the likely cause of Direction D's regression:
+splitting one 100-neuron budget into two sequential spiking layers introduces an
+**inter-layer spike-discretization bottleneck** — hidden layer 1's continuous membrane
+information must be re-encoded as binary spikes before layer 2 can use it, and this
+lossy compression was estimated to cost ~50% of effective capacity. In single-op NAND
+(Section 27), the *only* computation the network needs is temporal disambiguation — "which
+sub-window did this spike come from?" — and the second LIF layer's own nonlinearity is a
+good fit for refining *that specific* signal, regardless of whether the final readout is
+linear or MLP. In the mixed-op task, the network needs two things simultaneously: temporal
+disambiguation **and** computing a different Boolean function of (A,B) per query,
+conditioned on a one-hot op-identity input — i.e. a multiplicative interaction between
+op-identity and (A,B) that must be formed *inside* the hidden representation before any
+readout sees it. The spike-discretization bottleneck between layers 1 and 2 degrades
+exactly this op-conditioned interaction, and because the loss happens **before** the
+readout, no choice of readout (linear or MLP) can recover it. This explains why swapping
+the readout helped in the single-op case (the bottleneck *was* at the readout, decoding an
+already-good temporal code) but does nothing here (the bottleneck is upstream, in the
+inter-layer compression itself).
+
+**Finding 3: Linear readout is a free, consistent efficiency win even where it doesn't change Max K@90%.**  
+Despite matching (not exceeding) MLP's accuracy, `wad_linear` uses 11–27% fewer spikes per
+unit of computation (K/spk) than `wad_mlp` at every K. This mirrors Section 27's pattern
+(linear is no worse and is the simpler, cheaper choice once the 2nd spiking layer already
+supplies the necessary nonlinearity) but here applies to efficiency rather than accuracy,
+since accuracy itself didn't improve.
+
+**Finding 4: This sharpens, rather than overturns, the Section 21 conclusion.**  
+Section 21 already concluded "depth (2-layer, fixed 100-neuron budget) hurts mixed-op
+routing." This experiment shows that conclusion is **robust to readout type** — it is not
+an artifact of using MLP specifically. The mixed-op depth regression and the single-op
+depth *improvement* (Section 27) are both real, and the explanation is architectural: depth
+helps when the only thing being computed is temporal routing (single-op), and hurts when
+depth's spike-discretization cost degrades a *second*, op-conditioned computation that must
+happen jointly with routing (mixed-op). Single-layer width (Direction C, `L1-h100`) remains
+the best mixed-op configuration found so far (Max K@90%=3).
+
+### 28.4 Conclusion
+
+The result is the opposite of what the Section 27 single-op finding predicted: linear
+readout does **not** rescue Direction D's mixed-op regression, landing within noise of the
+MLP variant (Max K@90%=2 either way, vs Direction C's 3). The reversal observed for
+single-op NAND was specific to a bottleneck that lived at the readout (decoding a
+delay-structured temporal code); the mixed-op bottleneck lives one layer earlier, in the
+lossy spike-discretization step between the two hidden layers, which both readout choices
+inherit equally. Practically: for this mixed-op task, single-layer width (Direction C) still
+dominates any 2-layer depth variant, and the only benefit of linear over MLP at depth is a
+~10-27% reduction in spikes per computation at matched accuracy — useful for energy
+efficiency, not for breaking the capacity ceiling.

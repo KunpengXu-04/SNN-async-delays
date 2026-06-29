@@ -1,0 +1,73 @@
+# ============================================================
+# Step 3 Direction D' — 2-layer depth (50+50) at the h=100 budget,
+# LINEAR readout variant (4-op mixed, n_train=16000)
+#
+# Motivation (follow-up to Section 21 / Section 27):
+#   Section 27 found that for SINGLE-OP NAND, L2-h50h50-linear (Max K@90%=4)
+#   beats L2-h50h50-MLP (Max K@90%=3) -- the first reversal of the
+#   linear<MLP pattern, attributed to the 2nd spiking layer's own LIF
+#   nonlinearity already providing the separation MLP used to supply.
+#
+#   Direction D (Section 21) tested only the MLP readout for the mixed-op
+#   task and found Max K@90% regressed from 3 (Direction C, L1-h100+MLP) to
+#   2 (L2-h50h50+MLP). This config re-runs Direction D with a LINEAR readout
+#   to test whether the single-op reversal transfers to mixed ops.
+#
+# Question: does L2-h50h50-linear recover Direction C's Max K@90%=3 (or
+# better) on the 4-op mixed task, the way it did for single-op NAND?
+# ============================================================
+
+# ----- Fixed timing (same as Step 2 Plan D baseline) -----
+dt: 1.0
+sub_win: 10
+read_len: 10
+
+# ----- Op config -----
+n_ops: 4
+ops_list: [AND, OR, NAND, NOR]
+same_op: false
+op_sampling: uniform
+
+# ----- Network defaults -----
+n_hidden: 50
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+delay_step: 1.0
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Rate coding -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Dataset -----
+n_train: 16000
+n_val: 1000
+n_test: 1000
+seed: 42
+
+# ----- Sweep -----
+sweep:
+  K_values: [2, 3, 4]
+  seeds: [42, 0]
+  accuracy_thresholds: [0.95, 0.90]
+
+  models:
+    - name: wad_linear
+      train_mode: weights_and_delays
+      fixed_delay_value: null
+      readout_type: linear
+      num_hidden_layers: 2
+      hidden_sizes: [50, 50]

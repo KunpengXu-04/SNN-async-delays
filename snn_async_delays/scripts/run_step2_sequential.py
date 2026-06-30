@@ -23,6 +23,7 @@ import copy
 import json
 import os
 import sys
+from functools import partial
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -39,7 +40,7 @@ from utils.seed import set_seed
 from utils.logger import setup_logger
 from utils.viz import (
     plot_training_curves, plot_delay_distribution, plot_delay_histogram,
-    plot_multilayer_raster, plot_layer_flow,
+    save_run_diagnostic_plots,
 )
 
 
@@ -77,10 +78,23 @@ def run_single(
     run_cfg = {**cfg, "win_len": win_len, "d_max": d_max}
 
     readout_type = cfg.get("readout_type", "linear")
-    rt_suffix = f"_rt{readout_type}" if readout_type != "linear" else ""
+    enc_mode = run_cfg.get("encoding_mode", "rate")
+    rt_suffix  = f"_rt{readout_type}" if readout_type != "linear" else ""
+    enc_suffix = f"_{enc_mode}" if enc_mode != "rate" else ""
     run_name = (run_name_override if run_name_override is not None
-                else f"step2_seq_{op}_{cname}_h{h}_K{K}_sw{sub_win}_seed{cfg['seed']}{rt_suffix}")
+                else f"step2_seq_{op}_{cname}_h{h}_K{K}_sw{sub_win}_seed{cfg['seed']}{rt_suffix}{enc_suffix}")
     run_dir  = os.path.join(base_runs_dir, run_name)
+
+    # Build encode_fn with burst params pre-bound (backward compat: enc_mode="rate" → identical behavior)
+    _encode_fn = partial(
+        encode_sequential_trial,
+        encoding_mode=enc_mode,
+        burst_n_spikes_on=run_cfg.get("burst_n_spikes_on",  2),
+        burst_n_spikes_off=run_cfg.get("burst_n_spikes_off", 1),
+        burst_phase_on=run_cfg.get("burst_phase_on",   0.2),
+        burst_phase_off=run_cfg.get("burst_phase_off",  0.8),
+        burst_jitter_ms=run_cfg.get("burst_jitter_ms",  0),
+    )
 
     eval_path = os.path.join(run_dir, "eval_results.json")
     if os.path.exists(eval_path):
@@ -131,7 +145,7 @@ def run_single(
 
     trainer = SimultaneousTrainer(
         model, run_cfg, run_dir, device,
-        encode_fn=encode_sequential_trial,   # <-- Plan D encoding
+        encode_fn=_encode_fn,   # <-- Plan D encoding (with burst params pre-bound)
     )
     trainer.save_config({
         **run_cfg, **condition,
@@ -147,7 +161,7 @@ def run_single(
     )
     results = evaluate_simultaneous(
         model, test_loader, run_cfg, device,
-        encode_fn=encode_sequential_trial,   # <-- Plan D encoding
+        encode_fn=_encode_fn,   # <-- Plan D encoding (with burst params pre-bound)
     )
     results.update({
         "op":          op,
@@ -172,69 +186,14 @@ def run_single(
         title=f"Delay Histogram ({run_name})",
     )
 
-    # ── Spike visualization for one example trial ──────────────────
-    _plot_spike_activity(
-        model=model, cfg=run_cfg, K=K, sub_win=sub_win,
-        op=op, device=device, plot_dir=plot_dir, run_name=run_name,
-    )
+    # ── Enhanced diagnostic plots (diagnostic_data.npz + enhanced_raster + enhanced_flow)
+    save_run_diagnostic_plots(model, run_cfg, log_rows, results, run_dir, K, op, device)
 
     logger.info(
         f"K={K} sub_win={sub_win}  acc={results['accuracy']:.4f}  "
         f"K/spk={results['throughput_K_per_spk']:.4f}"
     )
     return results
-
-
-@torch.no_grad()
-def _plot_spike_activity(model, cfg, K, sub_win, op, device, plot_dir, run_name):
-    """Record a single trial and produce raster + layer-flow plots."""
-    from data.boolean_dataset import MultiQueryDataset
-    from torch.utils.data import DataLoader
-
-    model.eval()
-    ds = MultiQueryDataset(K=K, n_samples=1, same_op=True, op_name=op,
-                           ops_list=cfg["ops_list"], seed=999)
-    A, B, op_ids, labels = ds[0]
-    A_b  = A.unsqueeze(0)
-    B_b  = B.unsqueeze(0)
-    op_b = op_ids.unsqueeze(0)
-
-    spike_input = encode_sequential_trial(
-        A_b, B_b,
-        win_len=cfg["win_len"], read_len=cfg["read_len"],
-        r_on=cfg["r_on"], r_off=cfg["r_off"],
-        dt=cfg["dt"], device=device,
-    )
-
-    logits, info = model(spike_input.to(device), record=True)
-
-    # Extract numpy arrays for a single sample
-    s_in  = spike_input[0].cpu().numpy()            # [T, 2]
-    s_hid = info["hidden_spike_train"][0].numpy()   # [T, n_hidden]
-    d_ih  = model.get_delays()["ih"].detach().cpu().numpy()   # [2, n_hidden]
-    w_ih  = model.syn_ih.weight.detach().cpu().numpy()         # [2, n_hidden]
-
-    label_str = "  ".join(
-        f"Q{k}={'NAND=1' if labels[k].item() > 0.5 else 'NAND=0'}"
-        for k in range(K)
-    )
-    title_raster = f"{run_name}\n{label_str}"
-    title_flow   = f"Layer flow — {run_name}\n{label_str}"
-
-    plot_multilayer_raster(
-        s_in, s_hid,
-        save_path=os.path.join(plot_dir, "spike_raster.png"),
-        win_len=cfg["win_len"], read_len=cfg["read_len"],
-        title=title_raster, K=K, sub_win=sub_win,
-    )
-    plot_layer_flow(
-        s_in, s_hid,
-        save_path=os.path.join(plot_dir, "layer_flow.png"),
-        win_len=cfg["win_len"], read_len=cfg["read_len"],
-        delays=d_ih, weights=w_ih,
-        title=title_flow, K=K, sub_win=sub_win,
-        n_arrows=min(12, 2 * model.n_hidden),
-    )
 
 
 def main():

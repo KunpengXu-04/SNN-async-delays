@@ -88,3 +88,16 @@ sweep:
     #   train_mode: weights_only
     #   delay_param_type: sigmoid
     #   fixed_delay_value: 0.0
+
+# ----- Encoding mode (burst params) -----
+# encoding_mode: "rate" (default) | "burst" | "burst_jitter"
+# "rate" reproduces original Poisson behavior (backward compatible).
+# "burst" places burst_n_spikes_on spikes near burst_phase_on*(sub_win-1) for value=1
+#         and burst_n_spikes_off spikes near burst_phase_off*(sub_win-1) for value=0.
+# "burst_jitter" adds per-sample uniform jitter ±burst_jitter_ms to each spike time.
+encoding_mode: "rate"
+burst_n_spikes_on:  2
+burst_n_spikes_off: 1
+burst_phase_on:  0.20
+burst_phase_off: 0.80
+burst_jitter_ms: 1

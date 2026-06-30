@@ -1102,6 +1102,15 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
 
     model.eval()
     n_ops = cfg.get("n_ops", 0)
+    # Burst encoding params — read from cfg so diagnostic plots match training encoding
+    _enc_kwargs = dict(
+        encoding_mode=cfg.get("encoding_mode", "rate"),
+        burst_n_spikes_on=cfg.get("burst_n_spikes_on", 2),
+        burst_n_spikes_off=cfg.get("burst_n_spikes_off", 1),
+        burst_phase_on=cfg.get("burst_phase_on", 0.2),
+        burst_phase_off=cfg.get("burst_phase_off", 0.8),
+        burst_jitter_ms=cfg.get("burst_jitter_ms", 0),
+    )
     if dataset_override is not None:
         A, B, op_ids, labels = dataset_override
         torch.manual_seed(seed)
@@ -1112,6 +1121,7 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
             dt=cfg["dt"], device=device,
             op_ids=op_ids.unsqueeze(0) if n_ops > 0 else None,
             n_ops=n_ops,
+            **_enc_kwargs,
         )
     else:
         # Retry with increasing seeds until we get non-zero input spikes.
@@ -1136,6 +1146,7 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
                 dt=cfg["dt"], device=device,
                 op_ids=op_ids.unsqueeze(0) if n_ops > 0 else None,
                 n_ops=n_ops,
+                **_enc_kwargs,
             )
             if spike_input.sum() > 0:
                 break
@@ -1898,7 +1909,7 @@ def _save_diagnostic_data(plot_dir: str, traces: dict, weights_dict: dict,
 
 def load_diagnostic_data(plot_dir: str) -> tuple:
     """Inverse of `_save_diagnostic_data`. Returns (traces, weights_dict, delays_dict)."""
-    npz = np.load(os.path.join(plot_dir, "diagnostic_data.npz"))
+    npz = np.load(os.path.join(plot_dir, "diagnostic_data.npz"), allow_pickle=True)
     traces, weights_dict, delays_dict = {}, {}, {}
     for key in npz.files:
         group, _, name = key.partition("__")

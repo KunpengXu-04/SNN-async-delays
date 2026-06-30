@@ -1,0 +1,101 @@
+# ============================================================
+# Burst vs Rate Encoding Comparison — Plan D Sequential
+#
+# Scientific question:
+#   Does replacing Poisson rate coding with sparse burst patterns
+#   change (a) the absolute accuracy, (b) the delay advantage
+#   (gap vs d0), or (c) the Max K@90% ceiling?
+#
+# Design:
+#   - Plan D: 2 shared channels, K sequential sub-windows
+#   - 5 conditions × K=[1,2,3,4] × 2 seeds = 40 runs
+#   - All runs: NAND, h=50, MLP readout, 200 epochs
+#
+# Runner: python -m scripts.run_burst_comparison \
+#             --config configs/burst_comparison_sequential.yaml
+# ============================================================
+
+# ----- Timing (same as step2_sequential.yaml) -----
+dt: 1.0
+sub_win: 10
+read_len: 10
+
+# ----- Network -----
+n_hidden: 50
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+readout_type: mlp
+readout_hidden_sizes: [50]
+
+# ----- Rate params (needed by trainer even in burst mode) -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Dataset -----
+ops_list: [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+op_name: NAND
+same_op: true
+n_train: 4000
+n_val: 1000
+n_test: 1000
+
+# ----- Sweep -----
+sweep:
+  K_values: [1, 2, 3, 4]
+  seeds: [42, 0]
+  accuracy_thresholds: [0.95, 0.90]
+
+  conditions:
+    # --- Rate coding baselines ---
+    - name: rate_wad
+      train_mode: weights_and_delays
+      encoding_mode: rate
+
+    - name: rate_d0
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      encoding_mode: rate
+
+    # --- Burst encoding (deterministic) ---
+    - name: burst_wad
+      train_mode: weights_and_delays
+      encoding_mode: burst
+      burst_n_spikes_on:  2
+      burst_n_spikes_off: 1
+      burst_phase_on:  0.20
+      burst_phase_off: 0.80
+      burst_jitter_ms: 0
+
+    - name: burst_d0
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      encoding_mode: burst
+      burst_n_spikes_on:  2
+      burst_n_spikes_off: 1
+      burst_phase_on:  0.20
+      burst_phase_off: 0.80
+      burst_jitter_ms: 0
+
+    # --- Burst encoding with jitter ---
+    - name: burst_jitter_wad
+      train_mode: weights_and_delays
+      encoding_mode: burst_jitter
+      burst_n_spikes_on:  2
+      burst_n_spikes_off: 1
+      burst_phase_on:  0.20
+      burst_phase_off: 0.80
+      burst_jitter_ms: 1

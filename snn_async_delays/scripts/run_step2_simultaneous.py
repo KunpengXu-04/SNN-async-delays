@@ -23,6 +23,7 @@ import copy
 import json
 import os
 import sys
+from functools import partial
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -31,6 +32,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from data.boolean_dataset import MultiQueryDataset
+from data.encoding import encode_simultaneous_trial
 from snn.model import SNNSimultaneousModel
 from train.trainer import SimultaneousTrainer
 from train.eval import evaluate_simultaneous, max_K_at_threshold, save_eval_results
@@ -69,9 +71,22 @@ def run_single(
     op    = cfg["op_name"]
     h     = cfg["n_hidden"]
     cname = condition["name"]
+    enc_mode = cfg.get("encoding_mode", "rate")
+    enc_suffix = f"_{enc_mode}" if enc_mode != "rate" else ""
     run_name = (run_name_override if run_name_override is not None
-                else f"step2_simul_{op}_{cname}_h{h}_K{K}_seed{cfg['seed']}")
+                else f"step2_simul_{op}_{cname}_h{h}_K{K}_seed{cfg['seed']}{enc_suffix}")
     run_dir = os.path.join(base_runs_dir, run_name)
+
+    # Build encode_fn with burst params pre-bound (enc_mode="rate" → identical to old behavior)
+    _encode_fn = partial(
+        encode_simultaneous_trial,
+        encoding_mode=enc_mode,
+        burst_n_spikes_on=cfg.get("burst_n_spikes_on",  2),
+        burst_n_spikes_off=cfg.get("burst_n_spikes_off", 1),
+        burst_phase_on=cfg.get("burst_phase_on",   0.2),
+        burst_phase_off=cfg.get("burst_phase_off",  0.8),
+        burst_jitter_ms=cfg.get("burst_jitter_ms",  0),
+    )
 
     # Skip if already completed
     eval_path = os.path.join(run_dir, "eval_results.json")
@@ -122,7 +137,7 @@ def run_single(
         surrogate_beta=cfg["surrogate_beta"],
     )
 
-    trainer = SimultaneousTrainer(model, cfg, run_dir, device)
+    trainer = SimultaneousTrainer(model, cfg, run_dir, device, encode_fn=_encode_fn)
     trainer.save_config({**cfg, **condition, "K": K,
                          "n_input": 2 * K, "experiment": "simultaneous"})
     log_rows = trainer.fit(train_loader, val_loader, cfg["epochs"])
@@ -130,7 +145,7 @@ def run_single(
     model.load_state_dict(
         torch.load(os.path.join(run_dir, "best_model.pt"), map_location=device)
     )
-    results = evaluate_simultaneous(model, test_loader, cfg, device)
+    results = evaluate_simultaneous(model, test_loader, cfg, device, encode_fn=_encode_fn)
     results.update({
         "op":               op,
         "condition":        cname,
@@ -162,15 +177,17 @@ def run_single(
 
     _plot_spike_activity_simul(
         model=model, cfg=cfg, K=K, op=op, device=device,
-        plot_dir=plot_dir, run_name=run_name,
+        plot_dir=plot_dir, run_name=run_name, encode_fn=_encode_fn,
     )
     return results
 
 
 @torch.no_grad()
-def _plot_spike_activity_simul(model, cfg, K, op, device, plot_dir, run_name):
+def _plot_spike_activity_simul(model, cfg, K, op, device, plot_dir, run_name,
+                                encode_fn=None):
     """Record one simultaneous trial (Plan C) and produce raster + layer-flow."""
-    from data.encoding import encode_simultaneous_trial
+    if encode_fn is None:
+        encode_fn = encode_simultaneous_trial
 
     model.eval()
     ds = MultiQueryDataset(K=K, n_samples=1, same_op=True, op_name=op,
@@ -178,7 +195,7 @@ def _plot_spike_activity_simul(model, cfg, K, op, device, plot_dir, run_name):
     A, B, op_ids, labels = ds[0]
     A_b, B_b = A.unsqueeze(0), B.unsqueeze(0)
 
-    spike_input = encode_simultaneous_trial(
+    spike_input = encode_fn(
         A_b, B_b, win_len=cfg["win_len"], read_len=cfg["read_len"],
         r_on=cfg["r_on"], r_off=cfg["r_off"], dt=cfg["dt"], device=device,
     )

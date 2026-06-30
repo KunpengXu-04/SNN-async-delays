@@ -1,0 +1,93 @@
+# ============================================================
+# Burst vs Rate Encoding Comparison — Plan C Simultaneous
+#
+# Scientific question:
+#   Does burst encoding change accuracy/capacity in Plan C
+#   (2K dedicated channels, all queries at same time)?
+#   Comparing Plan C vs Plan D burst results disambiguates:
+#     - "burst makes the task globally harder" (both plans degrade)
+#     - "burst affects shared-channel multiplexing specifically"
+#       (Plan D differs from Plan C)
+#
+# Design:
+#   - Plan C: 2K dedicated channels, fixed timing T=30
+#   - 4 conditions × K=[2,3,4] × 2 seeds = 24 runs
+#   - All runs: NAND, h=50, linear readout, 200 epochs
+#
+# Runner: python -m scripts.run_burst_comparison \
+#             --config configs/burst_comparison_simultaneous.yaml \
+#             --plan simultaneous
+# ============================================================
+
+# ----- Timing (same as step2_simultaneous.yaml) -----
+dt: 1.0
+win_len: 20
+read_len: 10
+
+# ----- Network -----
+n_hidden: 50
+d_max: 49
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 4.0
+delay_param_type: sigmoid
+readout_type: linear
+
+# ----- Rate params (needed by trainer even in burst mode) -----
+r_on: 400.0
+r_off: 10.0
+
+# ----- Training -----
+lr_w: 1.0e-3
+lr_d: 1.0e-3
+lr_readout: 1.0e-3
+batch_size: 128
+epochs: 200
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+# ----- Dataset -----
+ops_list: [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+op_name: NAND
+same_op: true
+n_train: 4000
+n_val: 1000
+n_test: 1000
+
+# ----- Sweep -----
+sweep:
+  K_values: [2, 3, 4]
+  seeds: [42, 0]
+  accuracy_thresholds: [0.95, 0.90]
+
+  conditions:
+    - name: rate_wad
+      train_mode: weights_and_delays
+      encoding_mode: rate
+
+    - name: rate_d0
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      encoding_mode: rate
+
+    - name: burst_wad
+      train_mode: weights_and_delays
+      encoding_mode: burst
+      burst_n_spikes_on:  2
+      burst_n_spikes_off: 1
+      burst_phase_on:  0.20
+      burst_phase_off: 0.80
+      burst_jitter_ms: 0
+
+    - name: burst_d0
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      encoding_mode: burst
+      burst_n_spikes_on:  2
+      burst_n_spikes_off: 1
+      burst_phase_on:  0.20
+      burst_phase_off: 0.80
+      burst_jitter_ms: 0

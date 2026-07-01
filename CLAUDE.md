@@ -523,3 +523,54 @@ Two new plots added to every run's `plots/` folder (generated from `diagnostic_d
 - **`enhanced_flow.png`**: fan lines + arrival→fire orange spans + vote lines (linear readout)
 
 Regenerate all: `python -m scripts.regen_enhanced_plots` (reads npz, no GPU needed).
+
+---
+
+## Visualization Branch: Burst Input + Spiking Output (Section 31)
+
+**Goal**: Produce clean input→hidden→output spike-flow figures. Not a benchmark.  
+**Configs**: `configs/vis_burst_spiking_K1.yaml`, `configs/vis_burst_spiking_K2.yaml`  
+**Runner**: `scripts/run_spiking_output.py`  
+**Results**: `runs/vis_burst_spkout/`
+
+```bash
+# K=1 visualization run (burst + spiking output)
+python -m scripts.run_spiking_output --config configs/vis_burst_spiking_K1.yaml \
+    --runs_dir runs/vis_burst_spkout --device cuda
+
+# K=2 visualization run
+python -m scripts.run_spiking_output --config configs/vis_burst_spiking_K2.yaml \
+    --runs_dir runs/vis_burst_spkout --device cuda
+```
+
+### Results (NAND, h=50, seed=42, 500 epochs)
+
+| K | Model | Test acc | mean_hidden_spikes |
+|---|-------|----------|--------------------|
+| 1 | `wad` | **100%** | 6.2 |
+| 1 | `d0`  | 26.4%    | 0.0 |
+| 2 | `wad` | **100%** | 31.1 |
+| 2 | `d0`  | 23.8%    | 0.0 |
+
+Delay advantage: +73–76pp at both K. d0 is **structurally incapable** of learning with
+burst+spiking output: fixed d=0 routes hidden spikes to before the readout window.
+
+### Key Implementation Notes
+
+**Critical parameter — `syn_ho_delay_init`**: Must set to `0.5` (or similar positive value).  
+Default `delay_raw=-2` gives `d≈2.3ms`; burst fires at t≈2ms; signal arrives at t≈4ms
+which is before readout window `[win_len, T)`. This creates **zero gradient** for `syn_ho`
+— model cannot learn at all. Init `delay_raw=0.5` → `d≈0.62×d_max`, routing early-window
+hidden spikes into the readout window and restoring the gradient path.
+
+**Other tuning params** (vs standard spiking output runs from Section 22):
+- `lif_output_threshold: 0.3` — separate lower threshold for output LIF (hidden stays 1.0)
+- `syn_ho_init_scale: 4.0` — burst hidden spikes ~3/trial vs ~28 for rate; kaiming too small
+
+**Backward compatibility**: All new params default to original behavior (`lif_output_threshold=None`,
+`syn_ho_init_scale=1.0`, `syn_ho_delay_init=None`). No existing experiments affected.
+
+### Spike flow figure to use
+
+For presentations: `plots/layer_to_layer_spike_flow_sample0.png` (shows input→hidden→output
+with fan edges and delay arcs). NOT `enhanced_flow.png` (only shows input→hidden by design).

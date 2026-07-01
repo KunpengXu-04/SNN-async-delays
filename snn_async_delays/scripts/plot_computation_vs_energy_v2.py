@@ -31,7 +31,7 @@ def load_runs(pattern):
             out.append(json.load(f))
     return out
 
-sweep = load_runs("planD_h_sweep/*")
+sweep = load_runs("NAND_neuron_sweep_(planD)/*")
 
 def group_mean(records, key_fields, val_fields):
     buckets = defaultdict(list)

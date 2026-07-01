@@ -1,7 +1,7 @@
 # SNN Temporal Multiplexing — Experiment Log
 
 > 记录所有实验设置、结果、代码修改、机制分析和失败原因。  
-> 最后更新：2026-06-30（Section 29 — Burst vs Rate Encoding Comparison: burst amplifies delay advantage, same Max K@90% ceiling）
+> 最后更新：2026-07-01（Section 30 — Post-Section-29 Decision: prioritise Plan C/Plan D comparison, not output-encoding changes）
 
 ---
 
@@ -2446,3 +2446,266 @@ h=50 + MLP is robust across encoding formats (rate, burst) — only architecture
 (wider hidden layer, more training data) have previously moved it. Burst encoding would
 be the preferred format for any future experiments that prioritise per-K accuracy over
 architectural ablation purity.
+
+---
+
+## Section 30 — Post-Section-29 Decision: what to do next after burst input encoding
+
+**Date**: 2026-07-01  
+**Status**: planning / interpretation section (no new runs yet)  
+**Purpose**: convert the Section 29 burst-input results into a concrete experimental decision.
+
+### 30.1 Question
+
+After Section 29, should the next step be:
+
+1. changing the **output encoding / output target** to be more Habashy-like (e.g. spike-train
+   target or explicit output burst), or
+2. keeping the current output/readout definition and instead using burst input to run the next
+   capacity-comparison experiments?
+
+### 30.2 What Section 29 actually established
+
+Section 29 gives three strong conclusions:
+
+1. **Burst input is mechanistically meaningful.**  
+   `burst_wad` clearly outperforms `rate_wad` at K=1–3, and `burst_jitter_wad` loses this
+   advantage once ±1 ms timing noise is introduced. The network is therefore exploiting
+   precise spike timing, not merely benefiting from a different signal-to-noise ratio.
+
+2. **Burst input amplifies the delay mechanism but does not move the ceiling.**  
+   The delay gap widens substantially under burst input, but Max K@90% stays at 3 for
+   h=50 + MLP. Therefore, richer input timing helps the network use delays better, but does
+   not by itself change the representational-capacity limit.
+
+3. **The main bottleneck after Section 29 is no longer the input format.**  
+   Since rate and burst both hit the same K ceiling, the next bottleneck is more likely to live
+   in architecture / resource allocation / readout structure than in the input code itself.
+
+### 30.3 Decision: do **not** prioritise output-encoding changes yet
+
+**Decision**: the next experiment should **not** be "change the output encoding" as the main
+scientific direction.
+
+Reason:
+
+- Changing output encoding now would simultaneously alter:
+  - the task definition,
+  - the optimisation problem,
+  - the location of the bottleneck,
+  - and the interpretation of the previous Plan D results.
+- Section 29 already showed that input timing precision matters. The remaining open question is
+  not "does more temporal structure help at all?", but rather:
+  **under fixed resources, where does the remaining capacity limit come from, and how should
+  Plan C and Plan D be compared once burst input is available?**
+
+Therefore, output-encoding changes are currently treated as a **later extension for visualisation
+or Habashy-style task generalisation**, not as the immediate next step.
+
+### 30.4 Scientific roles of Plan D and Plan C after Section 29
+
+The project now has a cleaner division of labour:
+
+- **Plan D (shared channels, sequential sub-windows)**  
+  establishes the existence of **temporal routing / temporal multiplexing** under conditions
+  where weights alone cannot separate queries by channel identity.
+
+- **Plan C (2K dedicated channels, simultaneous input)**  
+  serves as the **finite-resource comparison baseline**, asking how much capacity is obtained
+  when queries are spatially separated instead of temporally multiplexed.
+
+This means:
+
+1. Plan D remains the correct place to prove the mechanism exists.
+2. Plan C is the natural next place to ask whether that mechanism is competitive under a fixed
+   resource budget once the input format is upgraded from rate to burst.
+
+### 30.5 Immediate next experiment
+
+**Next priority experiment**: compare **Plan C vs Plan D under burst input**, rather than
+changing the output encoding.
+
+Core question:
+
+> If burst input makes the delay mechanism more visible, does it also change the balance
+> between spatial separation (Plan C) and temporal multiplexing (Plan D) under fixed hidden
+> resources?
+
+Minimal comparison matrix:
+
+| Plan | Encoding | Delay regime | K | Hidden | Purpose |
+|---|---|---|---|---|---|
+| Plan D sequential | burst | `weights_and_delays` | 1,2,3,4 | 50 | reuse Section 29 as temporal-multiplexing reference |
+| Plan D sequential | burst | `weights_only d0` | 1,2,3,4 | 50 | preserve causal delay control |
+| Plan C simultaneous | burst | `weights_and_delays` | 2,3,4 | 50 | spatial-separation comparison |
+| Plan C simultaneous | burst | `weights_only d0` | 2,3,4 | 50 | determine whether burst helps both plans equally |
+
+Primary readouts:
+
+- accuracy vs K
+- Max K@90%
+- delay gap (`wad - d0`)
+- energy / K-per-spike
+
+Interpretation logic:
+
+- If Plan C and Plan D both improve similarly under burst, burst mainly changes the **global
+  input difficulty**.
+- If Plan D benefits more strongly, burst is specifically strengthening **shared-channel temporal
+  routing**.
+- If neither plan exceeds the previous ceiling, the next bottleneck is architectural rather than
+  encoding-based.
+
+### 30.6 What burst input is now good for
+
+Section 29 changes the status of burst input from a speculative idea to a recommended tool:
+
+- For **mechanism visualisation**, burst is now preferred over rate because it yields a cleaner,
+  more delay-dependent temporal signal.
+- For **accuracy-sensitive comparisons** at fixed K, burst is the preferred input format.
+- For **architectural ablations**, rate remains a valid "minimal-assumption" baseline, but burst
+  should be run in parallel whenever the goal is to expose timing-sensitive structure.
+
+### 30.7 When output-encoding changes *would* become useful
+
+Output-encoding changes are still scientifically useful, but only after the Plan C vs Plan D
+comparison above.
+
+They would be justified for two narrower goals:
+
+1. **Visualisation goal**: produce cleaner input→hidden→output spike-flow figures with an
+   explicit spiking output layer, closer to the supervisor's schematic examples.
+2. **Task-generalisation goal**: move toward Habashy-style spike-train→spike-train or
+   burst-target tasks once the current capacity story is already established.
+
+Important distinction:
+
+- **Changing output architecture** (e.g. adding explicit spiking output neurons) may be useful
+  for figures and mechanistic visualisation.
+- **Changing output target/encoding** (e.g. replacing current readout-window logits with burst
+  targets) changes the task itself and should be treated as a later extension.
+
+### 30.8 Practical plan
+
+Recommended order of work:
+
+1. Keep the current output/readout definition unchanged.
+2. Run or summarise the **Plan C burst comparison** using the existing
+   `configs/burst_comparison_simultaneous.yaml` setup.
+3. Compare Plan C vs Plan D under the same burst settings and fixed hidden budget.
+4. Use burst-input representative runs to regenerate or extend spike-flow figures.
+5. Only after the capacity comparison is understood, consider an explicit spiking-output variant
+   for figure quality or a Habashy-style output-target extension.
+
+### 30.9 Working conclusion
+
+Section 29 implies that **input timing precision is already sufficient to expose the delay
+mechanism**. Since the K ceiling does not move, the immediate next step is **not** to alter
+the output encoding, but to ask whether burst input changes the comparative story between
+Plan C and Plan D under finite resources. Output-encoding changes should be deferred until
+after that comparison, and then framed as either a visualisation enhancement or a new task
+family rather than a direct continuation of Section 29.
+
+---
+
+## Section 31 — Visualization Branch: Burst Input + Spiking Output Layer (K=1, K=2)
+
+**Goal**: Produce a clean input→hidden→output spike-flow figure for presentations. Not a
+benchmark — diagnostic/visualization run only. Architecture: `input(2) → DelayedSyn →
+LIF_h(50) → DelayedSyn → LIF_o(K)`, with `BCEWithLogitsLoss(output_spike_count, label)`.
+Configs: `configs/vis_burst_spiking_K1.yaml`, `configs/vis_burst_spiking_K2.yaml`.
+Results: `runs/vis_burst_spkout/`.
+
+### 31.1 Root-cause analysis: dead output neuron
+
+Two initial runs (both K=1, 500 epochs) achieved only 26.4% accuracy — equivalent to
+always predicting 0 for NAND. The failure was traced to a **complete gradient disconnect**
+in `syn_ho`, not a threshold or weight-scale problem:
+
+**Timing mismatch chain:**
+
+1. Burst encoding fires value=1 as spikes at t=1, 2ms within each sub-window
+2. `syn_ho.delay_raw` initialised to `-2.0` → `d = d_max × sigmoid(−2) ≈ 0.12 × 19 ≈ 2.3ms`
+3. Hidden spike at t=2ms + delay 2.3ms → output receives signal at t≈4ms
+4. `output_acc` only accumulates for `t ≥ win_len = 10ms` (readout window)
+5. Therefore `I_o = 0` throughout the readout window → `output_acc = 0` → `logits = 0`
+6. `d(I_o)/d(W_ho) = s_del = 0` and `d(I_o)/d(delay_raw) = s_c − s_f = 0`
+   → **both weight and delay gradients for syn_ho are identically zero**
+
+The surrogate gradient from LIF output does produce non-zero `d(spike_o)/d(v_o)` at
+`v_o = 0`, but this gradient cannot reach `syn_ho` because `I_o = 0` in the readout
+window. The model is completely frozen: 500 epochs, acc=25.7% constant.
+
+For `d0` (fixed delay=0): fundamentally identical failure — hidden spikes at t≈2ms arrive
+at output at t≈3ms (1-step buffer delay), always before the readout window. **Fixed d=0 is
+incompatible with burst encoding + spiking output in Plan D by design**, not by chance.
+
+### 31.2 Fix: `syn_ho_delay_init`
+
+Setting `delay_raw = 0.5` at initialisation gives `d = d_max × sigmoid(0.5) ≈ 0.622 × d_max`:
+
+- **K=1**: `d_max = 19ms`, `d_init ≈ 12ms`. Hidden burst at t=2ms arrives at output at
+  t≈14ms — inside readout window [10, 20ms). ✓
+- **K=2**: `d_max = 29ms`, `d_init ≈ 18ms`. Q0 burst (t≈2ms) needs d∈[18,28); Q1 burst
+  (t≈12ms) needs d∈[8,18). Init at 18ms is right at the boundary — training adjusts
+  output[0] delays upward and output[1] delays downward to separate the two queries.
+
+Additional tuning: `syn_ho_init_scale: 4.0` (burst hidden spikes ~3/trial vs ~28 for rate,
+so kaiming default std≈0.2 is too small) and `lif_output_threshold: 0.3` (separate lower
+threshold for output neurons, hidden stays at 1.0). Applied post-init in
+`scripts/run_spiking_output.py` without modifying any prior experiment code path.
+
+### 31.3 Results
+
+**K=1** (NAND, h=50, seed=42, 500 epochs):
+
+| Model | Test acc | mean_hidden_spikes | Notes |
+|-------|----------|--------------------|-------|
+| `wad` (trainable delay) | **100%** | 6.2 | epoch 1–50: warmup (spk=0); epoch 60: jump to 73.6%; epoch 200: 100% |
+| `d0` (fixed d=0) | 26.4% | 0.0 | no learning — zero gradient path as above |
+
+**K=2** (NAND, h=50, seed=42, 500 epochs, n_output=2):
+
+| Model | Test acc | mean_hidden_spikes | Notes |
+|-------|----------|--------------------|-------|
+| `wad` (trainable delay) | **100%** | 31.1 | convergence by epoch ~480 |
+| `d0` (fixed d=0) | 23.8% | 0.0 | same structural failure |
+
+**Delay gap**: wad=100% vs d0≈25% at both K=1 and K=2. This is the strongest delay
+advantage in the entire project (larger than rate-coded spiking output's 71.8% after
+1000 epochs, Sections 22). Burst encoding makes the delay mechanism both faster and more
+decisive.
+
+### 31.4 Training dynamics: burst "phase transition" warmup
+
+All burst+spiking-output runs share a characteristic three-phase pattern:
+
+- **Phase 1 (epochs 1–~50)**: `mean_hidden_spikes ≈ 0`. Burst gives only 2 input spikes
+  per channel per sub-window; kaiming weights too small to drive hidden past threshold.
+  Surrogate gradient flows but produces only micro-updates to weights.
+- **Phase 2 (~epoch 50–200)**: Hidden neurons begin crossing threshold one by one. Each
+  new firing neuron causes a discrete jump in the loss surface — manifests as sawtooth
+  accuracy curves. K=2 shows this more prominently than K=1 due to the shared-channel
+  routing constraint.
+- **Phase 3 (epoch 200+)**: Network reaches a stable firing regime and converges smoothly.
+
+K=2 takes ~5s/epoch vs K=1's ~2s/epoch: K=2 has T=30ms (vs 20ms), a 50→2 output layer
+(vs 50→1), and surrogate backprop through 30 timesteps for both hidden and output layers.
+
+### 31.5 Backward compatibility
+
+All changes are isolated to the visualization branch:
+- `snn/model.py`: new `lif_output_threshold` param (default `None` → no change to hidden-
+  only models); `use_output_spikes=False` default unchanged.
+- `scripts/run_spiking_output.py`: burst kwargs bound via `functools.partial`; post-init
+  weight/delay scaling gated on `use_output_spikes=True`; no effect on other runners.
+- `utils/viz.py`: `plot_spike_raster_layers` and `plot_layer_to_layer_spike_flow` updated
+  to show output layer when `traces["output_spikes"]` present; absent → identical output.
+- New configs only (no existing configs modified).
+
+### 31.6 Infrastructure fix: `plot_computation_vs_energy_v2.py`
+
+`scripts/plot_computation_vs_energy_v2.py` used hardcoded path `runs/planD_h_sweep/*` which
+was renamed to `runs/NAND_neuron_sweep_(planD)/` per the 2026-06 convention. The async
+series (blue line) had silently disappeared from `docs/computation_vs_energy_v2.png`.
+Fixed line 34 to use the new path; figure regenerated and restored.

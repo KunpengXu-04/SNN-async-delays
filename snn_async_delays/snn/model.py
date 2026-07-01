@@ -333,6 +333,7 @@ class SNNSimultaneousModel(nn.Module):
         hidden_sizes: List[int] | None = None,
         use_output_spikes: bool = False,
         n_output_neurons: int | None = None,
+        lif_output_threshold: float | None = None,
     ):
         super().__init__()
 
@@ -404,7 +405,12 @@ class SNNSimultaneousModel(nn.Module):
             n_out = n_output_neurons if n_output_neurons is not None else n_queries
             self.n_output_neurons = n_out
             self.syn_ho = DelayedSynapticLayer(readout_in, n_out, **syn_kw)
-            self.lif_o  = LIFNeurons(n_out, **lif_kw)
+            # Output neurons can use a separate (usually lower) threshold so that
+            # sparse hidden activity (e.g. from burst encoding) can drive them.
+            lif_o_kw = dict(lif_kw)
+            if lif_output_threshold is not None:
+                lif_o_kw["v_threshold"] = lif_output_threshold
+            self.lif_o  = LIFNeurons(n_out, **lif_o_kw)
             self.readout = None   # not used; set to None to avoid confusion
         else:
             self.n_output_neurons = 0

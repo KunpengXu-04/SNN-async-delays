@@ -1316,6 +1316,7 @@ def plot_spike_raster_layers(
     s_in  = traces["input_spikes"]   # [T, n_in]
     s_h1  = traces["hidden1_spikes"] # [T, h1]
     s_h2  = traces.get("hidden2_spikes")  # [T, h2] or None
+    s_out = traces.get("output_spikes")   # [T, n_out] or None
 
     T, n_input  = s_in.shape
     _, h1        = s_h1.shape
@@ -1330,6 +1331,8 @@ def plot_spike_raster_layers(
               ("Hidden1", s_h1,  "steelblue")]
     if s_h2 is not None:
         layers.append(("Hidden2", s_h2, "darkorange"))
+    if s_out is not None:
+        layers.append(("Output", s_out, "#2ca02c"))
 
     heights = [max(ldata.shape[1], 2) for _, ldata, _ in layers]
     fig, axes = plt.subplots(
@@ -1395,9 +1398,10 @@ def plot_layer_to_layer_spike_flow(
     """
     from matplotlib.collections import LineCollection
 
-    s_in = traces["input_spikes"]   # [T, n_in]
-    s_h1 = traces["hidden1_spikes"] # [T, h1]
-    s_h2 = traces.get("hidden2_spikes")  # [T, h2] or None
+    s_in  = traces["input_spikes"]   # [T, n_in]
+    s_h1  = traces["hidden1_spikes"] # [T, h1]
+    s_h2  = traces.get("hidden2_spikes")  # [T, h2] or None
+    s_out = traces.get("output_spikes")   # [T, n_out] or None
 
     T, n_input = s_in.shape
     _, h1 = s_h1.shape
@@ -1409,10 +1413,12 @@ def plot_layer_to_layer_spike_flow(
     y0_h2   = (y0_h1 + h1 + GAP) if s_h2 is not None else None
     y_read  = (y0_h2 + s_h2.shape[1] + GAP if s_h2 is not None
                else y0_h1 + h1 + GAP)
+    y0_out  = y_read + GAP if s_out is not None else None
 
     def y_in(n):  return float(y0_in + n)
     def y_h1(n):  return float(y0_h1 + n)
     def y_h2(n):  return float(y0_h2 + n) if y0_h2 is not None else 0.0
+    def y_out(n): return float(y0_out + n) if y0_out is not None else 0.0
 
     win_len  = traces.get("win_len",  T)
     read_len = traces.get("read_len", 0)
@@ -1443,6 +1449,13 @@ def plot_layer_to_layer_spike_flow(
                 ax.scatter(ts, np.full(len(ts), y_h2(n)),
                            s=6, color="darkorange", marker="|", linewidths=1.0, zorder=3)
 
+    if s_out is not None:
+        for n in range(s_out.shape[1]):
+            ts = np.where(s_out[:, n] > 0)[0]
+            if len(ts):
+                ax.scatter(ts, np.full(len(ts), y_out(n)),
+                           s=8, color="#2ca02c", marker="|", linewidths=1.2, zorder=3)
+
     # ── Collect directed connections ──
     def _collect_edges(spike_train, pre_y_fn, post_y_fn, W, D):
         """Yield (t_pre, y_pre, t_post, y_post, w) for all fired pre-neurons."""
@@ -1472,6 +1485,11 @@ def plot_layer_to_layer_spike_flow(
     if "h1h2" in weights_dict and "h1h2" in delays_dict and s_h2 is not None:
         all_edges += _collect_edges(s_h1, y_h1, y_h2,
                                     weights_dict["h1h2"], delays_dict["h1h2"])
+    if s_out is not None and "ho" in weights_dict and "ho" in delays_dict:
+        s_h_last = s_h2 if s_h2 is not None else s_h1
+        y_h_last = y_h2 if s_h2 is not None else y_h1
+        all_edges += _collect_edges(s_h_last, y_h_last, y_out,
+                                    weights_dict["ho"], delays_dict["ho"])
 
     # Sort by |w| descending; keep top max_edges
     all_edges.sort(key=lambda e: -abs(e[4]))
@@ -1492,16 +1510,22 @@ def plot_layer_to_layer_spike_flow(
     if s_h2 is not None and y0_h2 is not None:
         band_defs.append((y0_h2 - 0.6, y0_h2 + s_h2.shape[1] - 0.4,
                           "sandybrown", "Hidden2"))
+    if s_out is not None and y0_out is not None:
+        band_defs.append((y0_out - 0.6, y0_out + s_out.shape[1] - 0.4,
+                          "#2ca02c", "Output"))
 
     for yb, yt, col, lbl in band_defs:
         ax.axhspan(yb, yt, alpha=0.07, color=col, zorder=0)
         ax.text(-1.2, (yb + yt) / 2, lbl, ha="right", va="center",
                 fontsize=9, fontweight="bold", color=col)
 
-    ax.axhline(y_read, xmin=win_len / T, xmax=1.0,
-               color="tomato", linewidth=2.0, alpha=0.6, zorder=2)
-    ax.text(win_len + (T - win_len) / 2, y_read + 0.3, "Readout",
-            ha="center", va="bottom", fontsize=8, color="tomato")
+    # Readout line shown only when no spiking output layer (spiking output
+    # replaces the readout conceptually — showing both is confusing).
+    if s_out is None:
+        ax.axhline(y_read, xmin=win_len / T, xmax=1.0,
+                   color="tomato", linewidth=2.0, alpha=0.6, zorder=2)
+        ax.text(win_len + (T - win_len) / 2, y_read + 0.3, "Readout",
+                ha="center", va="bottom", fontsize=8, color="tomato")
 
     # ── Window shading ──
     ax.axvspan(0, win_len, alpha=0.05, color="royalblue", zorder=0)
@@ -1515,7 +1539,10 @@ def plot_layer_to_layer_spike_flow(
                     va="top", fontweight="bold")
 
     ax.set_xlim(-1.5, T)
-    ax.set_ylim(y0_in - 1.0, y_read + 1.2)
+    y_top = (y0_out + s_out.shape[1] + 1.2
+             if (s_out is not None and y0_out is not None)
+             else y_read + 1.2)
+    ax.set_ylim(y0_in - 1.0, y_top)
     ax.set_yticks([])
     ax.set_xlabel("Timestep (ms)", fontsize=10)
     if title:

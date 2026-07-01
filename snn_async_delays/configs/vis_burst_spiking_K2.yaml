@@ -1,0 +1,77 @@
+# Visualization branch: Plan D, K=2, burst encoding, spiking output layer
+# Goal: temporal routing visualization — each output neuron decodes one query.
+# n_output_neurons=2: output[0] = Q0 logit, output[1] = Q1 logit.
+#
+# Architecture: input(2) -> DelayedSyn -> LIF_h(50) -> DelayedSyn -> LIF_o(2) -> spike counts
+# Delays route Q0 signal → output[0], Q1 signal → output[1].
+# This makes temporal multiplexing spatially explicit in the output raster.
+
+dt: 1.0
+sub_win: 10
+read_len: 10
+
+n_ops: 0
+ops_list: [NAND]
+same_op: true
+
+n_hidden: 50
+lif_tau_m: 10.0
+lif_threshold: 1.0
+lif_output_threshold: 0.3
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 6.0
+delay_param_type: sigmoid
+delay_step: 1.0
+syn_ho_init_scale: 4.0
+syn_ho_delay_init: 0.5         # init delay_raw≈0.5 → d≈0.62*29≈18ms for K=2 (d_max=29)
+                               # burst Q0 at t≈2, Q1 at t≈12; readout=[20,30)
+
+lr_w: 1.5e-3
+lr_d: 1.0e-3
+lr_readout: 0.0
+batch_size: 128
+epochs: 500
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+r_on: 400.0
+r_off: 10.0
+
+# Burst encoding params
+encoding_mode: burst
+burst_n_spikes_on:  2
+burst_n_spikes_off: 1
+burst_phase_on:  0.20
+burst_phase_off: 0.80
+burst_jitter_ms: 0
+
+n_train: 4000
+n_val:   500
+n_test:  500
+seed: 42
+
+sweep:
+  K_values: [2]
+  seeds: [42]
+  accuracy_thresholds: [0.90, 0.80, 0.70]
+
+  models:
+    - name: vis_burst_spkout_wad_K2
+      train_mode: weights_and_delays
+      fixed_delay_value: null
+      readout_type: linear
+      use_output_spikes: true
+      n_output_neurons: 2
+      num_hidden_layers: 1
+      hidden_sizes: [50]
+
+    - name: vis_burst_spkout_d0_K2
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      readout_type: linear
+      use_output_spikes: true
+      n_output_neurons: 2
+      num_hidden_layers: 1
+      hidden_sizes: [50]

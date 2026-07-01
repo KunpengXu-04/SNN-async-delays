@@ -1,0 +1,83 @@
+# Visualization branch: Plan D, K=1, burst encoding, spiking output layer
+# Goal: input → hidden → output spike flow figure for presentations.
+# Not a benchmark — diagnostic / visualization run only.
+#
+# Architecture: input(2) -> DelayedSyn -> LIF_h(50) -> DelayedSyn -> LIF_o(1) -> spike count
+# Loss: BCEWithLogitsLoss(output_spike_count, label)
+# Encoding: burst (value=1 → 2 spikes at phase 0.20; value=0 → 1 spike at phase 0.80)
+#
+# Key tuning vs. standard spiking_output config:
+#   lif_output_threshold: 0.3   -- separate lower threshold for output neuron (hidden stays 1.0)
+#   syn_ho_init_scale: 4.0      -- scale up hidden→output init weights; burst gives ~3 hidden
+#                                   spikes/trial, kaiming default (std≈0.14) is too small
+#   surrogate_beta: 6.0         -- sharper surrogate gradient to recover from dead output faster
+
+dt: 1.0
+sub_win: 10
+read_len: 10
+
+n_ops: 0
+ops_list: [NAND]
+same_op: true
+
+n_hidden: 50
+lif_tau_m: 10.0
+lif_threshold: 1.0             # hidden layer threshold (unchanged from standard)
+lif_output_threshold: 0.3      # output neuron separate threshold (lower = fires more easily)
+lif_reset: 0.0
+lif_refractory: 2
+surrogate_beta: 6.0
+delay_param_type: sigmoid
+delay_step: 1.0
+syn_ho_init_scale: 4.0         # scale up syn_ho weights post-init
+syn_ho_delay_init: 0.5         # init delay_raw≈0.5 → d≈0.62*19≈12ms
+                               # burst fires at t≈2ms; need d≈8-17ms to reach readout [10,20)
+
+lr_w: 1.5e-3
+lr_d: 1.0e-3
+lr_readout: 0.0
+batch_size: 128
+epochs: 500
+spike_penalty: 0.0
+delay_penalty: 0.0
+grad_clip: 1.0
+
+r_on: 400.0
+r_off: 10.0
+
+# Burst encoding params
+encoding_mode: burst
+burst_n_spikes_on:  2
+burst_n_spikes_off: 1
+burst_phase_on:  0.20
+burst_phase_off: 0.80
+burst_jitter_ms: 0
+
+n_train: 4000
+n_val:   500
+n_test:  500
+seed: 42
+
+sweep:
+  K_values: [1]
+  seeds: [42]
+  accuracy_thresholds: [0.90, 0.80, 0.70]
+
+  models:
+    - name: vis_burst_spkout_wad
+      train_mode: weights_and_delays
+      fixed_delay_value: null
+      readout_type: linear
+      use_output_spikes: true
+      n_output_neurons: 1
+      num_hidden_layers: 1
+      hidden_sizes: [50]
+
+    - name: vis_burst_spkout_d0
+      train_mode: weights_only
+      fixed_delay_value: 0.0
+      readout_type: linear
+      use_output_spikes: true
+      n_output_neurons: 1
+      num_hidden_layers: 1
+      hidden_sizes: [50]

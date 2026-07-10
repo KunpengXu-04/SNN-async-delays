@@ -15,3 +15,14 @@ __pycache__/
 
 # Run outputs (experiment artifacts, regeneratable)
 snn_async_delays/runs/
+
+# LaTeX build artifacts (regeneratable)
+snn_async_delays/paper/*.aux
+snn_async_delays/paper/*.bbl
+snn_async_delays/paper/*.blg
+snn_async_delays/paper/*.log
+snn_async_delays/paper/*.out
+snn_async_delays/paper/*.toc
+snn_async_delays/paper/*.fls
+snn_async_delays/paper/*.fdb_latexmk
+snn_async_delays/paper/*.synctex.gz

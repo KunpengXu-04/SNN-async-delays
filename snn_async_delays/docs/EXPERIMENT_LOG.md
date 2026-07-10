@@ -2709,3 +2709,481 @@ All changes are isolated to the visualization branch:
 was renamed to `runs/NAND_neuron_sweep_(planD)/` per the 2026-06 convention. The async
 series (blue line) had silently disappeared from `docs/computation_vs_energy_v2.png`.
 Fixed line 34 to use the new path; figure regenerated and restored.
+
+---
+
+## 32. Output-end encoding: two literature schools, and why capacity runs keep a clean readout
+
+**Date**: 2026-07-08
+
+### 32.1 The question
+
+Our burst work (Sections 29, 31) encodes the **input** as bursts. The **output** is either a
+non-spiking linear/MLP readout (all capacity runs — Steps 1–3, compress sweeps) or a spike-count
+LIF neuron (viz runs, Section 22/31). A natural question: should the output *also* be burst /
+temporal-coded? Precisely, "burst output" = decode the label from the output neuron's spike
+**timing** (time-to-first-spike / latency), trained with a spike-time loss, rather than from a
+rate/count or a real-valued readout logit.
+
+Decision: **keep the clean linear/MLP readout for all capacity (compress, max-K) runs; reserve
+temporal output for illustrative visualization only.** Rationale below, with literature precedent.
+
+### 32.2 Two schools in the literature
+
+**School A — temporal / time-to-first-spike (TTFS) OUTPUT.** Class = which output neuron fires
+first, or its latency; trained with a spike-time loss. Motivation is energy + latency (one spike
+per neuron). These works *accept and mitigate* the training difficulty (dead/quiet neurons, need
+for careful init and regularization). This is exactly what a "burst output" would be for us —
+demonstrably possible, but at an accuracy/training cost.
+
+- **Bohte, Kok & La Poutré (2002)**, *Neurocomputing* 48:17–37 — SpikeProp, the first
+  output-spike-time backprop; explicitly argues temporal coding needs *fewer neurons* than rate.
+- **Mostafa (2017)**, *IEEE TNNLS* 29(7):3227–3235 — differentiable input→output spike-time
+  relation (piecewise-linear after a change of variables); class = first output neuron to spike.
+- **Comșa et al. (2020)**, *ICASSP 2020* pp. 8529–8533 — alpha-synapse TTFS with exact
+  postsynaptic-spike-time derivatives.
+- **Kheradpisheh & Masquelier (2020)**, *Int. J. Neural Systems* 30(6):2050027 — S4NN, one spike
+  per neuron, rank-order / first-spike readout.
+- **Göltz et al. (2021)**, *Nature Machine Intelligence* 3(9):823–835 — first-spike-time backprop
+  on BrainScaleS-2; energy/latency the whole point.
+
+**School B — learn delays, but decode with a CONVENTIONAL readout.** Membrane/rate readout is
+used deliberately, to isolate the delay's contribution from decoder effects. **This is our
+methodological precedent.**
+
+- **Hammouamri, Khalfaoui-Hassani & Masquelier (2024)**, *ICLR*, arXiv:2306.17670 — DCLS
+  learnable delays (1-D temporal convolutions with learnable spacings); standard readout.
+- **Grappolini & Subramoney (2023)**, *ICONS '23* — delay-only training (weights frozen, even
+  ternary) rivals weight training; conventional readout.
+
+### 32.3 Our position
+
+The project's claim is **delay-enabled temporal multiplexing** — a School-B-style claim. To keep
+the measured bottleneck (compress, Max K@τ) attributable to **hidden-layer representational
+interference** and not to a hard-to-train temporal decoder, capacity runs must use the clean
+readout. A temporal/burst output would inject a *second* surrogate-gradient bottleneck (dead
+neurons; the double-gradient path), confounding exactly the quantity we measure. This is confirmed
+internally: Section 22 (spike-count output) reached only 71.8% on NAND K=1 vs 95%+ for the linear
+readout, and Section 31 (burst-in + spiking-out) worked only with heavy per-run tuning at low K.
+
+The cost law `C = n_hid·T` and `compress = n_hid'/(K·n_hid)` concern the **hidden** layer
+(`n_hid·n_out` output synapses are a fixed small term); changing the output encoding does **not**
+alter the theory, only the fidelity with which we can measure it. Temporal output therefore stays
+in the visualization branch (School A style), where seeing output spikes is the goal.
+
+### 32.4 BibTeX (verified against primary sources, 2026-07-08)
+
+```bibtex
+@article{bohte2002error,
+  title   = {Error-backpropagation in temporally encoded networks of spiking neurons},
+  author  = {Bohte, Sander M. and Kok, Joost N. and La Poutr{\'e}, Han},
+  journal = {Neurocomputing},
+  volume  = {48}, number = {1--4}, pages = {17--37}, year = {2002},
+  doi     = {10.1016/S0925-2312(01)00658-0}
+}
+@article{mostafa2017supervised,
+  title   = {Supervised learning based on temporal coding in spiking neural networks},
+  author  = {Mostafa, Hesham},
+  journal = {IEEE Transactions on Neural Networks and Learning Systems},
+  volume  = {29}, number = {7}, pages = {3227--3235}, year = {2017},
+  doi     = {10.1109/TNNLS.2017.2726060}
+}
+@inproceedings{comsa2020temporal,
+  title     = {Temporal coding in spiking neural networks with alpha synaptic function},
+  author    = {Com{\c{s}}a, Iulia M. and Potempa, Krzysztof and Versari, Luca and
+               Fischbacher, Thomas and Gesmundo, Andrea and Alakuijala, Jyrki},
+  booktitle = {ICASSP 2020 -- IEEE Int. Conf. on Acoustics, Speech and Signal Processing},
+  pages     = {8529--8533}, year = {2020},
+  doi       = {10.1109/ICASSP40776.2020.9053856}
+}
+@article{kheradpisheh2020s4nn,
+  title   = {{S4NN}: temporal backpropagation for spiking neural networks with one spike per neuron},
+  author  = {Kheradpisheh, Saeed Reza and Masquelier, Timoth{\'e}e},
+  journal = {International Journal of Neural Systems},
+  volume  = {30}, number = {6}, pages = {2050027}, year = {2020},
+  doi     = {10.1142/S0129065720500276}
+}
+@article{goltz2021fast,
+  title   = {Fast and energy-efficient neuromorphic deep learning with first-spike times},
+  author  = {G{\"o}ltz, Julian and Kriener, Laura and Baumbach, Andreas and Billaudelle, Sebastian
+             and Breitwieser, Oliver and Cramer, Benjamin and Dold, Dominik and Kungl, Akos F. and
+             Senn, Walter and Schemmel, Johannes and Meier, Karlheinz and Petrovici, Mihai A.},
+  journal = {Nature Machine Intelligence},
+  volume  = {3}, number = {9}, pages = {823--835}, year = {2021},
+  doi     = {10.1038/s42256-021-00388-x}
+}
+@inproceedings{hammouamri2024learning,
+  title     = {Learning Delays in Spiking Neural Networks using Dilated Convolutions with Learnable Spacings},
+  author    = {Hammouamri, Ilyass and Khalfaoui-Hassani, Ismail and Masquelier, Timoth{\'e}e},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2024}, note = {arXiv:2306.17670}
+}
+@inproceedings{grappolini2023beyond,
+  title     = {Beyond Weights: Deep learning in Spiking Neural Networks with pure synaptic-delay training},
+  author    = {Grappolini, Edoardo W. and Subramoney, Anand},
+  booktitle = {International Conference on Neuromorphic Systems (ICONS)},
+  year      = {2023}, doi = {10.1145/3589737.3606009}, note = {arXiv:2306.06237}
+}
+```
+
+---
+
+## 33. Cost-law / compression framework: phase-0 analysis, burst compress sweep, and the missing sparsity factor
+
+**Date**: 2026-07-09
+
+### 33.1 Motivation — the supervisor's cost-law reframing
+
+The supervisor asked to make the project **maths-driven**: instead of a pile of per-step tables,
+find one **cost law** that governs every experiment. The whiteboard framework:
+
+- **Cost**: `C ∝ (n_in·n_hid + n_hid·n_out)·T`. With `n_in, n_out` fixed → **`C ∝ n_hid·T`**.
+- **Compression ratio**:
+
+  ```
+  compress(K) = n'_hid / (K · n_hid)
+  ```
+
+  where `n_hid` = neurons a *single* query needs to hit the accuracy target, and `n'_hid` = the
+  *shared* hidden dim a K-query temporal-multiplexed (Plan D) network needs. Ideal (lossless
+  multiplexing) → `n'_hid = n_hid` → `compress = 1/K`; reality → `n'_hid > n_hid`.
+
+Two reference architectures anchor everything:
+- **Spatial replication / serial** (no multiplexing): K independent copies of the single-query
+  net (or one net run K times) → `K·n_hid` neurons, time `T₁`, cost `K·n_hid·T₁`.
+- **Temporal multiplexing** (Plan D): shared `n'_hid` neurons, one trial of `T(K)`, cost
+  `n'_hid·T(K)`.
+
+The whole project reduces to: **measure `compress(K)` and decide whether temporal beats spatial.**
+
+### 33.2 What was built / changed this session
+
+**Analysis (`scripts/phase0_cost_analysis.py`)** — retrospective, reads every run's
+`eval_results.json` directly (immune to summary-json truncation), writes to
+`runs/cost_law_(phase0)/`:
+- `figA_collapse` — accuracy vs `C=n_hid·T` for all ~700 runs, coloured by delay/no-delay.
+- `figB_compress` — `n'_hid(K)` and `compress(K)`, rate + burst overlaid.
+- `figC_nhid_T_plane` — the (n_hid, T) plane (auto-uses the densest sweep), accuracy colour +
+  iso-cost hyperbolas + 90% feasibility boundary.
+- `figD_cost_crossover` — analytic cost `n'_hid·T` vs replication `K·n_hid·T₁`, plus the
+  measured-spike energy twin.
+- `figE_sparsity` — firing sparsity `ρ = spikes/(n_hid·T)` (log), rate vs burst.
+
+**Runner (`scripts/run_plan_d_h_sweep.py`)** — new flags and behaviour:
+- `--runs_dir`, `--encoding_mode {rate,burst}` (burst params bound via the
+  `run_burst_comparison._make_encode_fn` pattern; recorded in config/eval).
+- `--op` (op-aware run names: non-NAND ops get an `XOR_`/… prefix so ops can share a folder;
+  NAND keeps bare `wad_h..` names → `[SKIP]` reuse of the old rate sweep still works).
+- `--conditions {w_and_d,d0}` and `--d0_h` (sparse h for the d0 control only — d0 never crosses
+  the threshold, so a few h suffice; saves ~half the compute).
+- Per-run diagnostics wired in (panel + mechanism figure) automatically; `weights_only=True` on
+  the checkpoint load (silences the torch FutureWarning).
+
+**Mechanism figure (`utils.viz.draw_mechanism_on_ax`, shared by the panel and
+`scripts/plot_burst_mechanism.py`)** — replaces the dense layer-to-layer spike flow in the
+diagnostic panel's bottom-right. **Spike-based**: draws only arcs tied to actual spikes
+(hidden→output `d_ho` for spiking-output runs; causal input→hidden `d_ih` for MLP runs). **Only
+when the hidden layer fires zero spikes** does it fall back to full `d_ih` arrival routing (so
+burst @ low h, `ρ`≈0, is never an empty figure). See Section 31's "figure to use" note.
+
+**Data**: burst compress sweep `runs/NAND_compress_burst_(planD)` — the entire `w_and_d` grid
+(`h∈{10..150}` × `K∈{1..6}` × 2 seeds) is complete; `d0` is a partial flat-line control.
+
+### 33.3 Formulas (the deliverable)
+
+```
+T(K)          = sub_win·K + read_len = 10K + 10          (Plan D timing)
+n_hid         = n'_hid(K=1)                              (single-query baseline)
+compress(K)   = n'_hid(K) / (K · n_hid)
+C_rep(K)      = K · n_hid · T(1) = 200·K                 (spatial/serial baseline)
+C_tmp(K)      = n'_hid(K) · T(K)                         (temporal multiplexing)
+
+  C_tmp/C_rep = compress(K) · (K+1)/2        ← master cost-ratio identity
+  temporal is cost-favourable  ⟺  compress(K) < 2/(K+1)
+
+C_energy      ∝ n_hid · T · ρ ,   ρ = spikes/(n_hid·T)  ← event-driven correction
+```
+
+The `(K+1)/2` factor is `T(K)/T(1) = (10K+10)/20`: multiplexing also saves *time*, so the
+break-even in cost (`compress < 2/(K+1)`) is more lenient than the neuron break-even
+(`compress < 1`).
+
+### 33.4 Results (burst, NAND, 90% threshold, 2 seeds — PRELIMINARY)
+
+`min n'_hid(K)@90%`:
+
+| encoding | K=1 | K=2 | K=3 | K=4 | K=5 | K=6 | Max K@90% |
+|---|---|---|---|---|---|---|---|
+| rate (coarse, h≤50) | 10 | 10 | 50 | >50 | >50 | — | 2* |
+| burst (fine, h≤150) | 10 | 20 | 20 | 75 | 125 | >150 | **5** |
+
+*rate K≥4 censored only because h>50 was never tested (rate fine sweep pending) — **not a fair
+rate-vs-burst comparison yet.**
+
+`compress(K)` (burst): `{1.0, 1.0, 0.67, 1.88, 2.5}` → crosses 1 around **K≈3–4**.
+
+`ρ = spikes/(n_hid·T)` at h=50: rate `{0.008→0.016}` vs burst `{0.0006→0.004}` → **burst is
+~4–14× sparser** per neuron·timestep; burst's `ρ` also *falls* as `n_hid` grows (rate's stays
+flat).
+
+### 33.5 Analysis / conclusions
+
+1. **`n'_hid(K)` shows a capacity phase-transition** near K≈3–4: near-constant (10–20) below,
+   steep (75→125→>150) above. Max K@90%(burst)=5.
+2. **Temporal multiplexing does NOT beat spatial replication in `n_hid·T` cost on this task.**
+   Via the master identity, favourable needs `compress < 2/(K+1)` (=0.67, 0.5, 0.4… for K=2,3,4);
+   burst `compress ≥ 1` fails for K≥2, rate wins only at K=2. Reason: single-query NAND needs so
+   few neurons (~10, really ~3) that **naive replication is a very strong baseline**. The delay
+   advantage must therefore be argued via *mechanism / fixed shared substrate (can't replicate) /
+   streaming input / harder tasks* — not raw efficiency at this scale.
+3. **The robust win is burst ≪ rate in spike energy (figE): an *encoding* effect, not a
+   multiplexing effect.** It lives entirely in the sparsity factor `ρ`, which `n_hid·T` cannot
+   see (it assumes `ρ=1`). Real event-driven energy `= n_hid·T·ρ`, and `ρ≈0.06–2%` means
+   `n_hid·T` overestimates absolute energy by ~50–1500× for both encodings.
+4. **The cost law needs at least a second layer.** `C = n_hid·T` is a dense-compute upper bound;
+   missing variables: (a) **sparsity `ρ`** (dominant — where burst wins); (b) delay-buffer memory
+   `∝ n_syn·d_max`, and `d_max=K·sub_win` grows with K; (c) the readout term
+   `n_hid·h_r + h_r·K`; (d) `n'_hid` itself is `f(task, τ, encoding)`, not a constant. Proposed
+   two-layer form: **capacity layer `n'_hid(K; task, τ, enc)` (figB/C) × energy layer `T·ρ`
+   (figD/E).**
+
+### 33.6 Methodological notes & caveats
+
+- **Baseline must use `w_and_d`, not `weights_only`.** In Plan D, delays are needed even at K=1
+  for *time-alignment* (getting the input signal into the readout window); `d0` never reaches
+  90% at any h (flat at the majority prior). So there is no finite weights-only baseline, and
+  using the wad K=1 requirement correctly isolates the *multiplexing* cost from the
+  *delay-for-alignment* value (the latter is answered separately by the d0 control).
+- **`n_hid=10` is grid-floored and bias-inflated.** K=1 saturates at 100% at the smallest tested
+  h=10, so the true single-query requirement is ≤10 (probably ~3). NAND is 75/25 imbalanced, and
+  the network answers the 3 majority (=1) cases with the readout **bias** at *zero* hidden spikes,
+  firing ~1 spike only to flip the minority (1,1)→0 case (verified: per-combo logits +1.24/+1.24/
+  +1.24/−0.24, silent-readout logit=+1.237). This bias shortcut inflates the baseline and
+  contaminates the low-K compress/energy points.
+- **Fix for the next round: switch to a balanced op (XOR/XNOR).** Removes the 75% prior (floor
+  becomes 50% = true chance), gives a larger/cleaner `n_hid` baseline, and makes accuracy reflect
+  computation rather than prior. Mixed-op is the *generalisation* test (Step 3) but adds the
+  independent multi-function bottleneck, so it is not a substitute for the clean single-op
+  capacity measurement. The runner now supports `--op XOR`.
+- **Other open items**: rate fine sweep (for a fair rate-vs-burst compress), more seeds (the
+  min-`n'_hid` is noisy near threshold), K=1 sub-10 h (to pin the true baseline), and T–K
+  decoupling (Plan D locks `T=10K+10`, so the (n_hid,T) plane is only sampled on 6 horizontal
+  lines — filling it needs a gap/padding param in `encode_sequential_trial`).
+
+**Figures**: `runs/cost_law_(phase0)/fig{A,B,C,D,E}_*.png`. **Regenerate**:
+`python -m scripts.phase0_cost_analysis`.
+
+---
+
+## 34. XOR pivot: dead-neuron cold-start (P1, fixed) and the recency-gradient mechanism (P2)
+
+**Date**: 2026-07-10
+
+### 34.1 Why XOR, and two problems it exposed
+
+To get a *clean* capacity measurement free of NAND's 75/25 bias shortcut (Section 33.6), we
+switched the compress sweep to **XOR** (balanced 50/50). The runner now supports `--op`,
+`--conditions`, `--d0_h`, `--lif_threshold`. The first XOR/burst run exposed two distinct
+problems, which must not be conflated:
+
+- **P1 — dead K=1 (a training bug).** XOR K=1 gave acc ≈ 50 % with `mean_hidden_spikes = 0`,
+  identical across h=10/15/20 (h-independent). Balanced XOR has no majority-class crutch, so a
+  silent network sits exactly at chance.
+- **P2 — recency gradient / "last-query-only" (a mechanistic limit).** Even the *alive* K≥2 runs
+  solved essentially only the **freshest** query: `per_query_acc` e.g. K=2 `[0.50, 1.00]`,
+  K=3 `[0.49, 0.48, 1.00]`. Overall accuracy tracked `≈ (K+1)/(2K) = 0.5 + 0.5/K`
+  ("solve the last query, chance on the rest"), which matched the data (K=2 0.75, K=3 0.67,
+  K=4 0.63, K=6 0.58). So "K↑ ⇒ acc↑" was an illusion: it only reflects the K=1(dead)→K=2 jump,
+  then a `(K+1)/2K` **decline**.
+
+### 34.2 P1 root cause + fix (verified)
+
+Measured hidden spikes/trial of an **untrained** XOR-burst net (h=20):
+
+| threshold | K=1 | K=2 | K=3 |
+|---|---|---|---|
+| **1.0 (default)** | 0.00 | 0.00 | 0.00 |
+| 0.5 | 0.00 | 0.26 | 0.49 |
+| 0.3 | **0.47** | 2.04 | 4.00 |
+
+At the default `lif_threshold=1.0` the network is **silent at init for all K** — sparse burst
+input (2–3 spikes) can't cross threshold. Training only bootstraps firing when total input drive
+is large enough for the surrogate gradient to climb; K=1 is too sparse to escape. NAND hid this
+(bias shortcut got 75 % for free); XOR exposed it.
+
+**Fix (verified):** `--lif_threshold 0.3` → **XOR K=1 trains to 100 %** (K/spk=0.50, still
+sparse). Threshold is a *hyperparameter* (dynamics knob, not a paid resource), legitimately
+tunable; use the **same** value for the NAND comparison run. The failed run is archived at
+`runs/_archive_XOR_burst_(planD)_FAILED_deadK1_thr1.0_silentinit/` (with `FAILURE_NOTE.txt`);
+the `_archive` prefix makes `phase0_cost_analysis` skip it.
+
+### 34.3 P2 is NOT solved by K–T decoupling
+
+Decoupling (adding a `gap` to lengthen `T` at fixed K) measures the *temporal resource*; it does
+**not** fix P2 and likely worsens it — more `T` = more LIF decay for the oldest query. P2's
+levers are decay-side (`tau_m`), delay init/structure, or **loss reweighting by query position**
+(upweight the oldest query) — none of which is decoupling. **Reframe:** P2 is likely the
+*mechanism behind the max-K ceiling* — overall accuracy is dragged down non-uniformly by the
+oldest queries, so mitigating P2 could directly raise max K. Worth a targeted study (fix K,
+sweep `tau_m` / loss-weights, watch `figF`), separate from and parallel to decoupling.
+
+### 34.4 The recency mechanism, traced in the spikes (answers "why only the last query")
+
+The readout reads **only hidden spikes fired in the readout window** `[win_len, T)`
+(`model.py`: `if t>=win_len: last_acc += spike_h`), and decodes all K queries from that one
+accumulated vector. So a query is decodable only if its input drives a hidden spike **inside**
+the readout window (via delay). Tracing a K=4 NAND-burst trial (h=100/150):
+
+```
+hidden spikes by time bucket:   q0: 0,  q1: 0,  q2: 2,  q3: 6,  readout: 8
+readout-window spikes, source query (causal d_ih):  q0: 0,  q1: 4,  q2: 19,  q3: 26
+```
+
+**The oldest queries produce essentially NO hidden spikes at all** — not in their own
+sub-window, not in the readout window. It is **not** "they fire but can't be routed to the
+readout window", and **not** "their spikes aren't preserved". The precise picture:
+
+- A *single* query's burst input is **sub-threshold**; the hidden layer only crosses threshold
+  **late** (q2/q3 windows) once enough **delayed input from several queries has accumulated**.
+- Firing is therefore an inherently late, accumulated event, structurally biased toward
+  **recent** queries (their input is fresh at accumulation time); the oldest query's input has
+  decayed by then and contributes ~nothing → q0 fires nothing that reaches the readout window.
+- The readout then decodes q0 only from the bias/label-prior + weak correlations, so q0 sits near
+  the task floor (0.75 NAND / 0.5 XOR) while the freshest query reaches ~1.0.
+
+This also explains why **capacity (h) doesn't fix P2** (Section 33): it's a temporal
+membrane-integration limit, not a neuron-count limit — adding neurons doesn't make a single
+decayed early query cross threshold.
+
+**How it shows in the mechanism figure** (`plots/mechanism_sample0.png`, e.g.
+`wad_h100_K4_sw10_seed42`): the earliest sub-window's input ticks are **orphaned** (no hidden
+spikes near them, few/faint arcs), hidden spikes (blue) first appear only from ~q2's window, and
+the readout-window spikes' (green) causal `d_ih` arcs trace back to the **recent** sub-windows
+(q2/q3), not q0. Diagnostic: `figF_per_query.png` (per-query accuracy vs position).
+
+### 34.5 The P1 threshold fix ALSO largely mitigates P2 (they share a root cause)
+
+Sections 33/34 characterised P2 as "capacity-resistant" — but that was measured under the
+**broken `lif_threshold=1.0` regime**, where firing is accumulation-dependent and hence
+recency-biased. Lowering the threshold changes the firing regime, so P2 had to be re-checked.
+
+Pilot (XOR/burst, K=3, h=30, **70 epochs, undertrained**, single seed):
+
+| threshold | per_query = [q0, q1, q2] | spk/tr |
+|---|---|---|
+| 1.0 (broken) | [0.49, 0.48, 1.00] | ~1 |
+| **0.3 (fixed)** | **[0.65, 0.77, 0.99]** | 16 |
+
+The recency gradient shrinks dramatically — the oldest/middle queries go from chance to
+0.65/0.77 (and this is undertrained; full epochs + higher h should improve them further). So
+**P1 and P2 share the same root cause** (too-high threshold → late, accumulation-dependent
+firing → recency bias). The P1 threshold fix is therefore *also* a substantial P2 mitigation;
+the earlier "P2 is a separate, capacity-resistant, fundamental limit" was overstated (an artefact
+of the thr=1.0 regime).
+
+**Consequence for sequencing:** do NOT "fix P2 first" as a separate step — the threshold fix
+already does most of it. Run the threshold-fixed XOR sweep, then read the *residual* gradient off
+`figF_per_query`. Only if a limiting residual remains (dragging overall acc / max-K) is a further
+targeted P2 study (tau_m, loss-reweighting by query position) worth it — with the fixed sweep as
+its baseline.
+
+---
+
+## 35. Homeostatic firing-rate regularizer breaks the sparse-vs-trainable tradeoff (XOR burst)
+
+**Date**: 2026-07-10
+
+### 35.1 The tradeoff the threshold sweep exposed
+
+Tuning the hidden LIF threshold on XOR/burst (`runs/XOR_thr_tune`, K=1/3, h=20/50,
+thr∈{0.3..0.8}) revealed a hard tension (see §33's energy factor `rho = spikes/(n_hid·T)`):
+
+- **low threshold (0.3)**: trains well (K=3 h50 acc **0.878**, mild recency [0.67,0.97,1.0])
+  but **dense** — `rho ≈ 0.012`, i.e. as dense as *rate* coding (§34/figE), so burst's whole
+  sparsity/energy advantage is gone.
+- **high threshold (0.8–1.0)**: **sparse** (`rho ≈ 0.0015`) but the network is silent/dead or
+  weak (thr=0.8 acc 0.78; thr=1.0 fully dead) — the P1 dead-neuron failure.
+
+So threshold alone forces a choice between sparse and trainable.
+
+### 35.2 The homeostatic regulariser (implementation)
+
+Added a per-neuron firing-rate homeostasis term to the loss (`snn/model.py` now exposes a
+**differentiable** per-neuron rate `info["hidden_rate"]`; `train/trainer.py` adds it;
+`run_plan_d_h_sweep.py` exposes `--homeo_lambda`, `--homeo_target`):
+
+```
+L_homeo = homeo_lambda * mean_j (rate_j - homeo_target)^2
+```
+
+`homeo_target` IS the target `rho` (spikes/neuron/step). Intent: keep the threshold HIGH
+(sparse + selective) and let homeostasis (a) revive silent neurons and (b) **spread** activity
+across ALL neurons at a low target rate → a rich representation at low total firing.
+
+### 35.3 Result — it works (thr=1.0 + homeo)
+
+`runs/XOR_homeo_tune` (XOR/burst, h=50, seed 42, thr=1.0):
+
+| thr | h_lam | h_tgt | K | acc | spk/tr | rho | per_query |
+|---|---|---|---|---|---|---|---|
+| 1.0 | 3 | 0.005 | 3 | 0.841 | 8.40 | 0.0042 | [0.56, 0.96, 1.0] |
+| 1.0 | 3 | 0.008 | 3 | 0.814 | 6.15 | 0.0031 | [0.57, 0.88, 1.0] |
+| **1.0** | **6** | **0.008** | **3** | **0.863** | 5.59 | **0.0028** | **[0.70, 0.89, 1.0]** |
+| 1.0 | 6 | 0.008 | 1 | 1.000 | 1.71 | 0.0017 | [1.0] |
+
+**Winner: thr=1.0 + `homeo_lambda=6`, `homeo_target=0.008`.** Versus the dense low-threshold
+baseline (thr=0.3, no homeo: acc 0.878, rho 0.0116, pq [0.67,0.97,1.0]):
+
+- accuracy **0.863 ≈ 0.878** (within seed noise),
+- **rho 0.0028 = ~1/4 the energy** (4× sparser — burst's advantage restored),
+- recency **[0.70,0.89,1.0]**, q0 *better* than the dense baseline (0.70 vs 0.67),
+- K=1 = 1.000.
+
+So homeostasis **decouples sparsity from trainability**: a network that is fully dead at
+thr=1.0 without it reaches the dense solution's accuracy at a quarter of the spikes, with
+equal-or-better recency. `homeo_lambda=6` dominates `=3` on every axis (acc↑, rho↓, q0↑),
+consistent with "more spreading = more neurons participate = richer rep + flatter recency".
+
+### 35.4 Key caveat — homeo helps only where the net would be dead
+
+At **thr=0.8** (which already trains without homeo), adding `homeo_lambda=3` *hurt*
+(acc 0.78→0.68, pq [0.49,0.54,1.0]) — it disrupted a working low-firing solution. So the recipe
+is **high threshold (1.0) + homeo**, NOT moderate threshold + homeo. Homeostasis provides the
+essential firing drive precisely when the high threshold would otherwise kill the network.
+
+### 35.5 Locked configuration for the XOR/NAND compress sweeps
+
+`lif_threshold=1.0`, `encoding_mode=burst`, `homeo_lambda=6`, `homeo_target=0.008`. The NAND
+burst comparison sweep must use the **same** settings for a fair NAND-vs-XOR comparison.
+Analysis: `scripts/compare_thresholds.py` (now shows `h_lam`/`h_tgt` columns).
+
+### 35.6 Does the homeo config generalise across the full h grid? (Small validation)
+
+Validated the locked config (thr=1.0, `homeo_lambda`=6, `homeo_target`=0.008) across the FULL h
+grid (10–150), K∈{1,3}, into `runs/XOR_compress_burst_(planD)`:
+
+- **K=1: rock-stable across ALL h** — acc=1.0 everywhere, `rho` monotonically sparser with h
+  (0.0063 @ h=10 → 0.0006 @ h=150). Single query is solid.
+- **K=3: works but (a) single-seed NOISY and (b) homeo's revival DILUTES at high h.** seed-42
+  gave h=150 = 0.905, but with seeds {42,0,1} it drops to **0.753**; h=125 *collapsed* for seed 42
+  (spk 1.18, acc 0.685) and only partially recovered with more seeds (0.734). At **h≥125 the
+  recency gradient (P2) REAPPEARS even with homeo**: per_query ~[0.6, 0.65, 1.0].
+
+Interpretation: homeostasis supplies per-neuron firing drive, but at high h that drive is spread
+across more neurons (surrogate gradient diluted), so it occasionally fails to revive/spread and
+P2 returns. **XOR K=3 does not cleanly cross 90% at any h → it is recency-limited (P2), not
+capacity-limited** — a clean finding (XOR's bottleneck is temporal routing of the oldest query,
+not neuron count). Full sweeps should use ≥3 seeds to average the high-h noise.
+
+### 35.7 Reading the per-run mechanism figure (two clarifications)
+
+- **Orphaned q0 input = the visual signature of P2.** The MLP-readout mechanism figure draws
+  causal input→hidden arcs only for *actual* hidden spikes. The oldest query's input is
+  sub-threshold on its own and has decayed by the time the (late, accumulation-triggered) hidden
+  spikes fire, so NO hidden spike is causally driven by q0 → q0's input ticks have no arcs
+  ("orphaned"). This matches per_query q0 ≈ chance and is correct behaviour, not a bug. At high h
+  (where P2 returns) q0 is orphaned in more of the K=3 figures.
+- **The diagnostic input is identical across training seeds by design.** The diagnostic trial
+  uses a FIXED sample (`seed=999`) for every run, so different models (train-seed / h / threshold)
+  can be compared routing the SAME stimulus — input ticks identical, hidden spikes + arcs differ
+  by model. (Caveat: it is one sample; per_query on the full test set corroborates it.)

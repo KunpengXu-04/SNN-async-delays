@@ -1563,6 +1563,129 @@ def plot_layer_to_layer_spike_flow(
     plt.close(fig)
 
 
+def draw_mechanism_on_ax(ax, traces, weights_dict, delays_dict, title=True):
+    """Draw the delay-routing mechanism into a single axes (used both as the
+    diagnostic-panel bottom-right and as the standalone mechanism_sample0.png).
+
+    Only actual SPIKES drive the arcs:
+      - spiking-output run (has 'ho' + output_spikes): each HIDDEN spike -> output
+        arrival via d_ho.
+      - MLP-readout run (only d_ih): each HIDDEN spike is drawn, with causal
+        input->hidden arcs (input arrival within a membrane window before the spike).
+    ONLY when the hidden layer produced ZERO spikes do we fall back to drawing the
+    full input->hidden d_ih ARRIVAL routing (top-N |w| per input spike), so the
+    figure is never empty (e.g. burst @ low h fires ~0.2 spikes/trial).
+    """
+    from matplotlib.patches import FancyArrowPatch
+
+    inp = traces["input_spikes"]
+    T = int(traces.get("T", inp.shape[0]))
+    h1 = traces["hidden1_spikes"]
+    h2 = traces.get("hidden2_spikes")
+    last_h = h2 if h2 is not None else h1
+    win = int(traces.get("win_len", T))
+    read = int(traces.get("read_len", 0))
+    sub = traces.get("sub_win")
+    K = int(traces.get("K", 1))
+    out_spikes = traces.get("output_spikes")
+    out_logits = traces.get("output_logits")
+    has_ho = ("ho" in weights_dict) and ("ho" in delays_dict) and (out_spikes is not None)
+    # arcs map to the layer the shown delays connect to: d_ho -> last hidden,
+    # d_ih -> first hidden. (For 1-layer nets these coincide.)
+    hid_arc = last_h if has_ho else h1
+    n_in, n_h = inp.shape[1], hid_arc.shape[1]
+
+    yin, yhid, yout = (0.0, 1.0), (2.0, 8.0), 9.3
+    def yq(j):
+        return yhid[0] + (yhid[1] - yhid[0]) * (j / max(1, n_h - 1))
+
+    ax.axvspan(0, win, color="#e8eef7", alpha=0.7, zorder=0)
+    ax.axvspan(win, T, color="#e7f4ea", alpha=0.9, zorder=0)
+    ax.axvline(win, color="#2e7d32", ls="--", lw=1.2, zorder=1)
+    ax.text(win / 2, yout + 0.5, "input", ha="center", fontsize=7, color="#4666a0")
+    ax.text((win + T) / 2, yout + 0.5, "readout", ha="center", fontsize=7,
+            color="#2e7d32", fontweight="bold")
+    if K > 1 and sub:
+        for k in range(1, K):
+            ax.axvline(k * sub, color="#4666a0", ls=":", lw=0.8, alpha=0.6, zorder=1)
+
+    ti, ci = np.where(inp > 0)
+    for t, c in zip(ti, ci):
+        y = yin[0] + (yin[1] - yin[0]) * (c / max(1, n_in - 1))
+        ax.plot([t], [y], marker="|", ms=10, mew=1.6, color="black", zorder=5)
+
+    def _arc(x0, y0, x1, y1, color, alpha, lw, style="-"):
+        ax.add_patch(FancyArrowPatch((x0, y0), (x1, y1),
+                     connectionstyle="arc3,rad=-0.16", arrowstyle=style,
+                     mutation_scale=8, lw=lw, color=color, alpha=alpha, zorder=3))
+
+    th, jh = np.where(hid_arc > 0)
+    landed = 0
+
+    if len(th) > 0 and has_ho:                       # spike-based: hidden -> output
+        d_ho = delays_dict["ho"][:, 0]; w_ho = weights_dict["ho"][:, 0]
+        wmax = float(np.abs(w_ho).max()) + 1e-9
+        for t, j in zip(th, jh):
+            ax.plot([t], [yq(j)], "o", ms=4.5, color="#1f4e9c", zorder=6)
+            arr = t + d_ho[j]; col = "#c0392b" if w_ho[j] >= 0 else "#2c5fa8"
+            _arc(t, yq(j), arr, yout, col, 0.3 + 0.6 * abs(w_ho[j]) / wmax,
+                 0.8 + 1.5 * abs(w_ho[j]) / wmax, "-|>")
+            inw = win <= arr < T; landed += int(inw)
+            ax.plot([arr], [yout], marker="v", ms=6,
+                    mfc=("#c0392b" if inw else "none"), mec=col, mew=1.1, zorder=6)
+        for t in np.where(out_spikes.sum(1) > 0)[0]:
+            ax.plot([t], [yout], marker="*", ms=14, color="#f1c40f", mec="#b8860b", zorder=7)
+        mode = "hidden→output $d_{ho}$ (spike-based)"
+
+    elif len(th) > 0:                                # spike-based: input -> hidden spike
+        w_ih, d_ih = weights_dict["ih"], delays_dict["ih"]
+        wmax = float(np.abs(w_ih).max()) + 1e-9
+        causal = max(int(sub or 10), 10) + 2
+        for t, j in zip(th, jh):
+            inw = win <= t < T; landed += int(inw)
+            ax.plot([t], [yq(j)], "o", ms=5,
+                    color=("#2e7d32" if inw else "#1f4e9c"), zorder=6)
+            cand = []
+            for tin, ch in zip(ti, ci):
+                arr = tin + d_ih[ch, j]
+                if 0 <= (t - arr) <= causal:
+                    cand.append((abs(w_ih[ch, j]), tin, ch, w_ih[ch, j]))
+            for aw, tin, ch, wv in sorted(cand, reverse=True)[:4]:
+                yc = yin[0] + (yin[1] - yin[0]) * (ch / max(1, n_in - 1))
+                col = "#c0392b" if wv >= 0 else "#2c5fa8"
+                _arc(tin, yc, t, yq(j), col, 0.2 + 0.55 * aw / wmax, 0.6 + 1.2 * aw / wmax)
+        mode = "input→hidden $d_{ih}$ (spike-based)"
+
+    else:                                            # no spikes: arrival routing
+        w_ih, d_ih = weights_dict["ih"], delays_dict["ih"]
+        wmax = float(np.abs(w_ih).max()) + 1e-9
+        top_n = max(1, min(n_h, 140 // max(1, len(ti))))
+        for t, c in zip(ti, ci):
+            yc = yin[0] + (yin[1] - yin[0]) * (c / max(1, n_in - 1))
+            for j in np.argsort(-np.abs(w_ih[c]))[:top_n]:
+                arr = t + d_ih[c, j]; col = "#c0392b" if w_ih[c, j] >= 0 else "#2c5fa8"
+                _arc(t, yc, arr, yq(j), col, 0.15 + 0.5 * abs(w_ih[c, j]) / wmax,
+                     0.6 + 1.0 * abs(w_ih[c, j]) / wmax)
+                landed += int(win <= arr < T)
+        mode = "input→hidden $d_{ih}$ (no spikes → arrival routing)"
+
+    ax.text(-2.0, np.mean(yin), "In", ha="right", va="center", fontsize=7)
+    ax.text(-2.0, np.mean(yhid), "Hid", ha="right", va="center", fontsize=7, color="#1f4e9c")
+    if has_ho:
+        ax.text(-2.0, yout, "Out", ha="right", va="center", fontsize=7, color="#b8860b")
+    ax.set_xlim(-3, T + 0.5)
+    ax.set_ylim(-1.0, yout + 1.0)
+    ax.set_yticks([])
+    ax.set_xlabel("time (ms)", fontsize=7)
+    ax.tick_params(labelsize=6)
+    for s in ("top", "right", "left"):
+        ax.spines[s].set_visible(False)
+    if title:
+        ax.set_title(f"Delay routing mechanism\n{mode}  |  {landed} in readout win",
+                     fontsize=8)
+    return landed
+
+
 def plot_diagnostic_panel(
     traces: dict,
     weights_dict: dict,
@@ -1579,7 +1702,6 @@ def plot_diagnostic_panel(
     Row 2: delay heatmaps (up to 2 panels)
     Row 3: spike raster (left) | layer-to-layer flow (right)
     """
-    from matplotlib.collections import LineCollection
     from matplotlib.gridspec import GridSpec
 
     fig = plt.figure(figsize=(20, 16), constrained_layout=False)
@@ -1769,149 +1891,9 @@ def plot_diagnostic_panel(
     for a in rax[:-1]:
         a.tick_params(labelbottom=False)
 
-    # ── Row 3 right: layer-by-layer directed spike graph ─────────────────
+    # ── Row 3 right: delay-routing mechanism (replaces the dense flow graph) ──
     ax_flow = fig.add_subplot(gs[3, 3:])
-
-    GAP_f    = max(3, s_in.shape[1] // 4 + 1)
-    n_h1     = s_h1.shape[1]
-    y0_in_f  = 0
-    y0_h1_f  = s_in.shape[1] + GAP_f
-    y0_h2_f  = (y0_h1_f + n_h1 + GAP_f) if s_h2 is not None else None
-    y_read_f = (y0_h2_f + s_h2.shape[1] + GAP_f if s_h2 is not None
-                else y0_h1_f + n_h1 + GAP_f)
-
-    def _yf_in(n):  return float(y0_in_f + n)
-    def _yf_h1(n):  return float(y0_h1_f + n)
-    def _yf_h2(n):  return float(y0_h2_f + n) if y0_h2_f is not None else 0.0
-
-    # Spike ticks per layer
-    for n in range(s_in.shape[1]):
-        ts = np.where(s_in[:, n] > 0)[0]
-        if len(ts):
-            ax_flow.scatter(ts, np.full(len(ts), _yf_in(n)),
-                            s=5, color="#333", marker="|", linewidths=0.8, zorder=3)
-    for n in range(n_h1):
-        ts = np.where(s_h1[:, n] > 0)[0]
-        if len(ts):
-            ax_flow.scatter(ts, np.full(len(ts), _yf_h1(n)),
-                            s=5, color="steelblue", marker="|",
-                            linewidths=0.8, zorder=3)
-    if s_h2 is not None:
-        for n in range(s_h2.shape[1]):
-            ts = np.where(s_h2[:, n] > 0)[0]
-            if len(ts):
-                ax_flow.scatter(ts, np.full(len(ts), _yf_h2(n)),
-                                s=5, color="darkorange", marker="|",
-                                linewidths=0.8, zorder=3)
-
-    # ── Fan-shaped delay connections ──────────────────────────────────────
-    # Edges: (t_spike, y_pre, t_arrival, y_post, weight, delay)
-    # Sorted by delay ascending — short-delay lines drawn first (underneath);
-    # long-delay fan lines render on top, making the fan shape prominent.
-    # Excitatory (w>0): orange-red gradient by delay (d=0 → orange, d=max → crimson).
-    # Inhibitory (w<0): thin translucent blue.
-    wt_f = 0.05
-    mx_f = 2500
-
-    d_all_arrs = [delays_dict[k].ravel() for k in ("ih", "h1h2", "ho")
-                  if k in delays_dict]
-    d_max_f = float(np.concatenate(d_all_arrs).max()) if d_all_arrs else 1.0
-    d_max_f = max(d_max_f, 1.0)
-
-    def _panel_edges(spk_tr, pre_yf, post_yf, W, D):
-        edges = []
-        np_, nq = W.shape
-        for i in range(np_):
-            ts_p = np.where(spk_tr[:, i] > 0)[0]
-            if not len(ts_p):
-                continue
-            for j in range(nq):
-                w = float(W[i, j])
-                if abs(w) <= wt_f:
-                    continue
-                d = float(D[i, j])
-                for t in ts_p:
-                    arr = t + d
-                    if 0 <= arr < T_val:
-                        edges.append((float(t), pre_yf(i),
-                                      float(arr), post_yf(j), w, d))
-        return edges
-
-    # Output layer y-positions (for spiking output layer)
-    last_h_spikes = (s_h2 if s_h2 is not None else s_h1)
-    n_last_h = last_h_spikes.shape[1]
-    y0_last_h_f = y0_h2_f if s_h2 is not None else y0_h1_f
-    y0_out_f = y0_last_h_f + n_last_h + GAP_f if "ho" in weights_dict else None
-    def _yf_o(n): return float(y0_out_f + n) if y0_out_f is not None else 0.0
-
-    all_fe = []
-    if "ih" in weights_dict and "ih" in delays_dict:
-        all_fe += _panel_edges(s_in, _yf_in, _yf_h1,
-                               weights_dict["ih"], delays_dict["ih"])
-    if "h1h2" in weights_dict and "h1h2" in delays_dict and s_h2 is not None:
-        all_fe += _panel_edges(s_h1, _yf_h1, _yf_h2,
-                               weights_dict["h1h2"], delays_dict["h1h2"])
-    if "ho" in weights_dict and "ho" in delays_dict and out_spikes is not None:
-        all_fe += _panel_edges(last_h_spikes, _yf_h2 if s_h2 is not None else _yf_h1,
-                               _yf_o, weights_dict["ho"], delays_dict["ho"])
-
-    all_fe.sort(key=lambda e: e[5])   # ascending delay: fan tip on top
-    sel = all_fe[:mx_f]
-
-    if sel:
-        segs_f, cols_f = [], []
-        for e in sel:
-            t0, y0, t1, y1, w, d = e
-            segs_f.append([(t0, y0), (t1, y1)])
-            if w > 0:
-                dn = min(d / d_max_f, 1.0)   # 0=small delay, 1=large delay
-                cols_f.append((1.0, 0.35 * (1.0 - dn), 0.0, 0.28))
-            else:
-                cols_f.append((0.1, 0.3, 0.9, 0.10))
-        ax_flow.add_collection(
-            LineCollection(segs_f, colors=cols_f, linewidths=0.9, zorder=2))
-
-    # Draw output spikes in flow graph if spiking output layer present
-    if out_spikes is not None and y0_out_f is not None:
-        n_out_s = out_spikes.shape[1]
-        for n in range(n_out_s):
-            ts = np.where(out_spikes[:, n] > 0)[0]
-            if len(ts):
-                ax_flow.scatter(ts, np.full(len(ts), _yf_o(n)),
-                                s=5, color="#2ca02c", marker="|",
-                                linewidths=0.9, zorder=3)
-
-    # Layer band shading and labels
-    bds = [(y0_in_f - 0.6, y0_in_f + s_in.shape[1] - 0.4, "royalblue", "Input"),
-           (y0_h1_f - 0.6, y0_h1_f + n_h1 - 0.4,          "steelblue", "Hidden")]
-    if s_h2 is not None and y0_h2_f is not None:
-        bds.append((y0_h2_f - 0.6, y0_h2_f + s_h2.shape[1] - 0.4,
-                    "sandybrown", "H2"))
-    if out_spikes is not None and y0_out_f is not None:
-        n_out_s = out_spikes.shape[1]
-        bds.append((y0_out_f - 0.6, y0_out_f + n_out_s - 0.4,
-                    "#2ca02c", "Output"))
-    for yb, yt, col, lbl in bds:
-        ax_flow.axhspan(yb, yt, alpha=0.07, color=col)
-        ax_flow.text(-1.5, (yb + yt) / 2, lbl, ha="right", va="center",
-                     fontsize=7, fontweight="bold", color=col)
-
-    y_top = (y0_out_f + out_spikes.shape[1] + 1
-             if (out_spikes is not None and y0_out_f is not None)
-             else y_read_f + 1.2)
-    ax_flow.axvspan(0, wl, alpha=0.05, color="royalblue")
-    ax_flow.axvspan(wl, wl + rl, alpha=0.08, color="tomato")
-    if sw and K_val > 1:
-        for k in range(K_val):
-            ax_flow.axvline(k * sw, color=COLORS_t10[k % len(COLORS_t10)],
-                            ls=":", lw=0.8, alpha=0.6)
-    ax_flow.set_xlim(-2, T_val)
-    ax_flow.set_ylim(y0_in_f - 1, y_top)
-    ax_flow.set_yticks([])
-    ax_flow.set_xlabel("Timestep (ms)", fontsize=7)
-    ax_flow.set_title("Layer-by-Layer Directed Spike Graph\n"
-                      "(red=excitatory, fan width = delay range)", fontsize=8.5)
-    ax_flow.tick_params(labelsize=6)
+    draw_mechanism_on_ax(ax_flow, traces, weights_dict, delays_dict, title=True)
 
     _ensure_dir(save_path)
     fig.savefig(save_path, dpi=110, bbox_inches="tight")

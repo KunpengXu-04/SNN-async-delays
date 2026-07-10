@@ -303,6 +303,13 @@ class SimultaneousTrainer:
             spk_mean = info["total_hidden_spikes"].mean()
             loss = loss + self.cfg["spike_penalty"] * spk_mean
 
+        # Homeostatic firing-rate regulariser: pull EACH hidden neuron's firing rate
+        # toward a small target rate. Revives dead neurons (fixes P1/P2 at a high,
+        # sparse threshold) AND caps over-firing -> "sparse AND trainable".
+        if self.cfg.get("homeo_lambda", 0.0) > 0 and "hidden_rate" in info:
+            target = self.cfg.get("homeo_target", 0.02)
+            loss = loss + self.cfg["homeo_lambda"] * ((info["hidden_rate"] - target) ** 2).mean()
+
         if self.cfg.get("delay_penalty", 0.0) > 0:
             loss = loss + self.cfg["delay_penalty"] * self.model.delay_regularization()
 

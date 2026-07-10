@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 import sys
+from functools import partial
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -34,6 +35,7 @@ from utils.seed import set_seed
 from utils.logger import setup_logger
 from utils.viz import (
     plot_training_curves, plot_delay_distribution, plot_delay_histogram,
+    save_run_diagnostic_plots,
 )
 
 
@@ -55,6 +57,9 @@ BASE_CFG = {
     "epochs": 200,
     "spike_penalty": 0.0,
     "delay_penalty": 0.0,
+    "homeo_lambda": 0.0,      # homeostatic firing-rate reg strength (0 = off)
+    "homeo_target": 0.005,    # target per-neuron rate = target rho (spikes/neuron/step);
+                              # 0.005 ~ the sparse regime (rho of thr=0.5, well below rate)
     "grad_clip": 1.0,
     "r_on": 400.0,
     "r_off": 10.0,
@@ -73,9 +78,32 @@ CONDITIONS = [
     {"name": "d0",       "train_mode": "weights_only",        "fixed_delay_value": 0.0},
 ]
 
-DEFAULT_H_VALUES = [10, 20, 30, 50, 75, 100]
-DEFAULT_K_VALUES = [1, 2, 3, 4, 5]
+# Burst params proven in Section 29 (value=1 -> 2 spikes @ phase 0.20; value=0 -> 1 spike @ 0.80).
+# Ignored when encoding_mode == "rate".
+BURST_PARAMS = {
+    "burst_n_spikes_on":  2,
+    "burst_n_spikes_off": 1,
+    "burst_phase_on":     0.20,
+    "burst_phase_off":    0.80,
+    "burst_jitter_ms":    0,
+}
+
+DEFAULT_H_VALUES = [10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 125, 150, 200]
+DEFAULT_K_VALUES = [1, 2, 3, 4, 5, 6, 8]
 DEFAULT_SEEDS    = [42, 0]
+
+
+def build_encode_fn(base_encode, cfg):
+    """Wrap the sequential encoder with the encoding_mode + burst params from cfg."""
+    return partial(
+        base_encode,
+        encoding_mode     = cfg.get("encoding_mode", "rate"),
+        burst_n_spikes_on = cfg.get("burst_n_spikes_on",  BURST_PARAMS["burst_n_spikes_on"]),
+        burst_n_spikes_off= cfg.get("burst_n_spikes_off", BURST_PARAMS["burst_n_spikes_off"]),
+        burst_phase_on    = cfg.get("burst_phase_on",     BURST_PARAMS["burst_phase_on"]),
+        burst_phase_off   = cfg.get("burst_phase_off",    BURST_PARAMS["burst_phase_off"]),
+        burst_jitter_ms   = cfg.get("burst_jitter_ms",    BURST_PARAMS["burst_jitter_ms"]),
+    )
 
 
 def run_single(cfg, K, h, condition, seed, device, runs_dir, dry_run=False):
@@ -83,7 +111,18 @@ def run_single(cfg, K, h, condition, seed, device, runs_dir, dry_run=False):
     win_len  = K * sub_win
     d_max    = win_len
     cname    = condition["name"]
-    run_name = f"planD_sweep_{cfg['op_name']}_{cname}_h{h}_K{K}_sw{sub_win}_seed{seed}"
+    # Match the 2026-06 rename convention (wad/d0) so [SKIP] reuses the existing
+    # runs/NAND_neuron_sweep_(planD) rate cells instead of retraining them.
+    cname_short = {"w_and_d": "wad"}.get(cname, cname)
+    # NAND keeps its bare name (backward-compatible reuse); other ops get an op
+    # prefix so different ops can share a folder without run-name collisions.
+    op_tag = "" if cfg["op_name"] == "NAND" else f"{cfg['op_name']}_"
+    # tag non-default threshold + homeo so tuning sweeps can share one folder
+    thr = cfg.get("lif_threshold", 1.0)
+    thr_tag = "" if abs(thr - 1.0) < 1e-9 else f"_thr{thr}"
+    hl = cfg.get("homeo_lambda", 0.0)
+    homeo_tag = "" if not hl else f"_hl{hl}t{cfg.get('homeo_target', 0.005)}"
+    run_name = f"{op_tag}{cname_short}_h{h}_K{K}_sw{sub_win}_seed{seed}{thr_tag}{homeo_tag}"
     run_dir  = os.path.join(runs_dir, run_name)
     eval_path = os.path.join(run_dir, "eval_results.json")
 
@@ -140,9 +179,10 @@ def run_single(cfg, K, h, condition, seed, device, runs_dir, dry_run=False):
         readout_type     = run_cfg["readout_type"],
     )
 
+    encode_fn = build_encode_fn(encode_sequential_trial, run_cfg)
     trainer = SimultaneousTrainer(
         model, run_cfg, run_dir, device,
-        encode_fn=encode_sequential_trial,
+        encode_fn=encode_fn,
     )
     trainer.save_config({
         **run_cfg, **condition,
@@ -152,16 +192,18 @@ def run_single(cfg, K, h, condition, seed, device, runs_dir, dry_run=False):
         make_loader("train"), make_loader("val"), run_cfg["epochs"]
     )
     model.load_state_dict(
-        torch.load(os.path.join(run_dir, "best_model.pt"), map_location=device)
+        torch.load(os.path.join(run_dir, "best_model.pt"), map_location=device,
+                   weights_only=True)
     )
     results = evaluate_simultaneous(
         model, make_loader("test"), run_cfg, device,
-        encode_fn=encode_sequential_trial,
+        encode_fn=encode_fn,
     )
     results.update({
         "op": run_cfg["op_name"], "condition": cname,
         "train_mode": condition["train_mode"],
         "hidden_size": h, "K": K, "sub_win": sub_win,
+        "encoding_mode": run_cfg.get("encoding_mode", "rate"),
         "experiment": "planD_h_sweep",
     })
     save_eval_results(results, eval_path)
@@ -173,18 +215,41 @@ def run_single(cfg, K, h, condition, seed, device, runs_dir, dry_run=False):
     plot_delay_histogram(d_ih, os.path.join(plot_dir, "delays_ih_hist.png"),
                          title=f"Delays {run_name}")
 
+    # Full per-run diagnostic set (panel / spike flow / weight & delay heatmaps /
+    # diagnostic_data.npz), encoding-aware via cfg["encoding_mode"]. Non-fatal so a
+    # plotting error never aborts a long sweep.
+    if not cfg.get("no_diag", False):
+        try:
+            save_run_diagnostic_plots(
+                model=model,
+                cfg={**run_cfg, **condition, "K": K, "n_input": 2, "sub_win": sub_win},
+                log_rows=log_rows, eval_results=results, run_dir=run_dir,
+                K=K, op=run_cfg["op_name"], device=device, seed=999,
+            )
+            # Mechanism figure (input->hidden d_ih routing) replaces the dense
+            # weight-fan spike flow for these MLP-readout cells.
+            from scripts.plot_burst_mechanism import plot_run_mechanism
+            plot_run_mechanism(run_dir)
+            flow = os.path.join(plot_dir, "layer_to_layer_spike_flow_sample0.png")
+            if os.path.exists(flow):
+                os.remove(flow)
+        except Exception as exc:
+            logger.warning(f"  diagnostic plots failed: {exc}")
+
     logger.info(f"  acc={results['accuracy']:.4f}  K/spk={results['throughput_K_per_spk']:.4f}")
     return results
 
 
-def aggregate_summary(results_by_h_K, K_values, h_values, tau_values=(0.95, 0.90)):
+def aggregate_summary(results_by_h_K, K_values, h_values, tau_values=(0.95, 0.90),
+                      conditions=None):
     """
     Build summary JSON from collected results.
 
     results_by_h_K: { (h, K, cond, seed): result_dict }
+    conditions: list of condition dicts to summarise (default: all CONDITIONS).
     """
     summary = {}
-    for cond in CONDITIONS:
+    for cond in (conditions or CONDITIONS):
         cname = cond["name"]
         summary[cname] = {"min_h_by_K_tau": {}, "results": {}}
         for tau in tau_values:
@@ -223,40 +288,121 @@ def main():
                         help="Override training epochs")
     parser.add_argument("--dry_run",   action="store_true",
                         help="Print run list without training")
+    parser.add_argument("--runs_dir",  default=None,
+                        help="Output folder under runs/ (default: planD_h_sweep). "
+                             "Absolute paths are used as-is. Point at an existing folder "
+                             "to reuse its completed cells via [SKIP].")
+    parser.add_argument("--encoding_mode", default="rate",
+                        choices=["rate", "burst", "burst_jitter"],
+                        help="Input encoding for the sweep (default: rate).")
+    parser.add_argument("--no_diag", action="store_true",
+                        help="Skip the per-run diagnostic plot set (faster; keeps "
+                             "only training_curves + delay plots).")
+    parser.add_argument("--op", default=None,
+                        help="Single boolean op for same_op runs (default: NAND). "
+                             "Must be in ops_list, e.g. XOR, XNOR, AND.")
+    parser.add_argument("--conditions", nargs="+", default=["w_and_d", "d0"],
+                        choices=["w_and_d", "d0"],
+                        help="Which training conditions to run (default: both).")
+    parser.add_argument("--d0_h", type=int, nargs="+", default=None,
+                        help="Sparse hidden sizes used ONLY for the d0 control "
+                             "(default: same as --h_values). d0 never crosses the "
+                             "threshold, so a few h suffice as the flat-line control.")
+    parser.add_argument("--lif_threshold", type=float, nargs="+", default=None,
+                        help="Hidden LIF firing threshold(s), default 1.0. Lower it "
+                             "(e.g. 0.3) for sparse burst so the net fires at init and "
+                             "low-K can train. Pass MULTIPLE values (e.g. 0.3 0.4 0.5) "
+                             "to run a tuning sweep in one folder (threshold tagged in "
+                             "the run name; per-cell evals record spk/tr for the "
+                             "accuracy-vs-sparsity tradeoff). Use the SAME single value "
+                             "for the NAND comparison run.")
+    parser.add_argument("--homeo_lambda", type=float, default=None,
+                        help="Homeostatic firing-rate reg strength (default 0 = off). "
+                             "Pulls each hidden neuron's rate toward --homeo_target so "
+                             "the net can fire+train at a HIGH (sparse) threshold "
+                             "without dying. Try 0.5-5.0.")
+    parser.add_argument("--homeo_target", type=float, default=None,
+                        help="Target per-neuron firing rate (spikes/neuron/step) for "
+                             "the homeostatic reg (default 0.02).")
     args = parser.parse_args()
 
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    runs_dir = os.path.join(base, "runs", "planD_h_sweep")
+    if args.runs_dir is None:
+        runs_dir = os.path.join(base, "runs", "planD_h_sweep")
+    elif os.path.isabs(args.runs_dir):
+        runs_dir = args.runs_dir
+    else:
+        runs_dir = os.path.join(base, args.runs_dir) \
+            if args.runs_dir.startswith("runs") \
+            else os.path.join(base, "runs", args.runs_dir)
     os.makedirs(runs_dir, exist_ok=True)
 
     cfg = dict(BASE_CFG)
+    cfg["encoding_mode"] = args.encoding_mode
+    cfg["no_diag"] = args.no_diag
+    thr_list = args.lif_threshold if args.lif_threshold else [BASE_CFG["lif_threshold"]]
+    multi_thr = len(thr_list) > 1
+    if args.homeo_lambda is not None:
+        cfg["homeo_lambda"] = args.homeo_lambda
+    if args.homeo_target is not None:
+        cfg["homeo_target"] = args.homeo_target
+    if args.op:
+        if args.op not in cfg["ops_list"]:
+            parser.error(f"--op {args.op} not in ops_list {cfg['ops_list']}")
+        cfg["op_name"] = args.op
+    if args.encoding_mode in ("burst", "burst_jitter"):
+        cfg.update(BURST_PARAMS)
+        if args.encoding_mode == "burst_jitter":
+            cfg["burst_jitter_ms"] = 1
     if args.epochs:
         cfg["epochs"] = args.epochs
 
-    total = len(args.h_values) * len(args.K_values) * len(CONDITIONS) * len(args.seeds)
+    sel_conds = [c for c in CONDITIONS if c["name"] in args.conditions]
+
+    def h_for(cname):
+        return args.d0_h if (cname == "d0" and args.d0_h) else args.h_values
+
+    all_h = sorted({h for c in sel_conds for h in h_for(c["name"])})
+    total = sum(len(h_for(c["name"])) for c in sel_conds) \
+        * len(args.K_values) * len(args.seeds) * len(thr_list)
+
     print(f"Plan D h-sweep: {total} runs")
-    print(f"  h     = {args.h_values}")
-    print(f"  K     = {args.K_values}")
-    print(f"  conds = {[c['name'] for c in CONDITIONS]}")
-    print(f"  seeds = {args.seeds}")
-    print(f"  device= {args.device}")
+    print(f"  op       = {cfg['op_name']}")
+    print(f"  h        = {args.h_values}")
+    if args.d0_h:
+        print(f"  d0_h     = {args.d0_h}  (d0 control only)")
+    print(f"  K        = {args.K_values}")
+    print(f"  conds    = {[c['name'] for c in sel_conds]}")
+    print(f"  seeds    = {args.seeds}")
+    print(f"  thresh   = {thr_list}" + ("  (tuning sweep; summary skipped)" if multi_thr else ""))
+    print(f"  encoding = {args.encoding_mode}")
+    print(f"  runs_dir = {runs_dir}")
+    print(f"  device   = {args.device}")
     print()
 
     results_by_h_K = {}
     run_idx = 0
-    for cond in CONDITIONS:
-        for h in args.h_values:
+    for cond in sel_conds:
+        for h in h_for(cond["name"]):
             for K in args.K_values:
-                for seed in args.seeds:
-                    run_idx += 1
-                    print(f"[{run_idx}/{total}] h={h} K={K} cond={cond['name']} seed={seed}")
-                    r = run_single(cfg, K, h, cond, seed, args.device,
-                                   runs_dir, dry_run=args.dry_run)
-                    results_by_h_K[(h, K, cond["name"], seed)] = r
+                for thr in thr_list:
+                    cfg["lif_threshold"] = thr
+                    for seed in args.seeds:
+                        run_idx += 1
+                        print(f"[{run_idx}/{total}] op={cfg['op_name']} h={h} K={K} "
+                              f"cond={cond['name']} thr={thr} seed={seed}")
+                        r = run_single(cfg, K, h, cond, seed, args.device,
+                                       runs_dir, dry_run=args.dry_run)
+                        if not multi_thr:
+                            results_by_h_K[(h, K, cond["name"], seed)] = r
 
-    if not args.dry_run:
+    if multi_thr:
+        print("\nMulti-threshold tuning sweep: per-run evals + configs saved "
+              "(threshold in run name & config.json). Min-h summary skipped "
+              "(mixes thresholds). Compare thresholds from the per-run evals.")
+    elif not args.dry_run:
         summary = aggregate_summary(
-            results_by_h_K, args.K_values, args.h_values
+            results_by_h_K, args.K_values, all_h, conditions=sel_conds
         )
         summary_path = os.path.join(runs_dir, "planD_h_sweep_summary.json")
         with open(summary_path, "w", encoding="utf-8") as f:
@@ -269,8 +415,8 @@ def main():
         for K in args.K_values:
             h_wd = summary.get("w_and_d", {}).get("min_h_by_K_tau", {}).get("0.9", {}).get(str(K))
             h_d0 = summary.get("d0",      {}).get("min_h_by_K_tau", {}).get("0.9", {}).get(str(K))
-            h_wd_str = str(h_wd) if h_wd is not None else f">{max(args.h_values)}"
-            h_d0_str = str(h_d0) if h_d0 is not None else f">{max(args.h_values)}"
+            h_wd_str = str(h_wd) if h_wd is not None else f">{max(all_h)}"
+            h_d0_str = str(h_d0) if h_d0 is not None else f">{max(all_h)}"
             print(f"{K:>4}  {h_wd_str:>10}  {h_d0_str:>10}")
 
         print(f"\nNext step: python -m scripts.plot_k_vs_neurons --summary {summary_path}")

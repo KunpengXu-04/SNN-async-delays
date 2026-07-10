@@ -494,6 +494,11 @@ class SNNSimultaneousModel(nn.Module):
             total_h_spk      = torch.zeros(B, device=device)
             hidden_fired_any = torch.zeros(B, self.n_hidden, device=device)
 
+        # Differentiable per-neuron spike accumulators (for homeostatic firing-rate reg)
+        spk_pn1 = torch.zeros(B, self.n_hidden, device=device)
+        spk_pn2 = (torch.zeros(B, self.n_hidden2, device=device)
+                   if self._num_layers == 2 else None)
+
         # Optional full spike-train recording (last hidden layer + h1 for 2-layer)
         hidden_train: list = [] if record else None  # type: ignore[assignment]
         h1_train:     list = [] if (record and self._num_layers == 2) else None  # type: ignore[assignment]
@@ -526,6 +531,8 @@ class SNNSimultaneousModel(nn.Module):
 
                 total_h1_spk = total_h1_spk + spike_h.sum(dim=1)
                 total_h2_spk = total_h2_spk + spike_h2.sum(dim=1)
+                spk_pn1 = spk_pn1 + spike_h
+                spk_pn2 = spk_pn2 + spike_h2
                 h1_fired_any = torch.maximum(h1_fired_any, (spike_h  > 0).float())
                 h2_fired_any = torch.maximum(h2_fired_any, (spike_h2 > 0).float())
 
@@ -540,6 +547,7 @@ class SNNSimultaneousModel(nn.Module):
                     spike_last_h = spike_h2
             else:
                 total_h_spk      = total_h_spk + spike_h.sum(dim=1)
+                spk_pn1          = spk_pn1 + spike_h
                 hidden_fired_any = torch.maximum(hidden_fired_any, (spike_h > 0).float())
 
                 if t >= self.win_len:
@@ -577,6 +585,8 @@ class SNNSimultaneousModel(nn.Module):
                 "active_hidden_neurons":  active_h2,
                 "active_hidden_fraction": active_h2 / float(self.n_hidden2),
                 "trial_steps":            T,
+                # differentiable per-neuron firing rate (both layers) for homeo reg
+                "hidden_rate": torch.cat([spk_pn1.mean(dim=0), spk_pn2.mean(dim=0)]) / float(T),
             }
         else:
             active_hidden_neurons = hidden_fired_any.sum(dim=1)
@@ -585,6 +595,8 @@ class SNNSimultaneousModel(nn.Module):
                 "active_hidden_neurons":  active_hidden_neurons,
                 "active_hidden_fraction": active_hidden_neurons / float(self.n_hidden),
                 "trial_steps":            T,
+                # differentiable per-neuron firing rate [n_hid] for homeo reg
+                "hidden_rate": spk_pn1.mean(dim=0) / float(T),
             }
 
         if self.use_output_spikes:

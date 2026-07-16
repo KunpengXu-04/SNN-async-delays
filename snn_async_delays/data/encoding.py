@@ -44,6 +44,63 @@ def _burst_times(value: bool, sub_win: int,
     return sorted(set(max(0, min(sub_win - 1, t)) for t in times))
 
 
+def _jittered_burst_times(
+    base_times: list[int], batch_size: int, jitter: int, width: int, device: str
+) -> torch.Tensor:
+    """Jitter a burst without silently deleting spikes through time collisions.
+
+    The previous implementation independently jittered each spike and wrote
+    into a binary tensor.  When two jittered times coincided, assignment merged
+    them, so a nominal two-spike ``1`` sometimes became a one-spike input.  The
+    resulting perturbation changed both timing *and* spike count.  Here each
+    event is sampled from its legal jitter neighbourhood excluding times already
+    occupied by the same burst.  A configuration requiring more unique events
+    than time bins is rejected explicitly.
+    """
+    if len(base_times) > width:
+        raise ValueError("Burst has more events than available time bins")
+    result = torch.empty(batch_size, len(base_times), dtype=torch.long, device=device)
+    for b in range(batch_size):
+        used: set[int] = set()
+        for index, base in enumerate(base_times):
+            candidates = [
+                t for t in range(max(0, base - jitter), min(width - 1, base + jitter) + 1)
+                if t not in used
+            ]
+            if not candidates:
+                # This can only occur under an unusually dense burst.  Fall
+                # back to any unused bin rather than silently changing count.
+                candidates = [t for t in range(width) if t not in used]
+            choice = candidates[torch.randint(len(candidates), (1,), device=device).item()]
+            result[b, index] = choice
+            used.add(choice)
+    return result
+
+
+def _write_burst(
+    spike_input: torch.Tensor,
+    mask: torch.Tensor,
+    base_times: list[int],
+    start: int,
+    channel: int,
+    jitter: int,
+    width: int,
+) -> None:
+    """Write one binary burst per selected sample, preserving event count."""
+    if not bool(mask.any()):
+        return
+    if jitter == 0:
+        for t in base_times:
+            spike_input[mask, start + t, channel] = 1.0
+        return
+    times = _jittered_burst_times(
+        base_times, spike_input.shape[0], jitter, width, str(spike_input.device)
+    )
+    batch_indices = mask.nonzero(as_tuple=True)[0]
+    for event in range(len(base_times)):
+        spike_input[batch_indices, start + times[batch_indices, event], channel] = 1.0
+
+
 def encode_trial(
     A_batch: torch.Tensor,          # [B, K]  float
     B_batch: torch.Tensor,          # [B, K]  float
@@ -124,12 +181,17 @@ def encode_simultaneous_trial(
     burst_phase_on: float    = 0.2,
     burst_phase_off: float   = 0.8,
     burst_jitter_ms: int     = 1,
+    one_hot_phase: float     = 1.0,
+    one_hot_n_spikes: int    = 1,
     **kwargs,   # absorbs op_ids/n_ops passed by Step-3-aware callers
 ) -> torch.Tensor:
     """
-    Encode K queries simultaneously with 2K dedicated input channels.
+    Encode K queries simultaneously with dedicated input channels.
 
-    Channel layout: [A_0, B_0, A_1, B_1, ..., A_{K-1}, B_{K-1}]
+    The historical rate/burst modes use 2K channels laid out as
+    `[A_0,B_0,A_1,B_1,...]`. ``binary_one_hot`` uses 4K channels laid out as
+    `[A0,A1,B0,B1]` per query and emits exactly `2*one_hot_n_spikes` events per
+    query, independent of the bit values.
 
     Timeline:
       [0, win_len)              : spikes from all 2K channels.
@@ -140,6 +202,10 @@ def encode_simultaneous_trial(
       "burst"        : deterministic burst at fixed phase positions
       "burst_jitter" : burst with per-sample uniform jitter ±burst_jitter_ms
 
+    ``binary_one_hot`` places both selected value-channel events at the same
+    declared phase. It is the neutral spatial-vs-temporal Pareto input code:
+    value identity is spatial while query scheduling remains the treatment.
+
     Returns
     -------
     spike_input : [B, T, 2K]  where T = win_len + read_len
@@ -147,6 +213,23 @@ def encode_simultaneous_trial(
     B = A_batch.shape[0]
     K = A_batch.shape[1]
     T = win_len + read_len
+
+    if encoding_mode == "binary_one_hot":
+        spike_input = torch.zeros(B, T, 4 * K, device=device)
+        if int(one_hot_n_spikes) <= 0:
+            raise ValueError("one_hot_n_spikes must be positive")
+        event_times = _burst_times(
+            True, win_len, int(one_hot_n_spikes), int(one_hot_n_spikes),
+            float(one_hot_phase), float(one_hot_phase),
+        )
+        batch_index = torch.arange(B, device=device)
+        for query in range(K):
+            a_channel = 4 * query + A_batch[:, query].to(device).long().clamp(0, 1)
+            b_channel = 4 * query + 2 + B_batch[:, query].to(device).long().clamp(0, 1)
+            for event_time in event_times:
+                spike_input[batch_index, event_time, a_channel] = 1.0
+                spike_input[batch_index, event_time, b_channel] = 1.0
+        return spike_input
 
     # Interleave A and B: [A_0, B_0, A_1, B_1, ...]
     AB = torch.stack([A_batch.to(device), B_batch.to(device)], dim=2)  # [B, K, 2]
@@ -171,14 +254,8 @@ def encode_simultaneous_trial(
         for ch in range(2 * K):
             mask_on  = (AB[:, ch] > 0.5)   # [B]
             mask_off = ~mask_on
-            for t_base, mask in ([(t, mask_on) for t in times_on]
-                                  + [(t, mask_off) for t in times_off]):
-                if jitter > 0:
-                    t_jit = (t_base + torch.randint(-jitter, jitter + 1, (B,), device=spike_input.device)).clamp(0, win_len - 1)
-                    b_idx = mask.nonzero(as_tuple=True)[0]
-                    spike_input[b_idx, t_jit[b_idx], ch] = 1.0
-                else:
-                    spike_input[mask, t_base, ch] = 1.0
+            _write_burst(spike_input, mask_on, times_on, 0, ch, jitter, win_len)
+            _write_burst(spike_input, mask_off, times_off, 0, ch, jitter, win_len)
 
     return spike_input
 
@@ -263,14 +340,8 @@ def encode_sequential_trial(
             for ch, val_tensor in enumerate([A_k, B_k]):
                 mask_on  = (val_tensor > 0.5)   # [B]
                 mask_off = ~mask_on
-                for t_base, mask in ([(t, mask_on) for t in times_on]
-                                      + [(t, mask_off) for t in times_off]):
-                    if jitter > 0:
-                        t_jit = (t_base + torch.randint(-jitter, jitter + 1, (B,), device=spike_input.device)).clamp(0, wl - 1)
-                        b_idx = mask.nonzero(as_tuple=True)[0]
-                        spike_input[b_idx, t_start + t_jit[b_idx], ch] = 1.0
-                    else:
-                        spike_input[mask, t_start + t_base, ch] = 1.0
+                _write_burst(spike_input, mask_on, times_on, t_start, ch, jitter, wl)
+                _write_burst(spike_input, mask_off, times_off, t_start, ch, jitter, wl)
 
         # One-hot op encoding (Step 3) — always rate-coded
         if n_ops > 0 and op_ids is not None:

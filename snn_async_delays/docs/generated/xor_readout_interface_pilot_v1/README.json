@@ -1,0 +1,7 @@
+{
+  "protocol_id": "xor_readout_interface_pilot_v1",
+  "expected_total_cells": 36,
+  "completed_cells": 36,
+  "complete": true,
+  "interpretation": "Exploratory mechanism pilot only. Figures are written only when every plotted group has all preregistered seeds."
+}

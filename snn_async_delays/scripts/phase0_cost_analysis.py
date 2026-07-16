@@ -1,4 +1,12 @@
 """
+LEGACY / DO NOT USE FOR NEW CLAIMS.
+
+This script predates protocol v0.1.  It pools heterogeneous historical runs,
+uses pooled accuracy, and contains a deliberately simplified cost proxy.  Its
+existing figures are archival diagnostics only; see docs/METRICS_AND_COST.md
+and scripts/build_experiment_registry.py before building a replacement
+analysis.
+
 Phase 0 -- Retrospective cost-law analysis (no model re-run).
 
 Motivated by the supervisor's whiteboard framework:
@@ -62,9 +70,16 @@ def _total_hidden(ev, cfg):
 
 
 def _timesteps(ev, cfg):
-    """T = win_len + read_len (Plan D / step1 share this convention)."""
+    """Prefer recorded T; otherwise account for serial Plan-D subwindows."""
+    for source in (ev, cfg):
+        if source.get("trial_steps") is not None:
+            return int(source["trial_steps"])
+    K = ev.get("K", cfg.get("K", cfg.get("n_queries")))
+    sub_win = ev.get("sub_win", cfg.get("sub_win"))
     win = ev.get("win_len", cfg.get("win_len"))
     read = cfg.get("read_len", ev.get("read_len"))
+    if K is not None and sub_win is not None and read is not None:
+        return int(K) * int(sub_win) + int(read)
     if win is None or read is None:
         return None
     return int(win) + int(read)
@@ -80,7 +95,9 @@ def _delay_active(ev, cfg):
     if fdv == 0 or fdv == 0.0:
         return False
     if tm == "weights_only":
-        return False
+        # weights-only can still use a non-zero *fixed* delay; do not label it
+        # as d0 merely because the delay parameter is frozen.
+        return fdv not in (None, 0, 0.0)
     # weights_and_delays / delays_only -> delays active
     return tm in ("weights_and_delays", "delays_only")
 

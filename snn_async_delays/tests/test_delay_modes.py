@@ -86,8 +86,23 @@ class DelayModeTests(unittest.TestCase):
             fixed_delay_value=0.0,
         )
         out = evaluate(model, loader, slots, cfg, device="cpu")
-        expected = K / out["mean_hidden_spikes"] if out["mean_hidden_spikes"] > 0 else float("nan")
-        self.assertAlmostEqual(out["throughput_K_per_spk"], expected, places=7)
+        if out["mean_hidden_spikes"] > 0:
+            expected = K / out["mean_hidden_spikes"]
+            self.assertAlmostEqual(out["throughput_K_per_spk"], expected, places=7)
+        else:
+            self.assertIsNone(out["throughput_K_per_spk"])
+
+    def test_position_sensitive_metrics(self):
+        from train.eval import _reliability_metrics
+
+        # Pooled accuracy is 75%, yet query 0 is entirely wrong.  A valid
+        # multiplexing metric must expose this rather than averaging it away.
+        preds = torch.tensor([[0., 0.], [0., 1.], [0., 0.], [0., 1.]])
+        labels = torch.tensor([[1., 0.], [1., 1.], [1., 0.], [1., 1.]])
+        metrics = _reliability_metrics(preds, labels)
+        self.assertEqual(metrics["accuracy"], 0.5)
+        self.assertEqual(metrics["worst_query_accuracy"], 0.0)
+        self.assertEqual(metrics["exact_trial_accuracy"], 0.0)
 
 
 if __name__ == "__main__":

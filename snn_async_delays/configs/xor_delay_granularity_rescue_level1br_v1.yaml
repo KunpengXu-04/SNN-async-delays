@@ -1,0 +1,274 @@
+protocol_id: xor_delay_granularity_rescue_level1br_v1
+status: complete
+preregistered_at: 2026-07-16
+study_class: diagnostic_dimension_aware_optimization_rescue
+parent_protocol: xor_delay_granularity_level1b_v1
+panel_label: Level 1B-R
+
+question: >
+  Does the Level-1B failure of per-hidden-neuron and per-synapse delay recovery
+  arise from the preregistered mean scaffold weakening each coordinate by 1/P,
+  and can analytically matched per-coordinate supervision recover those
+  granularities without changing the K=1 XOR interface?
+
+claim_boundary:
+  positive_claim: >
+    A named higher-dimensional delay parameterization can recover a homogeneous
+    delay-4 schedule under explicitly dimension-matched oracle supervision and
+    retain the exact K=1 hard-spike XOR interface on sealed initialization seeds.
+  explicitly_not_supported:
+    - autonomous task-derived timing or routing discovery
+    - heterogeneous delay specialization
+    - consecutive micro-burst robustness
+    - K greater than one or temporal multiplexing
+    - WAD superiority
+    - task or dataset generalization
+    - compression, energy savings, or a Pareto law
+
+task:
+  operation: XOR
+  K: 1
+  truth_patterns: 4
+  training_batch: exhaustive_truth_table_full_batch
+  checkpoint_selection: final_only
+  test_split_opened: false
+
+model:
+  architecture: 4_to_16_to_2_class_opponent_spiking
+  hidden_neurons: 16
+  output_neurons: 2
+  d_max_steps: 8
+  input_hidden_delay_parameterization: sigmoid
+  delay_granularities:
+    - name: global
+      tying: global
+      independent_delay_parameters: 1
+    - name: per_hidden_neuron
+      tying: post_neuron
+      independent_delay_parameters: 16
+    - name: per_synapse
+      tying: pair
+      independent_delay_parameters: 64
+  output_delay_mode: d0
+  hidden_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.2
+    reset_au: 0.0
+    refractory_steps: 2
+  output_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.03
+    reset_au: 0.0
+    refractory_steps: 2
+  surrogate_beta: 4.0
+  dt_steps: 1.0
+  units_note: membrane_and_threshold_values_are_dimensionless_simulator_arbitrary_units
+
+timing:
+  input_window_steps: 10
+  read_window_steps: 10
+  total_steps: 20
+  target_delay_steps: 4.0
+  output_target_step: 15
+  effective_layer_delay_formula: emitted_step_plus_nominal_delay_plus_one
+
+encodings:
+  single_event:
+    mode: binary_one_hot
+    selected_channel_events: 1
+    event_steps: [9]
+    events_per_trial: 2
+
+losses:
+  filtered_hard_spike:
+    weight: 1.0
+    filter_tau_steps: 3.0
+  per_parameter_arrival_centroid:
+    base_lambda: 0.01
+    mean_formula: half_mean_squared_error_over_independent_parameter_arrival_centroids
+    dimension_matched_formula: base_lambda_times_P_times_mean_loss
+    equivalent_formula: base_lambda_times_sum_of_per_coordinate_half_squared_errors
+    target_delay_steps: 4.0
+    interpretation: explicit_oracle_timing_teacher_not_task_derived_routing
+  total_formula: filtered_hard_spike_plus_effective_lambda_times_mean_arrival_centroid_loss
+
+optimization:
+  optimizer: Adam
+  weight_learning_rate: 0.01
+  delay_learning_rate: 0.01
+  full_batch_updates: 500
+  learned_delay_initial_raw_values: [-2.0, 2.0]
+  gradient_clip_norm: 1.0
+  r1_calibration_seeds: [1123, 1229, 1321, 1427, 1523]
+  r2_budget_calibration_seeds: [1601, 1693, 1789]
+  r3_sealed_confirmation_seeds: [2003, 2011, 2027, 2039, 2053]
+  seed_policy: all_sets_disjoint_from_each_other_and_from_level1a_level1b
+
+stage_r1_dimension_normalization:
+  status: complete
+  role: analytic_normalization_test_and_provisional_recipe_selection
+  conditions:
+    - name: global_anchor
+      granularity: global
+      tying: global
+      independent_delay_parameters: 1
+      normalization_factor: 1.0
+      effective_lambda: 0.01
+    - name: per_hidden_mean_baseline
+      granularity: per_hidden_neuron
+      tying: post_neuron
+      independent_delay_parameters: 16
+      normalization_factor: 1.0
+      effective_lambda: 0.01
+    - name: per_hidden_coordinate_matched
+      granularity: per_hidden_neuron
+      tying: post_neuron
+      independent_delay_parameters: 16
+      normalization_factor: 16.0
+      effective_lambda: 0.16
+    - name: per_synapse_mean_baseline
+      granularity: per_synapse
+      tying: pair
+      independent_delay_parameters: 64
+      normalization_factor: 1.0
+      effective_lambda: 0.01
+    - name: per_synapse_coordinate_matched
+      granularity: per_synapse
+      tying: pair
+      independent_delay_parameters: 64
+      normalization_factor: 64.0
+      effective_lambda: 0.64
+  grid:
+    conditions: 5
+    initial_raw_values: 2
+    seeds: 5
+    deterministic_cells: 50
+  candidate_definition: same_named_condition_across_both_initial_directions_and_all_five_r1_seeds
+  candidate_pass: all_10_cells_pass_interface_delay_coverage_and_coordinate_gradient_gates
+  global_anchor_gate: global_anchor_passes_10_of_10
+  rescue_provisional_pass: named_coordinate_matched_candidate_passes_10_of_10
+  r2_eligibility: >
+    coordinate-matched candidate fails final pass but all 10 cells have every
+    initial total delay gradient nonzero and correctly directed
+  r2_forbidden_when: any_cell_has_wrong_or_zero_initial_total_delay_gradient
+  baseline_role: matched_new_seed_replication_of_the_failed_mean_scaling_not_selection
+
+stage_r2_lr_budget_calibration:
+  status: not_required_by_r1_gate
+  role: conditional_optimization_budget_calibration_not_confirmation
+  eligible_granularities: mechanically_read_from_r1_decision
+  dimension_normalization: retain_P_matched_scaling_without_change
+  interventions_priority_order:
+    - name: lr_only
+      delay_learning_rate: 0.05
+      full_batch_updates: 500
+    - name: budget_only
+      delay_learning_rate: 0.01
+      full_batch_updates: 1000
+    - name: lr_and_budget
+      delay_learning_rate: 0.05
+      full_batch_updates: 1000
+  grid_per_eligible_granularity:
+    interventions: 3
+    initial_raw_values: 2
+    seeds: 3
+    deterministic_cells: 18
+  maximum_granularities: 2
+  maximum_conditional_cells: 36
+  candidate_pass: all_6_cells_pass_interface_delay_coverage_and_coordinate_gradient_gates
+  selection_rule: first_passing_intervention_in_declared_priority_order
+  confirmation_required: true
+
+stage_r3_sealed_confirmation:
+  status: complete
+  role: independent_initialization_replication
+  materialization:
+    - global_anchor_always
+    - every_provisional_higher_dimensional_recipe_from_r1_or_r2
+  grid_per_recipe:
+    initial_raw_values: 2
+    sealed_seeds: 5
+    deterministic_cells: 10
+  minimum_conditional_cells: 20
+  maximum_conditional_cells: 30
+  candidate_pass: all_10_cells_pass_interface_delay_coverage_and_coordinate_gradient_gates
+  final_selection_priority:
+    - per_hidden_neuron
+    - per_synapse
+  final_rescue_success: global_anchor_and_at_least_one_higher_dimensional_recipe_pass_confirmation
+  sealed_seed_policy: do_not_materialize_or_inspect_before_r1_and_if_needed_r2_decisions
+
+per_cell_gates:
+  interface:
+    balanced_accuracy: 1.0
+    exact_truth_table_completion: true
+    exact_target_spike_train_match: true
+    silent_rate: 0.0
+    collision_rate: 0.0
+    correct_target_time_rate: 1.0
+    mean_output_spikes_per_trial: 1.0
+    hidden_active_pattern_count: 4
+  learned_delay:
+    max_independent_delay_error_steps: 0.1
+    fraction_independent_delays_within_tolerance: 1.0
+    initial_total_gradient_correct_coordinate_fraction: 1.0
+    initial_total_gradient_nonzero_coordinate_fraction: 1.0
+
+mechanism_diagnostics:
+  required:
+    - unweighted_arrival_gradient_per_coordinate
+    - weighted_arrival_gradient_per_coordinate
+    - task_and_total_gradient_per_coordinate
+    - task_arrival_gradient_conflict_fraction
+    - global_preclip_gradient_norm
+    - gradient_clip_coefficient
+    - delay_min_mean_max_std_and_full_coverage
+  analytic_prediction: weighted_arrival_gradient_per_coordinate_matches_global_under_P_scaling
+  clipping_failure_flag: any_cell_clip_coefficient_below_0.999
+
+diagnostics:
+  runtime_npz_required: true
+  runtime_panel_required: true
+  panel_contents:
+    - loss_components_with_effective_lambda
+    - exact_interface_and_hidden_activity
+    - delay_mean_min_max_std_and_coverage
+    - task_arrival_total_delay_gradient_norms
+    - coordinate_direction_nonzero_and_clip_fractions
+    - input_hidden_and_output_rasters
+    - output_pre_reset_voltage
+    - final_independent_delay_map
+    - initial_final_target_arrival_centroids
+  resource_vector:
+    - trainable_parameters
+    - trainable_delay_parameters
+    - delay_value_storage
+    - neuron_updates
+    - dense_synapse_macs
+    - measured_synaptic_events
+    - delay_buffer_memory
+
+execution_policy:
+  formal_subsets_forbidden_within_each_materialized_candidate: true
+  failed_seeds_remain_failures: true
+  no_best_epoch_selection: true
+  no_test_split_access: true
+  no_microburst_or_K_greater_than_one: true
+  r2_reads_complete_r1_decision: true
+  r3_reads_complete_provisional_recipe_decisions: true
+  historical_level1b_artifacts_immutable: true
+  no_post_result_change_to_original_level1b_matrix: true
+
+implementation_validation:
+  status: complete_before_formal_launch
+  level1br_structural_tests_passed: 9
+  full_project_tests_passed: 97
+  smoke_cells: 6
+  smoke_role: implementation_only_invalid_for_claims
+  formal_cells_launched: 80
+  r1_formal_cells_complete: 50
+  r1_artifact_complete_cells: 50
+  r1_decision: direct_r3_authorized
+  r3_formal_cells_complete: 30
+  r3_artifact_complete_cells: 30
+  final_decision: level1br_pass_per_hidden_selected

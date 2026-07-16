@@ -1,0 +1,12 @@
+{
+  "protocol": "spatial_vs_temporal_pareto_phase0",
+  "stage": "a",
+  "complete": true,
+  "outcome": "failed_no_passing_hidden_size",
+  "selected_baseline_hidden_per_query": null,
+  "passing_hidden_sizes": [],
+  "cells_passing_all_locked_gates": 6,
+  "cells_total": 15,
+  "stage_b_unlocked": false,
+  "test_split_opened": false
+}

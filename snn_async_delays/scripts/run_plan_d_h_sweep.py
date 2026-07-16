@@ -109,7 +109,7 @@ def build_encode_fn(base_encode, cfg):
 def run_single(cfg, K, h, condition, seed, device, runs_dir, dry_run=False):
     sub_win  = cfg["sub_win"]
     win_len  = K * sub_win
-    d_max    = win_len
+    d_max    = int(cfg.get("d_max", win_len))
     cname    = condition["name"]
     # Match the 2026-06 rename convention (wad/d0) so [SKIP] reuses the existing
     # runs/NAND_neuron_sweep_(planD) rate cells instead of retraining them.
@@ -122,9 +122,23 @@ def run_single(cfg, K, h, condition, seed, device, runs_dir, dry_run=False):
     thr_tag = "" if abs(thr - 1.0) < 1e-9 else f"_thr{thr}"
     hl = cfg.get("homeo_lambda", 0.0)
     homeo_tag = "" if not hl else f"_hl{hl}t{cfg.get('homeo_target', 0.005)}"
-    run_name = f"{op_tag}{cname_short}_h{h}_K{K}_sw{sub_win}_seed{seed}{thr_tag}{homeo_tag}"
+    observation_mode = cfg.get("observation_mode", "late_window")
+    observation_tag = "" if observation_mode == "late_window" else f"_obs{observation_mode}"
+    readout_type = cfg.get("readout_type", "mlp")
+    readout_tag = "" if readout_type == "mlp" else f"_ro{readout_type}"
+    run_name = (
+        f"{op_tag}{cname_short}_h{h}_K{K}_sw{sub_win}_seed{seed}"
+        f"{thr_tag}{homeo_tag}{observation_tag}{readout_tag}"
+    )
     run_dir  = os.path.join(runs_dir, run_name)
-    eval_path = os.path.join(run_dir, "eval_results.json")
+    evaluation_split = cfg.get("evaluation_split", "test")
+    if evaluation_split not in {"val", "test"}:
+        raise ValueError("evaluation_split must be 'val' or 'test'")
+    result_filename = cfg.get(
+        "result_filename",
+        "eval_results.json" if evaluation_split == "test" else "validation_results.json",
+    )
+    eval_path = os.path.join(run_dir, result_filename)
 
     if dry_run:
         print(f"  [DRY] {run_name}")
@@ -169,6 +183,14 @@ def run_single(cfg, K, h, condition, seed, device, runs_dir, dry_run=False):
         delay_param_type = run_cfg["delay_param_type"],
         delay_step       = run_cfg.get("delay_step", 1.0),
         fixed_delay_value= condition.get("fixed_delay_value"),
+        fixed_delay_distribution=condition.get("fixed_delay_distribution"),
+        fixed_delay_seed=condition.get("fixed_delay_seed", seed),
+        fixed_delay_low=condition.get("fixed_delay_low", 0.0),
+        fixed_delay_high=condition.get("fixed_delay_high", None),
+        shared_delay=condition.get("shared_delay", False),
+        delay_init_mode=cfg.get("delay_init_mode", "constant"),
+        delay_init_raw=cfg.get("delay_init_raw", -2.0),
+        delay_init_std=cfg.get("delay_init_std", 0.25),
         lif_tau_m        = run_cfg["lif_tau_m"],
         lif_threshold    = run_cfg["lif_threshold"],
         lif_reset        = run_cfg["lif_reset"],
@@ -177,6 +199,7 @@ def run_single(cfg, K, h, condition, seed, device, runs_dir, dry_run=False):
         surrogate_beta   = run_cfg["surrogate_beta"],
         n_input_channels = 2,
         readout_type     = run_cfg["readout_type"],
+        observation_mode = run_cfg.get("observation_mode", "late_window"),
     )
 
     encode_fn = build_encode_fn(encode_sequential_trial, run_cfg)
@@ -196,7 +219,7 @@ def run_single(cfg, K, h, condition, seed, device, runs_dir, dry_run=False):
                    weights_only=True)
     )
     results = evaluate_simultaneous(
-        model, make_loader("test"), run_cfg, device,
+        model, make_loader(evaluation_split), run_cfg, device,
         encode_fn=encode_fn,
     )
     results.update({
@@ -204,7 +227,8 @@ def run_single(cfg, K, h, condition, seed, device, runs_dir, dry_run=False):
         "train_mode": condition["train_mode"],
         "hidden_size": h, "K": K, "sub_win": sub_win,
         "encoding_mode": run_cfg.get("encoding_mode", "rate"),
-        "experiment": "planD_h_sweep",
+        "experiment": run_cfg.get("experiment", "planD_h_sweep"),
+        "evaluation_split": evaluation_split,
     })
     save_eval_results(results, eval_path)
 
@@ -260,7 +284,7 @@ def aggregate_summary(results_by_h_K, K_values, h_values, tau_values=(0.95, 0.90
                 best_h = None
                 for h in sorted(h_values):
                     accs = [
-                        v["accuracy"] for (hh, kk, cc, ss), v
+                        v["worst_query_accuracy"] for (hh, kk, cc, ss), v
                         in results_by_h_K.items()
                         if hh == h and kk == K and cc == cname and v is not None
                     ]
@@ -295,6 +319,11 @@ def main():
     parser.add_argument("--encoding_mode", default="rate",
                         choices=["rate", "burst", "burst_jitter"],
                         help="Input encoding for the sweep (default: rate).")
+    parser.add_argument(
+        "--observation_mode", default="late_window",
+        choices=["late_window", "all_time", "time_binned"],
+        help="Explicit hidden-spike observation interface.",
+    )
     parser.add_argument("--no_diag", action="store_true",
                         help="Skip the per-run diagnostic plot set (faster; keeps "
                              "only training_curves + delay plots).")
@@ -339,6 +368,7 @@ def main():
 
     cfg = dict(BASE_CFG)
     cfg["encoding_mode"] = args.encoding_mode
+    cfg["observation_mode"] = args.observation_mode
     cfg["no_diag"] = args.no_diag
     thr_list = args.lif_threshold if args.lif_threshold else [BASE_CFG["lif_threshold"]]
     multi_thr = len(thr_list) > 1
@@ -376,6 +406,7 @@ def main():
     print(f"  seeds    = {args.seeds}")
     print(f"  thresh   = {thr_list}" + ("  (tuning sweep; summary skipped)" if multi_thr else ""))
     print(f"  encoding = {args.encoding_mode}")
+    print(f"  observe  = {args.observation_mode}")
     print(f"  runs_dir = {runs_dir}")
     print(f"  device   = {args.device}")
     print()

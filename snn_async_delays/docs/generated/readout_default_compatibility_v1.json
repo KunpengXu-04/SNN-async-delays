@@ -1,0 +1,178 @@
+[
+  {
+    "run_path": "runs/NAND_compress_burst_(planD)/d0_h20_K3_sw10_seed0",
+    "status": "ok",
+    "protocol_version": "checkpoint_reevaluation_v1",
+    "evaluation_seed": 20260711,
+    "task_interface": "sequential_plan_d_late_window",
+    "result": {
+      "accuracy": 0.7450000047683716,
+      "per_query_acc": [
+        0.7609999775886536,
+        0.7429999709129333,
+        0.7310000061988831
+      ],
+      "worst_query_accuracy": 0.7310000061988831,
+      "exact_trial_accuracy": 0.414000004529953,
+      "per_query_balanced_accuracy": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "balanced_accuracy": 0.5,
+      "mean_hidden_spikes": 0.0,
+      "throughput_K_per_spk": null,
+      "ops_per_neuron_per_ms": 0.00375,
+      "mean_active_hidden_fraction": 0.0,
+      "binary_confusion": [
+        [
+          0,
+          765
+        ],
+        [
+          0,
+          2235
+        ]
+      ],
+      "K": 3,
+      "observation_mode": "late_window",
+      "observation_steps": 10,
+      "observation_bins": 1,
+      "readout_feature_dim": 20,
+      "layer1_hidden_spikes": null,
+      "layer2_hidden_spikes": null
+    }
+  },
+  {
+    "run_path": "runs/NAND_compress_burst_(planD)/d0_h20_K3_sw10_seed42",
+    "status": "ok",
+    "protocol_version": "checkpoint_reevaluation_v1",
+    "evaluation_seed": 20260711,
+    "task_interface": "sequential_plan_d_late_window",
+    "result": {
+      "accuracy": 0.7586666941642761,
+      "per_query_acc": [
+        0.765999972820282,
+        0.7289999723434448,
+        0.781000018119812
+      ],
+      "worst_query_accuracy": 0.7289999723434448,
+      "exact_trial_accuracy": 0.43799999356269836,
+      "per_query_balanced_accuracy": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "balanced_accuracy": 0.5,
+      "mean_hidden_spikes": 0.0,
+      "throughput_K_per_spk": null,
+      "ops_per_neuron_per_ms": 0.00375,
+      "mean_active_hidden_fraction": 0.0,
+      "binary_confusion": [
+        [
+          0,
+          724
+        ],
+        [
+          0,
+          2276
+        ]
+      ],
+      "K": 3,
+      "observation_mode": "late_window",
+      "observation_steps": 10,
+      "observation_bins": 1,
+      "readout_feature_dim": 20,
+      "layer1_hidden_spikes": null,
+      "layer2_hidden_spikes": null
+    }
+  },
+  {
+    "run_path": "runs/NAND_compress_burst_(planD)/wad_h50_K3_sw10_seed0",
+    "status": "ok",
+    "protocol_version": "checkpoint_reevaluation_v1",
+    "evaluation_seed": 20260711,
+    "task_interface": "sequential_plan_d_late_window",
+    "result": {
+      "accuracy": 0.9599999785423279,
+      "per_query_acc": [
+        0.9110000133514404,
+        0.968999981880188,
+        1.0
+      ],
+      "worst_query_accuracy": 0.9110000133514404,
+      "exact_trial_accuracy": 0.8980000019073486,
+      "per_query_balanced_accuracy": [
+        0.8324627876281738,
+        0.9562321901321411,
+        1.0
+      ],
+      "balanced_accuracy": 0.9295649925867716,
+      "mean_hidden_spikes": 5.283999919891357,
+      "throughput_K_per_spk": 0.5677517118625698,
+      "ops_per_neuron_per_ms": 0.0015,
+      "mean_active_hidden_fraction": 0.09171999990940094,
+      "binary_confusion": [
+        [
+          671,
+          94
+        ],
+        [
+          26,
+          2209
+        ]
+      ],
+      "K": 3,
+      "observation_mode": "late_window",
+      "observation_steps": 10,
+      "observation_bins": 1,
+      "readout_feature_dim": 50,
+      "layer1_hidden_spikes": null,
+      "layer2_hidden_spikes": null
+    }
+  },
+  {
+    "run_path": "runs/NAND_compress_burst_(planD)/wad_h50_K3_sw10_seed42",
+    "status": "ok",
+    "protocol_version": "checkpoint_reevaluation_v1",
+    "evaluation_seed": 20260711,
+    "task_interface": "sequential_plan_d_late_window",
+    "result": {
+      "accuracy": 0.9589999914169312,
+      "per_query_acc": [
+        0.8769999742507935,
+        1.0,
+        1.0
+      ],
+      "worst_query_accuracy": 0.8769999742507935,
+      "exact_trial_accuracy": 0.8769999742507935,
+      "per_query_balanced_accuracy": [
+        0.774279773235321,
+        1.0,
+        1.0
+      ],
+      "balanced_accuracy": 0.9247599244117737,
+      "mean_hidden_spikes": 4.065000057220459,
+      "throughput_K_per_spk": 0.7380073696853332,
+      "ops_per_neuron_per_ms": 0.0015,
+      "mean_active_hidden_fraction": 0.07383999973535538,
+      "binary_confusion": [
+        [
+          626,
+          98
+        ],
+        [
+          25,
+          2251
+        ]
+      ],
+      "K": 3,
+      "observation_mode": "late_window",
+      "observation_steps": 10,
+      "observation_bins": 1,
+      "readout_feature_dim": 50,
+      "layer1_hidden_spikes": null,
+      "layer2_hidden_spikes": null
+    }
+  }
+]

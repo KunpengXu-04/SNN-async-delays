@@ -46,6 +46,15 @@ class DelayedSynapticLayer(nn.Module):
         delay_param_type: str = "sigmoid",
         delay_step: float = 1.0,
         fixed_delay_value: float | None = None,
+        fixed_delay_distribution: str | None = None,
+        fixed_delay_seed: int = 0,
+        fixed_delay_low: float = 0.0,
+        fixed_delay_high: float | None = None,
+        shared_delay: bool = False,
+        delay_tying: str | None = None,
+        delay_init_mode: str = "constant",
+        delay_init_raw: float = -2.0,
+        delay_init_std: float = 0.25,
         train_weights: bool = True,
         train_delays: bool = True,
     ):
@@ -56,7 +65,24 @@ class DelayedSynapticLayer(nn.Module):
         self.delay_param_type = delay_param_type
         self.delay_step = float(delay_step)
         self.fixed_delay_value = fixed_delay_value
+        self.fixed_delay_distribution = fixed_delay_distribution
+        if delay_tying is None:
+            delay_tying = "global" if shared_delay else "pair"
+        if delay_tying not in {"global", "post_neuron", "pair"}:
+            raise ValueError("delay_tying must be global, post_neuron, or pair")
+        if shared_delay and delay_tying != "global":
+            raise ValueError("legacy shared_delay=True is compatible only with global tying")
+        self.delay_tying = str(delay_tying)
+        self.shared_delay = self.delay_tying == "global"
         self.train_delays = train_delays
+        if delay_init_mode not in {"constant", "scalar_noise"}:
+            raise ValueError("delay_init_mode must be 'constant' or 'scalar_noise'")
+        if self.delay_tying != "pair" and not train_delays:
+            raise ValueError("tied delays are defined only for trainable delays")
+        if fixed_delay_distribution not in {None, "uniform"}:
+            raise ValueError("fixed_delay_distribution must be None or 'uniform'")
+        if train_delays and fixed_delay_distribution is not None:
+            raise ValueError("fixed heterogeneous delays cannot also be trainable")
 
         # ------ Weights ------------------------------------------------
         w_init = torch.randn(n_pre, n_post) * math.sqrt(2.0 / n_pre)
@@ -67,25 +93,48 @@ class DelayedSynapticLayer(nn.Module):
 
         # ------ Delays -------------------------------------------------
         # sigmoid(-2) ~= 0.12 => initial delays ~= 0.12 * d_max (small)
-        d_init = torch.full((n_pre, n_post), -2.0)
+        tying_shape = {
+            "global": (1, 1),
+            "post_neuron": (1, n_post),
+            "pair": (n_pre, n_post),
+        }[self.delay_tying]
+        d_shape = (0,) if fixed_delay_distribution is not None else tying_shape
+        d_init = torch.full(d_shape, float(delay_init_raw))
+        if delay_init_mode == "scalar_noise" and d_init.numel() > 1:
+            d_init = d_init + torch.randn_like(d_init) * float(delay_init_std)
         if train_delays:
             self.delay_raw = nn.Parameter(d_init)
         else:
             self.register_buffer("delay_raw", d_init)
+        if fixed_delay_distribution == "uniform":
+            generator = torch.Generator(device="cpu")
+            generator.manual_seed(int(fixed_delay_seed))
+            low = max(0.0, float(fixed_delay_low))
+            high = min(float(d_max), float(fixed_delay_high if fixed_delay_high is not None else d_max))
+            if high < low:
+                raise ValueError("fixed_delay_high must be >= fixed_delay_low")
+            fixed = low + torch.rand((n_pre, n_post), generator=generator) * (high - low)
+            self.register_buffer("fixed_delay_tensor", fixed)
+        else:
+            self.register_buffer("fixed_delay_tensor", None)
 
     # ------------------------------------------------------------------
     def get_delays(self) -> torch.Tensor:
         """Delay values in [0, d_max] (continuous or quantized via STE)."""
+        if self.fixed_delay_tensor is not None:
+            return self.fixed_delay_tensor
         if (not self.train_delays) and (self.fixed_delay_value is not None):
             d = torch.full_like(self.delay_raw, float(self.fixed_delay_value))
             return torch.clamp(d, 0.0, float(self.d_max))
 
         if self.delay_param_type == "sigmoid":
             d_cont = self.d_max * torch.sigmoid(self.delay_raw)
-            return torch.clamp(d_cont, 0.0, float(self.d_max))
+            d_cont = torch.clamp(d_cont, 0.0, float(self.d_max))
+            return d_cont.expand(self.n_pre, self.n_post) if self.delay_tying != "pair" else d_cont
 
         if self.delay_param_type == "direct":
-            return torch.clamp(self.delay_raw, 0.0, float(self.d_max))
+            d_cont = torch.clamp(self.delay_raw, 0.0, float(self.d_max))
+            return d_cont.expand(self.n_pre, self.n_post) if self.delay_tying != "pair" else d_cont
 
         if self.delay_param_type == "quantized":
             d_cont = self.d_max * torch.sigmoid(self.delay_raw)
@@ -94,7 +143,8 @@ class DelayedSynapticLayer(nn.Module):
             # Straight-through estimator: forward uses quantized value,
             # backward behaves like identity on d_cont.
             d_ste = d_cont + (d_quant - d_cont).detach()
-            return torch.clamp(d_ste, 0.0, float(self.d_max))
+            d_ste = torch.clamp(d_ste, 0.0, float(self.d_max))
+            return d_ste.expand(self.n_pre, self.n_post) if self.delay_tying != "pair" else d_ste
 
         raise ValueError(f"Unsupported delay_param_type: {self.delay_param_type}")
 

@@ -39,6 +39,14 @@ def load_model_from_config(cfg: dict, device: str) -> SNNSimultaneousModel:
         delay_param_type=cfg.get("delay_param_type", "sigmoid"),
         delay_step=cfg.get("delay_step", 1.0),
         fixed_delay_value=cfg.get("fixed_delay_value", None),
+        fixed_delay_distribution=cfg.get("fixed_delay_distribution", None),
+        fixed_delay_seed=cfg.get("fixed_delay_seed", 0),
+        fixed_delay_low=cfg.get("fixed_delay_low", 0.0),
+        fixed_delay_high=cfg.get("fixed_delay_high", None),
+        shared_delay=cfg.get("shared_delay", False),
+        delay_init_mode=cfg.get("delay_init_mode", "constant"),
+        delay_init_raw=cfg.get("delay_init_raw", -2.0),
+        delay_init_std=cfg.get("delay_init_std", 0.25),
         lif_tau_m=cfg["lif_tau_m"],
         lif_threshold=cfg["lif_threshold"],
         lif_reset=cfg["lif_reset"],
@@ -47,6 +55,9 @@ def load_model_from_config(cfg: dict, device: str) -> SNNSimultaneousModel:
         surrogate_beta=cfg["surrogate_beta"],
         n_input_channels=cfg.get("n_input", 2),
         readout_type=cfg.get("readout_type", "linear"),
+        observation_mode=cfg.get("observation_mode", "late_window"),
+        opponent_output_mode=cfg.get("opponent_output_mode", None),
+        output_window_len=cfg.get("output_window_len", None),
     )
     return model
 
@@ -124,9 +135,12 @@ def backfill_run(run_dir: str, device: str, logger) -> str:
         except Exception:
             pass
 
-    # load eval_results (best effort)
+    # Load test or validation results (best effort). Calibration runs
+    # deliberately never create eval_results.json.
     eval_results = {}
     eval_path = os.path.join(run_dir, "eval_results.json")
+    if not os.path.exists(eval_path):
+        eval_path = os.path.join(run_dir, "validation_results.json")
     if os.path.exists(eval_path):
         try:
             with open(eval_path, encoding="utf-8") as f:

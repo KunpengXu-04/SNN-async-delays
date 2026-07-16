@@ -1,0 +1,12 @@
+{
+  "schema_version": "0.2",
+  "registry_policy": "Historical task runs and complete diagnostic unit cells are exploratory unless explicitly promoted.",
+  "n_runs": 2531,
+  "status_counts": {
+    "exploratory": 1878,
+    "incomplete": 474,
+    "archived": 113,
+    "invalid": 66
+  },
+  "registry": "docs/generated/experiment_registry.csv"
+}

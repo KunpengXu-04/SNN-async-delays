@@ -1,0 +1,141 @@
+# PRE-REGISTERED. Stage B unlocked by the dated Stage-A amendment below.
+protocol_id: wad_optimization_audit_v1
+status: preregistered
+purpose: >
+  Diagnose whether the negative WAD result is attributable to firing regime,
+  weak delay gradients, excessive delay range, initialization, or joint optimization.
+  This audit cannot retroactively validate the completed superiority claim.
+
+fixed_task:
+  op_name: XOR
+  K: 3
+  hidden_size: 35
+  encoding_mode: burst
+  sub_win: 10
+  read_len: 10
+  observation_mode: all_time
+  readout_type: linear
+  burst_n_spikes_on: 2
+  burst_n_spikes_off: 1
+  burst_phase_on: 0.20
+  burst_phase_off: 0.80
+  burst_jitter_ms: 0
+
+stage_a_threshold_screen:
+  thresholds: [0.2, 0.3, 0.5]
+  conditions: [scalar, w_and_d]
+  seeds: [0, 1, 42]
+  d_max: 30
+  lr_d: 0.001
+  optimization_schedule: joint
+  delay_init_mode: constant
+  selection_rule: >
+    A threshold is viable only when both conditions have mean hidden spikes in
+    [1,70] per trial, WAD has finite nonzero delay gradients and mean absolute
+    effective-delay movement >=0.05 steps, and worst-query is in [0.55,0.90].
+    Select the viable threshold whose across-condition mean hidden spike count
+    is closest to 10. Accuracy is a gate, not the tie-breaker.
+
+stage_b_gated_variants:
+  selected_threshold: 0.3
+  seeds: [0, 1, 42]
+  conditions: [scalar, w_and_d]
+  variants:
+    - {name: baseline, d_max: 30, lr_d: 0.001, delay_init_mode: constant, optimization_schedule: joint}
+    - {name: narrow_d10, d_max: 10, lr_d: 0.001, delay_init_mode: constant, optimization_schedule: joint}
+    - {name: lr_low, d_max: 30, lr_d: 0.0003, delay_init_mode: constant, optimization_schedule: joint}
+    - {name: lr_high, d_max: 30, lr_d: 0.003, delay_init_mode: constant, optimization_schedule: joint}
+    - {name: scalar_noise, d_max: 30, lr_d: 0.001, delay_init_mode: scalar_noise, delay_init_std: 0.25, optimization_schedule: joint}
+    - {name: warmup20, d_max: 30, lr_d: 0.001, delay_init_mode: constant, optimization_schedule: weights_warmup_then_joint, weight_warmup_epochs: 20}
+    - {name: alternating, d_max: 30, lr_d: 0.001, delay_init_mode: constant, optimization_schedule: alternating_epochs}
+  gate: >
+    A WAD variant is retained only if mean paired validation worst-query
+    improves by >=0.03 over the fresh Stage-B WAD baseline, at least 2/3
+    individual paired-seed improvements are >=0.03, mean WAD-minus-matched-
+    scalar worst-query is >=-0.01, delays move >=0.05 steps without >10%
+    saturation, and scalar receives the identical variant budget.
+  decision_rule: >
+    Among retained variants, select the one with highest mean WAD worst-query
+    accuracy. If means differ by <=0.01, choose the simpler intervention in
+    this order: baseline, narrow_d10, lr_low, lr_high, scalar_noise, warmup20,
+    alternating. If no variant passes, retain baseline for the simultaneous
+    pilots and record that the optimization-rescue gate failed.
+
+fixed_training:
+  dt: 1.0
+  lif_tau_m: 10.0
+  lif_reset: 0.0
+  lif_refractory: 2
+  surrogate_beta: 4.0
+  delay_param_type: sigmoid
+  delay_step: 1.0
+  delay_init_raw: -2.0
+  lr_w: 0.001
+  lr_readout: 0.001
+  batch_size: 128
+  epochs: 100
+  n_train: 2000
+  n_val: 500
+  spike_penalty: 0.0
+  delay_penalty: 0.0
+  homeo_lambda: 0.0
+  homeo_target: 0.0
+  grad_clip: 1.0
+  r_on: 400.0
+  r_off: 10.0
+  evaluation_split: val
+  result_filename: validation_results.json
+
+required_outputs:
+  - worst_query_accuracy
+  - exact_trial_accuracy
+  - mean_hidden_spikes
+  - delay_grad_norm_per_epoch
+  - weight_grad_norm_per_epoch
+  - mean_abs_delay_movement_per_epoch
+  - delay_saturation_fraction_per_epoch
+  - resource_ledger
+  - diagnostic_data_npz
+  - diagnostic_panel
+
+interpretation_rules:
+  - Test remains sealed.
+  - Threshold is a neuronal dynamics factor, not a cosmetic hyperparameter.
+  - Do not select a threshold solely because WAD wins at it.
+  - Scalar and WAD receive matched variants and training budgets.
+  - Stage B cannot launch while selected_threshold is null.
+
+stage_a_amendment:
+  date: 2026-07-13
+  status: completed
+  completed_cells: 18
+  selected_threshold: 0.3
+  basis: >
+    Thresholds 0.2 and 0.3 passed every predeclared per-cell viability gate.
+    Threshold 0.5 failed the worst-query lower bound. Across both conditions
+    and all seeds, threshold 0.3 had mean hidden spike count 10.066, closest
+    to the predeclared target of 10; accuracy was not used as a tie-breaker.
+  decision_artifact: docs/generated/wad_optimization_audit_v1/stage_a_decision.json
+
+stage_b_prelaunch_clarification:
+  date: 2026-07-13
+  status: locked_before_launch
+  purpose: >
+    Resolve the ambiguous phrase "mean ... in 2/3 seeds" and predeclare how a
+    single configuration will be frozen for later pilots. No Stage-B result
+    existed when this clarification was recorded.
+
+stage_b_amendment:
+  date: 2026-07-13
+  status: completed
+  completed_cells: 42
+  optimization_rescue_passed: false
+  eligible_variants: []
+  selected_variant: baseline
+  frozen_config_for_simultaneous_pilots:
+    threshold: 0.3
+    d_max: 30
+    lr_d: 0.001
+    delay_init_mode: constant
+    optimization_schedule: joint
+  decision_artifact: docs/generated/wad_optimization_audit_v1/stage_b_decision.json

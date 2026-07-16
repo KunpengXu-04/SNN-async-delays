@@ -1,0 +1,221 @@
+protocol_id: xor_delay_granularity_level1b_v1
+status: controls_complete_learned_microburst_authorized
+preregistered_at: 2026-07-16
+study_class: diagnostic_task_calibration
+parent_protocol: xor_task_bridge_level1a_v1
+
+question: >
+  Does the Level-1A scaffold-assisted K=1 XOR bridge remain seed-robust as the
+  number of independent input-to-hidden delay parameters grows from one global
+  scalar to one scalar per hidden neuron or one scalar per synapse, and does
+  any such parameterization survive the deferred consecutive micro-burst?
+
+claim_boundary:
+  positive_claim: >
+    A named delay granularity can recover a prespecified homogeneous delay-4
+    schedule under an explicit per-parameter arrival-centroid scaffold while
+    retaining an exact K=1 hard-spike XOR interface, optionally under a
+    consecutive micro-burst.
+  explicitly_not_supported:
+    - autonomous task-derived routing discovery
+    - heterogeneous delay specialization
+    - K greater than one or temporal multiplexing
+    - WAD superiority
+    - held-out task generalization
+    - resource compression, energy savings, or a Pareto law
+
+task:
+  operation: XOR
+  K: 1
+  truth_patterns: 4
+  training_batch: exhaustive_truth_table_full_batch
+  checkpoint_selection: final_only
+  test_split_opened: false
+
+model:
+  architecture: 4_to_16_to_2_class_opponent_spiking
+  hidden_neurons: 16
+  output_neurons: 2
+  d_max_steps: 8
+  input_hidden_delay_parameterization: sigmoid
+  delay_granularities:
+    - name: global
+      tying: global
+      independent_delay_parameters: 1
+    - name: per_hidden_neuron
+      tying: post_neuron
+      independent_delay_parameters: 16
+    - name: per_synapse
+      tying: pair
+      independent_delay_parameters: 64
+  output_delay_mode: d0
+  hidden_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.2
+    reset_au: 0.0
+    refractory_steps: 2
+  output_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.03
+    reset_au: 0.0
+    refractory_steps: 2
+  surrogate_beta: 4.0
+  dt_steps: 1.0
+  units_note: membrane_and_threshold_values_are_dimensionless_simulator_arbitrary_units
+
+timing:
+  input_window_steps: 10
+  read_window_steps: 10
+  total_steps: 20
+  event_phase: 1.0
+  latest_input_event_step: 9
+  target_delay_steps: 4.0
+  output_target_step: 15
+  effective_layer_delay_formula: emitted_step_plus_nominal_delay_plus_one
+
+encodings:
+  single_event:
+    mode: binary_one_hot
+    selected_channel_events: 1
+    event_steps: [9]
+    events_per_trial: 2
+  consecutive_microburst:
+    mode: binary_one_hot
+    selected_channel_events: 2
+    event_steps: [8, 9]
+    events_per_trial: 4
+    target_semantics: one_exact_opponent_spike_at_step_15_and_no_other_output_spikes
+
+losses:
+  filtered_hard_spike:
+    weight: 1.0
+    filter_tau_steps: 3.0
+  voltage_envelope:
+    frozen_weight: 0.0
+  per_parameter_arrival_centroid:
+    conditions:
+      - name: task_only
+        weight: 0.0
+      - name: scaffold
+        weight: 0.01
+    target_delay_steps: 4.0
+    formula: half_mean_squared_error_over_independent_parameter_arrival_centroids
+    interpretation: explicit_oracle_timing_scaffold_not_task_derived_routing
+  total_formula: filtered_hard_spike_plus_lambda_times_per_parameter_arrival_centroid
+
+optimization:
+  optimizer: Adam
+  full_batch_updates: 500
+  weight_learning_rate: 0.01
+  delay_learning_rate: 0.01
+  learned_delay_initial_raw_values: [-2.0, 2.0]
+  gradient_clip_norm: 1.0
+  heldout_initialization_seeds: [607, 709, 811, 919, 1021]
+  seed_relation: disjoint_from_level1a_selection_seeds
+
+stage_a_single_event_granularity:
+  status: complete_60_of_60_global_replication_pass_higher_dof_fail
+  encoding: single_event
+  grid:
+    delay_granularities: 3
+    arrival_conditions: 2
+    initial_raw_values: 2
+    seeds: 5
+    deterministic_cells: 60
+  candidate_definition: same_granularity_and_lambda_across_both_initial_directions_and_all_five_new_seeds
+  candidate_pass: all_10_cells_pass_interface_delay_coverage_and_coordinate_gradient_gates
+  stage_a_global_replication_gate: global_scaffold_candidate_passes_10_of_10
+  higher_dof_extension_gate: at_least_one_of_per_hidden_neuron_or_per_synapse_scaffold_passes_10_of_10
+  task_only_role: prespecified_negative_comparator_not_required_to_pass
+  stage_b_controls_authorized: only_if_stage_a_global_replication_gate_passes
+
+stage_b_microburst_controls:
+  status: complete_10_of_10_fixed_oracle_pass
+  encoding: consecutive_microburst
+  fixed_controls:
+    - name: fixed_oracle_d4_microburst
+      fixed_input_hidden_delay_steps: 4.0
+      target_delay_steps: 4.0
+      role: interface_feasibility_gate
+    - name: fixed_d0_microburst_delayed_target
+      fixed_input_hidden_delay_steps: 0.0
+      target_delay_steps: 4.0
+      role: timing_specificity_negative_control
+  grid:
+    controls: 2
+    seeds: 5
+    deterministic_cells: 10
+  learned_microburst_authorized: only_if_fixed_oracle_passes_5_of_5
+
+stage_b_learned_microburst:
+  status: preregistered_ready
+  encoding: consecutive_microburst
+  grid:
+    delay_granularities: 3
+    arrival_conditions: 2
+    initial_raw_values: 2
+    seeds: 5
+    deterministic_cells: 60
+  candidate_definition: same_granularity_and_lambda_across_both_initial_directions_and_all_five_new_seeds
+  candidate_pass: all_10_cells_pass_interface_delay_coverage_and_coordinate_gradient_gates
+  burst_scaffold_gate: at_least_one_scaffold_candidate_passes_10_of_10
+  task_only_role: prespecified_negative_comparator_not_required_to_pass
+  K_greater_than_one_authorized: false
+  test_split_opened: false
+
+per_cell_gates:
+  interface:
+    balanced_accuracy: 1.0
+    exact_truth_table_completion: true
+    exact_target_spike_train_match: true
+    silent_rate: 0.0
+    collision_rate: 0.0
+    correct_target_time_rate: 1.0
+    mean_output_spikes_per_trial: 1.0
+    hidden_active_pattern_count: 4
+  learned_delay:
+    max_independent_delay_error_steps: 0.1
+    fraction_independent_delays_within_tolerance: 1.0
+    initial_total_gradient_correct_coordinate_fraction: 1.0
+    initial_total_gradient_nonzero_coordinate_fraction: 1.0
+
+diagnostics:
+  runtime_npz_required: true
+  runtime_panel_required: true
+  panel_contents:
+    - loss_components
+    - exact_interface_and_hidden_activity
+    - delay_mean_min_max_and_target
+    - delay_std_and_fraction_within_tolerance
+    - task_arrival_total_gradient_norms
+    - coordinate_direction_and_nonzero_fractions
+    - input_and_hidden_rasters
+    - actual_plus_target_output_raster
+    - output_pre_reset_voltage
+    - final_independent_delay_map
+    - initial_final_target_arrival_centroids
+  resource_vector:
+    - trainable_parameters
+    - trainable_delay_parameters
+    - delay_value_storage
+    - neuron_updates
+    - dense_synapse_macs
+    - measured_synaptic_events
+    - delay_buffer_memory
+
+execution_policy:
+  formal_subsets_forbidden: true
+  failed_seeds_remain_failures: true
+  no_best_epoch_selection: true
+  no_hyperparameter_change_after_stage_a: true
+  stage_b_controls_read_stage_a_decision: true
+  stage_b_learned_reads_control_decision: true
+  historical_artifacts_immutable: true
+
+implementation_validation:
+  status: complete_before_formal_launch
+  level1b_structural_tests_passed: 10
+  full_project_tests_passed: 88
+  smoke_cells: 6
+  smoke_role: implementation_only_invalid_for_claims
+  formal_cells_launched: 70

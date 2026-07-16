@@ -1,0 +1,28 @@
+{
+  "protocol": "spatial_vs_temporal_pareto_phase0",
+  "audit": "stage_a_checkpoint_mechanism_audit_v1",
+  "read_only": true,
+  "cells": 15,
+  "checkpoints": 30,
+  "truth_pattern_forward_passes": 120,
+  "final_category_counts": {
+    "silent": 7,
+    "successful": 6,
+    "collision": 2
+  },
+  "best_checkpoints_with_four_valid_interface_patterns": 4,
+  "final_checkpoints_with_four_valid_interface_patterns": 6,
+  "cells_losing_valid_interface_patterns_best_to_final": 0,
+  "all_input_hidden_delays_zero": true,
+  "all_hidden_output_delays_zero": true,
+  "exploratory_output_thresholds": [
+    0.015,
+    0.0225,
+    0.03,
+    0.0375,
+    0.045,
+    0.06
+  ],
+  "thresholds_with_any_width_full_across_three_seeds": [],
+  "test_split_opened": false
+}

@@ -1,0 +1,51 @@
+{
+  "protocol": "simultaneous_spatial_control_pilot_v1",
+  "primary_endpoint": "linear",
+  "primary_metric": "worst_balanced_accuracy",
+  "strongest_nonlearned_control_by_mean": "d0",
+  "wad_primary_superiority_supported": false,
+  "reason": "WAD has a negative mean paired difference against the strongest nonlearned control and the seed-level differences are not consistently positive.",
+  "wad_minus_strongest_primary": {
+    "mean": -0.004291971524556478,
+    "values_by_seed": {
+      "0": -0.030000030994415283,
+      "1": 0.03831058740615845,
+      "42": -0.021186470985412598
+    },
+    "positive_seed_count": 1,
+    "n": 3
+  },
+  "wad_minus_fixed_matched_primary": {
+    "mean": -0.0034332474072774253,
+    "values_by_seed": {
+      "0": -0.05399996042251587,
+      "1": 0.0398867130279541,
+      "42": 0.003813505172729492
+    },
+    "positive_seed_count": 2,
+    "n": 3
+  },
+  "mlp_ceiling": true,
+  "opponent_wad_minus_scalar_worst_balanced": {
+    "mean": 0.001384735107421875,
+    "values_by_seed": {
+      "0": -0.02799999713897705,
+      "1": 0.10418808460235596,
+      "42": -0.07203388214111328
+    },
+    "positive_seed_count": 1,
+    "n": 3
+  },
+  "opponent_wad_minus_scalar_exact_trial": {
+    "mean": 0.11000001430511475,
+    "values_by_seed": {
+      "0": 0.1600000262260437,
+      "1": 0.15000003576278687,
+      "42": 0.019999980926513672
+    },
+    "positive_seed_count": 3,
+    "n": 3
+  },
+  "opponent_exact_signal_status": "exploratory_only",
+  "scope_warning": "Dedicated spatial inputs and outputs do not test shared temporal routing."
+}

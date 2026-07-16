@@ -1,0 +1,76 @@
+protocol_id: simultaneous_temporal_counterbalanced_performance_v1
+status: completed_primary_negative_secondary_wad_mean_signal
+execution_session_id: 31606
+purpose: >
+  Measure shared-opponent temporal routing while counterbalancing Boolean
+  operation identity and output-window position. This is a validation-only
+  exploratory performance matrix, not a confirmatory test.
+endpoint: opponent_shared_windowed
+operation_orders:
+  cyclic_0: [XOR, NAND, NOR]
+  cyclic_1: [NAND, NOR, XOR]
+  cyclic_2: [NOR, XOR, NAND]
+conditions: [d0, scalar, fixed_matched, fixed_full_support, w_and_d]
+held_out_seeds: [7, 19, 73]
+cells: 45
+K: 3
+input_win: 10
+output_window_len: 10
+read_len: 30
+hidden_size: 50
+loss_reduction: window_class_balanced
+frozen_wad_config:
+  threshold: 0.3
+  d_max: 30
+  lr_d: 0.001
+  delay_init_mode: constant
+  optimization_schedule: joint
+frozen_output_threshold: 0.2
+fixed_matched_delay_range: [1.0, 9.0]
+fixed_full_delay_range: [0.0, 30.0]
+output_membrane_warmup_epochs: 20
+output_membrane_aux_weight: 0.2
+checkpoint_selection: final
+encoding:
+  mode: burst
+  n_spikes_on: 2
+  n_spikes_off: 1
+  phase_on: 0.20
+  phase_off: 0.80
+  jitter_ms: 0
+training:
+  epochs: 100
+  n_train: 2000
+  n_val: 500
+  batch_size: 128
+  lr_w: 0.001
+  lr_readout: 0.001
+primary_estimand: minimum_balanced_accuracy_over_operation_by_position_cells
+secondary_estimands:
+  - mean_operation_position_balanced_accuracy
+  - mean_exact_trial_accuracy_across_orders
+  - worst_order_balanced_accuracy
+  - operation_main_effect
+  - temporal_position_main_effect
+  - operation_by_position_interaction
+  - resource_ledger
+locked_decision_rules:
+  routing_floor_each_seed: 0.55
+  routing_mean_primary_floor: 0.60
+  wad_superiority_mean_margin: 0.03
+  wad_superiority_positive_seeds_required: 3
+  wad_exact_noninferiority_margin: -0.02
+rules:
+  - Validation only; test remains sealed.
+  - Seeds 0, 1 and 42 informed earlier interface work and are excluded.
+  - Each operation appears exactly once in each temporal position across the three cyclic orders.
+  - The primary endpoint is one shared class-0/class-1 opponent output pair reused across windows.
+  - Every condition uses the identical window/class-balanced objective and output curriculum.
+  - WAD threshold, dmax, initialization, delay LR and optimization schedule remain frozen.
+  - Fixed-full [0,30] is retained as the support-matched non-learned control; fixed-matched [1,9] remains a narrow-support diagnostic.
+  - Pooled accuracy is descriptive only.
+  - No order, seed or failed cell may be excluded based on accuracy; an interrupted cell may only be rerun with the identical config.
+  - WAD superiority is assessed against the strongest observed non-learned control, which is conservative and cannot be selected as a favorable comparator.
+  - Passing the routing floor is not a publication claim; positive findings require a later confirmatory protocol with new seeds and one sealed test evaluation.
+  - Failure of WAD with success of fixed-full supports an optimization/method limitation, not impossibility of temporal routing.
+required_artifacts: [config, best_checkpoint, final_checkpoint, train_log, validation, exhaustive_truth_table, resource_ledger, diagnostic_npz, diagnostic_panel]

@@ -1,0 +1,176 @@
+protocol_id: delay_soft_trace_credit_level0c_v1
+status: completed_pass_soft_centroid_sigmoid_lr_0p05
+preregistered_at: 2026-07-15
+study_class: diagnostic_unit_experiment
+parent_protocol: delay_temporal_credit_level0b_v1
+
+question: >
+  Can a symmetric or global loss computed only from a soft output trace provide
+  correct bidirectional temporal credit through the production circular delay
+  buffer and a subthreshold production LIF membrane, and is any remaining
+  failure caused by the sigmoid delay parameterization rather than the loss?
+
+hypotheses:
+  causal_filtered_negative_control: >
+    The raw causal filtered-trace MSE will reproduce the directional/local
+    failure found in Level 0B and is not eligible for method selection.
+  soft_centroid: >
+    A normalized global temporal-coordinate loss will have the correct initial
+    gradient direction and recover all target/initialization pairs on both soft
+    paths under the production sigmoid parameterization.
+  symmetric_kernel_alignment: >
+    A normalized global Laplace-kernel alignment loss will provide non-local
+    bidirectional credit and recover all target/initialization pairs without
+    reading the trainable delay value.
+  direct_parameter_control: >
+    A matched-functional-initialization direct delay parameter will distinguish
+    objective geometry from sigmoid saturation or raw-coordinate scaling.
+
+scope:
+  includes:
+    - production DelayedSynapticLayer circular-buffer forward path
+    - one deterministic input spike
+    - buffer-current soft trace
+    - one subthreshold production LIF membrane trace
+    - sigmoid and direct delay parameterizations with matched initial delays
+    - causal filtered, global centroid and symmetric kernel objectives
+  excludes:
+    - hard-spike timing as a training trace
+    - direct loss on delay_raw or delay value
+    - XOR, labels, trainable weights, readout or oracle imitation
+    - accuracy, generalization, resources or Pareto claims
+    - per-neuron or per-synapse tying comparisons
+
+timeline:
+  total_steps: 16
+  input_spike_step: 2
+  d_max_steps: 8
+  target_nominal_delays_steps: [1.0, 5.0, 7.0]
+  target_arrival_formula: input_step_plus_nominal_delay_plus_one
+
+paths:
+  buffer_current:
+    fixed_synaptic_weight: 1.0
+    optimized_trace: delayed_synaptic_current
+  lif_membrane:
+    fixed_synaptic_weight: 1.0
+    optimized_trace: post_update_post_reset_membrane
+    validity_rule: no_hard_spikes_in_any_step
+
+lif:
+  tau_m_steps: 10.0
+  threshold_au: 0.2
+  reset_au: 0.0
+  refractory_steps: 2
+  dt_steps: 1.0
+  surrogate_beta: 4.0
+  calibration_contract: fixed_weight_one_remains_subthreshold
+
+objectives:
+  causal_filtered_trace:
+    role: preregistered_negative_control_not_selection_eligible
+    formula: mean_squared_error_between_raw_causal_filtered_output_and_target
+    filter_tau_steps: 3.0
+  soft_centroid:
+    role: candidate
+    formula: half_squared_difference_between_normalized_output_and_target_centroids
+  symmetric_kernel_alignment:
+    role: candidate
+    formula: negative_log_normalized_laplace_kernel_similarity
+    kernel_tau_steps: 4.0
+
+target_template:
+  buffer_current: one_hot_current_at_declared_target_arrival
+  lif_membrane: production_subthreshold_lif_response_to_target_one_hot_current
+  target_is_detached: true
+  target_never_reads_trainable_delay: true
+
+delay:
+  implementation: snn.synapses.DelayedSynapticLayer
+  parameterizations:
+    - sigmoid
+    - direct
+  matched_initialization_labels_raw: [-4.0, -2.0, 0.0, 2.0, 4.0]
+  matched_initial_delay_formula: d_max_times_sigmoid_initialization_label
+  direct_initial_parameter: matched_initial_delay_value
+  learning_rates: [0.01, 0.05]
+  optimizer: Adam
+  optimizer_steps: 200
+  trainable_scalar_count: 1
+  trainable_weights: false
+
+grid:
+  parameterizations: 2
+  paths: 2
+  objectives: 3
+  targets: 3
+  initializations: 5
+  learning_rates: 2
+  deterministic_cells: 360
+  seeds: none_no_stochastic_quantity_affects_the_trajectory
+
+metrics:
+  primary: final_normalized_trace_w1_steps
+  primary_formula: sum_absolute_difference_between_normalized_trace_cdfs
+  mechanism:
+    - final_trace_centroid_error_steps
+    - final_nominal_delay_error_steps
+    - initial_raw_gradient
+    - initial_delay_space_gradient
+    - initial_delay_jacobian
+    - convergence_step
+    - output_trace_mass
+    - hard_spike_count
+  recovery_tolerance_steps: 0.1
+  minimum_output_trace_mass: 0.05
+  initial_gradient_zero_tolerance: 1.0e-12
+
+decision_rules:
+  per_cell_recovery: >
+    Final normalized-trace W1 is at most 0.1 step, output trace mass is at
+    least 0.05, and the path validity rule is satisfied.
+  directional_pair: >
+    A target/initialization pair is initially aligned when W1 is at most 0.1;
+    otherwise the objective gradient must be nonzero and its sign must move the
+    functional trace centroid toward the target centroid.
+  fixed_lr_path_coverage: >
+    One parameterization/path/objective/learning-rate arm must recover all 15
+    target/initialization cells; mixing learning rates by pair is descriptive
+    only and cannot select an objective.
+  production_candidate_pass: >
+    One candidate objective at one common preregistered learning rate must
+    recover all 30 sigmoid cells across both paths and have correct nonzero
+    initial directions for every initially misaligned pair on both paths.
+  level0c_pass: at_least_one_production_candidate_passes
+  level0d_authorized: equal_to_level0c_pass
+  level1_xor_authorized: false
+  selection_priority:
+    objectives: [symmetric_kernel_alignment, soft_centroid]
+    learning_rate: lowest_passing_common_rate
+  interpretation:
+    - Direct-only success localizes a parameterization limitation but does not pass Level 0C.
+    - Causal-filtered success cannot select the next method because it is a negative control.
+    - Level 0C success authorizes only a hard-spike auxiliary-loss bridge at Level 0D.
+
+artifacts:
+  root: runs/exploratory/delay_soft_trace_credit_level0c_v1
+  per_cell:
+    - config.json
+    - metrics.json
+    - final_parameter.pt
+    - plots/diagnostic_data.npz
+    - plots/diagnostic_panel.png
+  aggregate:
+    - docs/generated/delay_soft_trace_credit_level0c_v1/cells.csv
+    - docs/generated/delay_soft_trace_credit_level0c_v1/decision.json
+    - final W1 heatmaps by parameterization/path/objective
+    - fixed-LR recovery summary
+    - initial-gradient direction summary
+
+exclusion_rules:
+  - Missing per-cell artifacts make a cell incomplete and failed.
+  - LIF hard spikes invalidate the corresponding membrane-path cell.
+  - Objectives and parameterizations must be reported separately.
+  - A direct-parameter control cannot be pooled with production sigmoid results.
+  - No post-hoc tolerance, objective, learning-rate or target change is allowed.
+  - No result transfers to XOR, pairwise WAD, accuracy or publication claims without a new protocol.

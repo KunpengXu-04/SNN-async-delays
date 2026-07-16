@@ -1,0 +1,7 @@
+output_threshold,cells_with_full_truth_and_interface,valid_patterns,silent_patterns,collision_patterns,wrong_class_patterns,extra_correct_spike_patterns,widths_with_all_three_seeds_full
+0.015,7,48,9,3,0,0,
+0.0225,7,48,9,3,0,0,
+0.03,6,47,10,3,0,0,
+0.0375,3,40,17,3,0,0,
+0.045,1,35,23,2,0,0,
+0.06,1,32,26,1,1,0,

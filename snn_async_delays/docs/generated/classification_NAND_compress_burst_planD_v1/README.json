@@ -1,0 +1,15 @@
+{
+  "input": "D:\\xukun\\Documents\\IC\\SNN\\SNN_project\\snn_async_delays\\docs\\generated\\reevaluation_NAND_compress_burst_planD_v1.json",
+  "tau": 0.9,
+  "classification_policy": "Canonical requires fresh metrics, sufficient predeclared seeds, and completed fair interface/resource controls; historical results that pass only an accuracy gate remain exploratory.",
+  "run_status_counts": {
+    "canonical": 0,
+    "exploratory": 177,
+    "archived": 0
+  },
+  "group_status_counts": {
+    "canonical": 0,
+    "exploratory": 89,
+    "archived": 0
+  }
+}

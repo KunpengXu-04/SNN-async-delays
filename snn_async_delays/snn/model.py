@@ -90,6 +90,15 @@ class SNNModel(nn.Module):
         delay_param_type: str = "sigmoid",
         delay_step: float = 1.0,
         fixed_delay_value: float | None = None,
+        fixed_delay_distribution: str | None = None,
+        fixed_delay_seed: int = 0,
+        fixed_delay_low: float = 0.0,
+        fixed_delay_high: float | None = None,
+        shared_delay: bool = False,
+        delay_tying: str | None = None,
+        delay_init_mode: str = "constant",
+        delay_init_raw: float = -2.0,
+        delay_init_std: float = 0.25,
         use_output_layer: bool = False,
         n_output: int = 1,
         readout_source: str = "hidden",
@@ -114,7 +123,7 @@ class SNNModel(nn.Module):
         train_d = train_mode in ("delays_only", "weights_and_delays")
 
         # Make synchronous baseline explicit: weights_only means fixed zero delays
-        if (not train_d) and (fixed_delay_value is None):
+        if (not train_d) and (fixed_delay_value is None) and fixed_delay_distribution is None:
             fixed_delay_value = 0.0
 
         lif_kw = dict(
@@ -133,6 +142,14 @@ class SNNModel(nn.Module):
             delay_param_type=delay_param_type,
             delay_step=delay_step,
             fixed_delay_value=fixed_delay_value,
+            fixed_delay_distribution=fixed_delay_distribution,
+            fixed_delay_seed=fixed_delay_seed,
+            fixed_delay_low=fixed_delay_low,
+            fixed_delay_high=fixed_delay_high,
+            shared_delay=shared_delay,
+            delay_init_mode=delay_init_mode,
+            delay_init_raw=delay_init_raw,
+            delay_init_std=delay_init_std,
             train_weights=train_w,
             train_delays=train_d,
         )
@@ -146,6 +163,14 @@ class SNNModel(nn.Module):
                 delay_param_type=delay_param_type,
                 delay_step=delay_step,
                 fixed_delay_value=fixed_delay_value,
+                fixed_delay_distribution=fixed_delay_distribution,
+                fixed_delay_seed=fixed_delay_seed + 1,
+                fixed_delay_low=fixed_delay_low,
+                fixed_delay_high=fixed_delay_high,
+                shared_delay=shared_delay,
+                delay_init_mode=delay_init_mode,
+                delay_init_raw=delay_init_raw,
+                delay_init_std=delay_init_std,
                 train_weights=train_w,
                 train_delays=train_d,
             )
@@ -299,8 +324,10 @@ class SNNSimultaneousModel(nn.Module):
         -> LIFNeurons(h2)
         -> Linear/MLP readout [h2 -> K]
 
-    The readout always accumulates spikes from the last hidden layer
-    during [win_len, win_len + read_len).
+    ``observation_mode`` makes the formerly implicit readout window explicit:
+    ``late_window`` preserves the historical final-window accumulation,
+    ``all_time`` accumulates the complete trial, and ``time_binned`` exposes K
+    sequential input bins plus the final read window to the decoder.
 
     Parameters
     ----------
@@ -321,6 +348,15 @@ class SNNSimultaneousModel(nn.Module):
         delay_param_type: str = "sigmoid",
         delay_step: float = 1.0,
         fixed_delay_value: float | None = None,
+        fixed_delay_distribution: str | None = None,
+        fixed_delay_seed: int = 0,
+        fixed_delay_low: float = 0.0,
+        fixed_delay_high: float | None = None,
+        shared_delay: bool = False,
+        delay_tying: str | None = None,
+        delay_init_mode: str = "constant",
+        delay_init_raw: float = -2.0,
+        delay_init_std: float = 0.25,
         lif_tau_m: float = 10.0,
         lif_threshold: float = 1.0,
         lif_reset: float = 0.0,
@@ -334,6 +370,10 @@ class SNNSimultaneousModel(nn.Module):
         use_output_spikes: bool = False,
         n_output_neurons: int | None = None,
         lif_output_threshold: float | None = None,
+        observation_mode: str = "late_window",
+        opponent_output_mode: str | None = None,
+        output_window_len: int | None = None,
+        output_delay_mode: str = "inherit",
     ):
         super().__init__()
 
@@ -346,6 +386,37 @@ class SNNSimultaneousModel(nn.Module):
         self.read_len   = read_len
         self.T          = win_len + read_len
         self.train_mode = train_mode
+
+        valid_observation_modes = {"late_window", "all_time", "time_binned", "windowed_shared"}
+        if observation_mode not in valid_observation_modes:
+            raise ValueError(
+                f"observation_mode must be one of {sorted(valid_observation_modes)}, "
+                f"got {observation_mode!r}"
+            )
+        if observation_mode == "time_binned" and win_len % n_queries != 0:
+            raise ValueError(
+                "time_binned requires win_len divisible by n_queries so each "
+                "Plan-D query receives one unambiguous input bin"
+            )
+        if use_output_spikes and observation_mode == "time_binned":
+            raise ValueError(
+                "time_binned is not defined for direct spiking output: declare "
+                "an output-bin decision rule before enabling this combination"
+            )
+        self.observation_mode = observation_mode
+        self.n_observation_bins = n_queries + 1 if observation_mode == "time_binned" else 1
+        if opponent_output_mode not in {None, "parallel_pairs", "shared_windowed"}:
+            raise ValueError("opponent_output_mode must be None, parallel_pairs, or shared_windowed")
+        if opponent_output_mode is not None and not use_output_spikes:
+            raise ValueError("opponent_output_mode requires use_output_spikes=True")
+        self.opponent_output_mode = opponent_output_mode
+        if output_delay_mode not in {"inherit", "d0"}:
+            raise ValueError("output_delay_mode must be 'inherit' or 'd0'")
+        self.output_delay_mode = output_delay_mode
+        self.output_window_len = int(output_window_len or (read_len // n_queries))
+        if (opponent_output_mode == "shared_windowed" or observation_mode == "windowed_shared"):
+            if read_len != n_queries * self.output_window_len:
+                raise ValueError("windowed modes require read_len == n_queries * output_window_len")
 
         # Resolve layer sizes
         if num_hidden_layers not in (1, 2):
@@ -372,7 +443,7 @@ class SNNSimultaneousModel(nn.Module):
         train_w = train_mode in ("weights_only", "weights_and_delays")
         train_d = train_mode in ("delays_only", "weights_and_delays")
 
-        if (not train_d) and (fixed_delay_value is None):
+        if (not train_d) and (fixed_delay_value is None) and fixed_delay_distribution is None:
             fixed_delay_value = 0.0
 
         lif_kw = dict(
@@ -383,6 +454,12 @@ class SNNSimultaneousModel(nn.Module):
         syn_kw = dict(
             d_max=d_max, delay_param_type=delay_param_type, delay_step=delay_step,
             fixed_delay_value=fixed_delay_value, train_weights=train_w, train_delays=train_d,
+            fixed_delay_distribution=fixed_delay_distribution,
+            fixed_delay_seed=fixed_delay_seed, shared_delay=shared_delay,
+            delay_tying=delay_tying,
+            fixed_delay_low=fixed_delay_low, fixed_delay_high=fixed_delay_high,
+            delay_init_mode=delay_init_mode, delay_init_raw=delay_init_raw,
+            delay_init_std=delay_init_std,
         )
 
         # ── Layer 1: input -> h1 ──
@@ -399,12 +476,30 @@ class SNNSimultaneousModel(nn.Module):
         self.readout_in    = readout_in
         self.readout_type  = readout_type
         self.use_output_spikes = use_output_spikes
+        self.readout_feature_dim = (
+            readout_in * self.n_observation_bins
+            if observation_mode == "time_binned" else readout_in
+        )
 
         if use_output_spikes:
             # Spiking output layer: hidden → LIF output → spike counts = logits
-            n_out = n_output_neurons if n_output_neurons is not None else n_queries
+            expected = (2 * n_queries if opponent_output_mode == "parallel_pairs"
+                        else (2 if opponent_output_mode == "shared_windowed" else n_queries))
+            n_out = n_output_neurons if n_output_neurons is not None else expected
+            if opponent_output_mode is not None and n_out != expected:
+                raise ValueError(f"{opponent_output_mode} requires {expected} output neurons")
             self.n_output_neurons = n_out
-            self.syn_ho = DelayedSynapticLayer(readout_in, n_out, **syn_kw)
+            self.readout_feature_dim = n_out
+            output_syn_kw = dict(syn_kw)
+            if output_delay_mode == "d0":
+                output_syn_kw.update({
+                    "fixed_delay_value": 0.0,
+                    "fixed_delay_distribution": None,
+                    "shared_delay": False,
+                    "delay_tying": "pair",
+                    "train_delays": False,
+                })
+            self.syn_ho = DelayedSynapticLayer(readout_in, n_out, **output_syn_kw)
             # Output neurons can use a separate (usually lower) threshold so that
             # sparse hidden activity (e.g. from burst encoding) can drive them.
             lif_o_kw = dict(lif_kw)
@@ -414,15 +509,43 @@ class SNNSimultaneousModel(nn.Module):
             self.readout = None   # not used; set to None to avoid confusion
         else:
             self.n_output_neurons = 0
+            decoder_outputs = 1 if observation_mode == "windowed_shared" else n_queries
             if readout_type == "mlp":
-                hidden_r = max(readout_in, n_queries * 8)
+                hidden_r = max(self.readout_feature_dim, n_queries * 8)
                 self.readout = nn.Sequential(
-                    nn.Linear(readout_in, hidden_r),
+                    nn.Linear(self.readout_feature_dim, hidden_r),
                     nn.ReLU(),
-                    nn.Linear(hidden_r, n_queries),
+                    nn.Linear(hidden_r, decoder_outputs),
                 )
             else:
-                self.readout = nn.Linear(readout_in, n_queries)
+                self.readout = nn.Linear(self.readout_feature_dim, decoder_outputs)
+
+    def _observation_bin(self, t: int) -> int:
+        """Return the Plan-D bin for a timestep in ``time_binned`` mode."""
+        if t >= self.win_len:
+            return self.n_queries
+        sub_win = self.win_len // self.n_queries
+        return min(t // sub_win, self.n_queries - 1)
+
+    def observation_metadata(self) -> Dict[str, int | str]:
+        """Resource-relevant description of the observation interface."""
+        observed_steps = (self.read_len if self.observation_mode in {"late_window", "windowed_shared"}
+                          else self.T)
+        decoder_module = self.syn_ho if self.use_output_spikes else self.readout
+        decoder_parameters = sum(p.numel() for p in decoder_module.parameters())
+        decoder_trainable_parameters = sum(
+            p.numel() for p in decoder_module.parameters() if p.requires_grad
+        )
+        return {
+            "observation_mode": self.observation_mode,
+            "observation_steps": observed_steps,
+            "observation_bins": self.n_observation_bins,
+            "readout_feature_dim": self.readout_feature_dim,
+            "decoder_type": "spiking_output" if self.use_output_spikes else self.readout_type,
+            "decoder_parameters": decoder_parameters,
+            "decoder_trainable_parameters": decoder_trainable_parameters,
+            "output_neurons": self.n_output_neurons if self.use_output_spikes else self.n_queries,
+        }
 
     def weight_params(self):
         # Captures syn_ih.weight and syn_h1h2.weight (if present)
@@ -459,6 +582,7 @@ class SNNSimultaneousModel(nn.Module):
         self,
         spike_input: torch.Tensor,  # [B, T, n_input]
         record: bool = False,
+        return_output_spike_train: bool = False,
     ) -> Tuple[torch.Tensor, Dict]:
         """
         Args:
@@ -494,6 +618,19 @@ class SNNSimultaneousModel(nn.Module):
             total_h_spk      = torch.zeros(B, device=device)
             hidden_fired_any = torch.zeros(B, self.n_hidden, device=device)
 
+        time_binned_acc = None
+        if self.observation_mode == "time_binned":
+            time_binned_acc = [
+                torch.zeros(B, self.readout_in, device=device)
+                for _ in range(self.n_observation_bins)
+            ]
+        windowed_shared_acc = None
+        if self.observation_mode == "windowed_shared":
+            windowed_shared_acc = [
+                torch.zeros(B, self.readout_in, device=device)
+                for _ in range(self.n_queries)
+            ]
+
         # Differentiable per-neuron spike accumulators (for homeostatic firing-rate reg)
         spk_pn1 = torch.zeros(B, self.n_hidden, device=device)
         spk_pn2 = (torch.zeros(B, self.n_hidden2, device=device)
@@ -501,6 +638,7 @@ class SNNSimultaneousModel(nn.Module):
 
         # Optional full spike-train recording (last hidden layer + h1 for 2-layer)
         hidden_train: list = [] if record else None  # type: ignore[assignment]
+        membrane_train: list = [] if record else None  # type: ignore[assignment]
         h1_train:     list = [] if (record and self._num_layers == 2) else None  # type: ignore[assignment]
 
         # Spiking output layer extras
@@ -510,8 +648,32 @@ class SNNSimultaneousModel(nn.Module):
             buf_ho_ptr    = 0
             d_cont_ho     = self.syn_ho.get_delays()
             output_acc    = torch.zeros(B, self.n_output_neurons, device=device)
+            output_membrane_acc = torch.zeros(B, self.n_output_neurons, device=device)
+            output_membrane_peak = torch.full(
+                (B, self.n_output_neurons), -1e6, device=device
+            )
+            output_window_acc = None
+            output_window_membrane_acc = None
+            output_window_membrane_peak = None
+            if self.opponent_output_mode == "shared_windowed":
+                # Keep each window as a separate tensor while unrolling time.
+                # In-place writes to slices of a shared [B,K,2] tensor break
+                # autograd once peak-voltage logits retain earlier versions.
+                output_window_acc = [
+                    torch.zeros(B, 2, device=device) for _ in range(self.n_queries)
+                ]
+                output_window_membrane_acc = [
+                    torch.zeros(B, 2, device=device) for _ in range(self.n_queries)
+                ]
+                output_window_membrane_peak = [
+                    torch.full((B, 2), -1e6, device=device)
+                    for _ in range(self.n_queries)
+                ]
             total_o_spk   = torch.zeros(B, device=device)
-            output_train: list = [] if record else None  # type: ignore[assignment]
+            output_train: list = [] if (record or return_output_spike_train) else None  # type: ignore[assignment]
+            output_pre_reset_train: list = [] if return_output_spike_train else None  # type: ignore[assignment]
+            output_membrane_train: list = [] if record else None  # type: ignore[assignment]
+            output_current_train: list = [] if record else None  # type: ignore[assignment]
 
         for t in range(T):
             x_t   = spike_input[:, t, :]
@@ -536,45 +698,112 @@ class SNNSimultaneousModel(nn.Module):
                 h1_fired_any = torch.maximum(h1_fired_any, (spike_h  > 0).float())
                 h2_fired_any = torch.maximum(h2_fired_any, (spike_h2 > 0).float())
 
-                if t >= self.win_len:
-                    last_acc = last_acc + spike_h2
-
                 if record:
                     h1_train.append(spike_h.detach().cpu())     # layer 1
                     hidden_train.append(spike_h2.detach().cpu()) # layer 2
+                    membrane_train.append(v_h2.detach().cpu())
 
-                if self.use_output_spikes:
-                    spike_last_h = spike_h2
+                spike_last_h = spike_h2
             else:
                 total_h_spk      = total_h_spk + spike_h.sum(dim=1)
                 spk_pn1          = spk_pn1 + spike_h
                 hidden_fired_any = torch.maximum(hidden_fired_any, (spike_h > 0).float())
 
-                if t >= self.win_len:
-                    last_acc = last_acc + spike_h
-
                 if record:
                     hidden_train.append(spike_h.detach().cpu())
+                    membrane_train.append(v_h.detach().cpu())
 
-                if self.use_output_spikes:
-                    spike_last_h = spike_h
+                spike_last_h = spike_h
+
+            if self.observation_mode == "time_binned":
+                bin_index = self._observation_bin(t)
+                time_binned_acc[bin_index] = time_binned_acc[bin_index] + spike_last_h
+            elif self.observation_mode == "windowed_shared":
+                if t >= self.win_len:
+                    window_index = min((t - self.win_len) // self.output_window_len,
+                                       self.n_queries - 1)
+                    windowed_shared_acc[window_index] = windowed_shared_acc[window_index] + spike_last_h
+            elif self.observation_mode == "all_time" or t >= self.win_len:
+                last_acc = last_acc + spike_last_h
 
             # Spiking output layer (after last hidden layer, every timestep)
             if self.use_output_spikes:
                 I_o = self.syn_ho(buf_ho, d_cont_ho, buf_ho_ptr)
+                not_ref_o = (ref_o <= 0.0).float()
+                v_o_pre = (self.lif_o.decay * v_o
+                           + (1.0 - self.lif_o.decay) * I_o * not_ref_o)
                 spike_o, v_o, ref_o = self.lif_o(I_o, v_o, ref_o)
                 buf_ho[:, buf_ho_ptr, :] = spike_last_h
                 buf_ho_ptr = (buf_ho_ptr + 1) % d_max_1
                 total_o_spk = total_o_spk + spike_o.sum(dim=1)
-                if t >= self.win_len:
+                if self.observation_mode == "all_time" or t >= self.win_len:
                     output_acc = output_acc + spike_o
+                    output_membrane_acc = output_membrane_acc + v_o
+                    output_membrane_peak = torch.maximum(output_membrane_peak, v_o_pre)
+                if self.opponent_output_mode == "shared_windowed" and t >= self.win_len:
+                    window_index = min((t - self.win_len) // self.output_window_len,
+                                       self.n_queries - 1)
+                    output_window_acc[window_index] = (
+                        output_window_acc[window_index] + spike_o
+                    )
+                    output_window_membrane_acc[window_index] = (
+                        output_window_membrane_acc[window_index] + v_o
+                    )
+                    output_window_membrane_peak[window_index] = torch.maximum(
+                        output_window_membrane_peak[window_index], v_o_pre
+                    )
+                if record or return_output_spike_train:
+                    output_train.append(
+                        spike_o if return_output_spike_train else spike_o.detach().cpu()
+                    )
+                if return_output_spike_train:
+                    output_pre_reset_train.append(v_o_pre)
                 if record:
-                    output_train.append(spike_o.detach().cpu())
+                    output_current_train.append(I_o.detach().cpu())
+                    # Record pre-reset voltage so a diagnostic can show actual
+                    # threshold crossings; post-reset voltage would erase the
+                    # very event the panel is meant to diagnose.
+                    output_membrane_train.append(v_o_pre.detach().cpu())
 
         if self.use_output_spikes:
-            logits = output_acc   # [B, n_output_neurons]  spike counts as logits
+            if self.opponent_output_mode == "parallel_pairs":
+                pair_counts = output_acc.reshape(B, self.n_queries, 2)
+                logits = pair_counts[:, :, 1] - pair_counts[:, :, 0]
+                membrane_pairs = output_membrane_acc.reshape(B, self.n_queries, 2)
+                membrane_logits = membrane_pairs[:, :, 1] - membrane_pairs[:, :, 0]
+                membrane_peak_pairs = output_membrane_peak.reshape(B, self.n_queries, 2)
+                readout_features = pair_counts
+            elif self.opponent_output_mode == "shared_windowed":
+                output_window_acc_tensor = torch.stack(output_window_acc, dim=1)
+                output_window_membrane_acc_tensor = torch.stack(
+                    output_window_membrane_acc, dim=1
+                )
+                output_window_membrane_peak_tensor = torch.stack(
+                    output_window_membrane_peak, dim=1
+                )
+                logits = (output_window_acc_tensor[:, :, 1]
+                          - output_window_acc_tensor[:, :, 0])
+                membrane_logits = (output_window_membrane_acc_tensor[:, :, 1]
+                                   - output_window_membrane_acc_tensor[:, :, 0])
+                membrane_peak_pairs = output_window_membrane_peak_tensor
+                readout_features = output_window_acc_tensor
+            else:
+                logits = output_acc
+                membrane_logits = output_membrane_acc
+                readout_features = output_acc
         else:
-            logits = self.readout(last_acc)  # [B, K]
+            if self.observation_mode == "time_binned":
+                readout_features = torch.stack(time_binned_acc, dim=1).reshape(B, -1)
+                logits = self.readout(readout_features)
+            elif self.observation_mode == "windowed_shared":
+                readout_features = torch.stack(windowed_shared_acc, dim=1)
+                logits = torch.stack([
+                    self.readout(windowed_shared_acc[k]).squeeze(-1)
+                    for k in range(self.n_queries)
+                ], dim=1)
+            else:
+                readout_features = last_acc
+                logits = self.readout(readout_features)
 
         if self._num_layers == 2:
             active_h2 = h2_fired_any.sum(dim=1)
@@ -601,14 +830,250 @@ class SNNSimultaneousModel(nn.Module):
 
         if self.use_output_spikes:
             info["total_output_spikes"] = total_o_spk
+            info["output_membrane_logits"] = membrane_logits
+            if self.opponent_output_mode is not None:
+                info["output_membrane_class_logits"] = (
+                    self.lif_o.surrogate_beta
+                    * (membrane_peak_pairs - self.lif_o.v_threshold)
+                )
+            if self.opponent_output_mode == "parallel_pairs":
+                info["output_pair_counts"] = pair_counts.detach().cpu()
+            if self.opponent_output_mode == "shared_windowed":
+                info["output_window_counts"] = output_window_acc_tensor.detach().cpu()
+
+        if self.observation_mode == "windowed_shared":
+            info["hidden_window_counts"] = torch.stack(
+                windowed_shared_acc, dim=1
+            ).detach().cpu()
+
+        info.update(self.observation_metadata())
 
         if record:
             # [B, T, last_hidden_size] — always present
             info["hidden_spike_train"] = torch.stack(hidden_train, dim=1)
+            info["hidden_membrane_train"] = torch.stack(membrane_train, dim=1)
             if self._num_layers == 2:
                 # [B, T, h1] — first hidden layer (only for 2-layer models)
                 info["hidden1_spike_train"] = torch.stack(h1_train, dim=1)
             if self.use_output_spikes:
                 info["output_spike_train"] = torch.stack(output_train, dim=1)  # [B,T,n_out]
+                info["output_membrane_train"] = torch.stack(output_membrane_train, dim=1)
+                info["output_synaptic_current_train"] = torch.stack(
+                    output_current_train, dim=1
+                )
+            info["readout_features"] = readout_features.detach().cpu()
 
+        if return_output_spike_train and not record:
+            info["output_spike_train"] = torch.stack(output_train, dim=1)
+            info["output_pre_reset_train"] = torch.stack(output_pre_reset_train, dim=1)
+
+        return logits, info
+
+
+class SNNSpatialParallelModel(nn.Module):
+    """K independent d0 SNN modules with one shared per-query decoder.
+
+    Each query owns four binary-one-hot input channels and ``hidden_per_query``
+    LIF neurons. There are no cross-query synapses. The same Linear/MLP decoder
+    is applied to every module's accumulated hidden spike counts, matching the
+    decoder sharing used by ``windowed_shared`` temporal models while retaining
+    genuine spatial hidden replication.
+
+    This class is intentionally restricted to the non-spiking decoder scaffold;
+    it is not a replacement for the direct-spiking-output architecture.
+    """
+
+    topology_type = "spatial_independent_shared_decoder"
+
+    def __init__(
+        self,
+        *,
+        n_queries: int,
+        hidden_per_query: int,
+        win_len: int,
+        read_len: int,
+        d_max: int,
+        train_mode: str = "weights_only",
+        fixed_delay_value: float = 0.0,
+        lif_tau_m: float = 10.0,
+        lif_threshold: float = 0.2,
+        lif_reset: float = 0.0,
+        lif_refractory: int = 2,
+        dt: float = 1.0,
+        surrogate_beta: float = 4.0,
+        readout_type: str = "mlp",
+    ):
+        super().__init__()
+        if n_queries < 1 or hidden_per_query < 1:
+            raise ValueError("n_queries and hidden_per_query must be positive")
+        if train_mode not in {"weights_only", "weights_and_delays", "delays_only"}:
+            raise ValueError("unsupported train_mode")
+        if readout_type not in {"linear", "mlp"}:
+            raise ValueError("readout_type must be linear or mlp")
+
+        self.n_queries = int(n_queries)
+        self.hidden_per_query = int(hidden_per_query)
+        self.n_hidden = self.n_queries * self.hidden_per_query
+        self.n_hidden_total = self.n_hidden
+        self.n_hidden2 = None
+        self.n_input = 4 * self.n_queries
+        self.win_len = int(win_len)
+        self.read_len = int(read_len)
+        self.T = self.win_len + self.read_len
+        self.d_max = int(d_max)
+        self.train_mode = train_mode
+        self.observation_mode = "all_time"
+        self.n_observation_bins = 1
+        self.readout_feature_dim = self.hidden_per_query
+        self.readout_type = readout_type
+        self.use_output_spikes = False
+        self.n_output_neurons = 0
+        self.decoder_repetitions = self.n_queries
+        self.input_event_fanout = self.hidden_per_query
+
+        train_w = train_mode in {"weights_only", "weights_and_delays"}
+        train_d = train_mode in {"delays_only", "weights_and_delays"}
+        syn_kw = dict(
+            d_max=self.d_max,
+            fixed_delay_value=fixed_delay_value,
+            train_weights=train_w,
+            train_delays=train_d,
+        )
+        lif_kw = dict(
+            tau_m=lif_tau_m, v_threshold=lif_threshold, v_reset=lif_reset,
+            refractory_steps=lif_refractory, dt=dt, surrogate_beta=surrogate_beta,
+        )
+        self.syn_ih_modules = nn.ModuleList([
+            DelayedSynapticLayer(4, self.hidden_per_query, **syn_kw)
+            for _ in range(self.n_queries)
+        ])
+        self.lif_h_modules = nn.ModuleList([
+            LIFNeurons(self.hidden_per_query, **lif_kw)
+            for _ in range(self.n_queries)
+        ])
+        if readout_type == "mlp":
+            hidden_r = max(self.hidden_per_query, self.n_queries * 8)
+            self.readout = nn.Sequential(
+                nn.Linear(self.hidden_per_query, hidden_r),
+                nn.ReLU(),
+                nn.Linear(hidden_r, 1),
+            )
+        else:
+            self.readout = nn.Linear(self.hidden_per_query, 1)
+
+    def weight_params(self):
+        return [
+            layer.weight for layer in self.syn_ih_modules
+            if layer.weight.requires_grad
+        ]
+
+    def delay_params(self):
+        return [
+            layer.delay_raw for layer in self.syn_ih_modules
+            if layer.delay_raw.requires_grad
+        ]
+
+    def readout_params(self):
+        return list(self.readout.parameters())
+
+    def get_delays(self) -> Dict[str, torch.Tensor]:
+        return {
+            f"ih_q{query}": layer.get_delays()
+            for query, layer in enumerate(self.syn_ih_modules)
+        }
+
+    def delay_regularization(self) -> torch.Tensor:
+        return torch.stack([
+            layer.get_delays().mean() for layer in self.syn_ih_modules
+        ]).mean()
+
+    def observation_metadata(self) -> Dict[str, int | str]:
+        decoder_parameters = sum(p.numel() for p in self.readout.parameters())
+        return {
+            "observation_mode": self.observation_mode,
+            "observation_steps": self.T,
+            "observation_bins": 1,
+            "readout_feature_dim": self.hidden_per_query,
+            "decoder_type": self.readout_type,
+            "decoder_parameters": decoder_parameters,
+            "decoder_trainable_parameters": sum(
+                p.numel() for p in self.readout.parameters() if p.requires_grad
+            ),
+            "output_neurons": self.n_queries,
+        }
+
+    def forward(
+        self,
+        spike_input: torch.Tensor,
+        record: bool = False,
+        return_output_spike_train: bool = False,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        if return_output_spike_train:
+            raise ValueError("spatial MLP scaffold has no spiking output train")
+        batch, steps, channels = spike_input.shape
+        if steps != self.T or channels != self.n_input:
+            raise ValueError(
+                f"expected input [B,{self.T},{self.n_input}], got {tuple(spike_input.shape)}"
+            )
+        device = spike_input.device
+        depth = self.d_max + 1
+        voltages, refractory, buffers, pointers = [], [], [], []
+        delay_tensors = []
+        accumulators = []
+        spike_totals = []
+        fired_any = []
+        per_neuron_totals = []
+        for query in range(self.n_queries):
+            voltage, ref = self.lif_h_modules[query].init_state(batch, device)
+            voltages.append(voltage)
+            refractory.append(ref)
+            buffers.append(torch.zeros(batch, depth, 4, device=device))
+            pointers.append(0)
+            delay_tensors.append(self.syn_ih_modules[query].get_delays())
+            accumulators.append(torch.zeros(batch, self.hidden_per_query, device=device))
+            spike_totals.append(torch.zeros(batch, device=device))
+            fired_any.append(torch.zeros(batch, self.hidden_per_query, device=device))
+            per_neuron_totals.append(torch.zeros(batch, self.hidden_per_query, device=device))
+
+        recorded_spikes = [] if record else None
+        recorded_membrane = [] if record else None
+        for time in range(self.T):
+            step_spikes, step_membrane = [], []
+            for query in range(self.n_queries):
+                current = self.syn_ih_modules[query](
+                    buffers[query], delay_tensors[query], pointers[query]
+                )
+                spikes, voltages[query], refractory[query] = self.lif_h_modules[query](
+                    current, voltages[query], refractory[query]
+                )
+                start = 4 * query
+                buffers[query][:, pointers[query], :] = spike_input[:, time, start:start + 4]
+                pointers[query] = (pointers[query] + 1) % depth
+                accumulators[query] = accumulators[query] + spikes
+                spike_totals[query] = spike_totals[query] + spikes.sum(dim=1)
+                fired_any[query] = torch.maximum(fired_any[query], (spikes > 0).float())
+                per_neuron_totals[query] = per_neuron_totals[query] + spikes
+                if record:
+                    step_spikes.append(spikes.detach().cpu())
+                    step_membrane.append(voltages[query].detach().cpu())
+            if record:
+                recorded_spikes.append(torch.cat(step_spikes, dim=1))
+                recorded_membrane.append(torch.cat(step_membrane, dim=1))
+
+        features = torch.stack(accumulators, dim=1)  # [B,K,h]
+        logits = self.readout(features).squeeze(-1)  # shared decoder -> [B,K]
+        total_hidden_spikes = torch.stack(spike_totals, dim=1).sum(dim=1)
+        active_hidden = torch.cat(fired_any, dim=1).sum(dim=1)
+        info: Dict[str, torch.Tensor] = {
+            "total_hidden_spikes": total_hidden_spikes,
+            "active_hidden_neurons": active_hidden,
+            "active_hidden_fraction": active_hidden / float(self.n_hidden),
+            "trial_steps": self.T,
+            "hidden_rate": torch.cat(per_neuron_totals, dim=1).mean(dim=0) / float(self.T),
+        }
+        info.update(self.observation_metadata())
+        if record:
+            info["hidden_spike_train"] = torch.stack(recorded_spikes, dim=1)
+            info["hidden_membrane_train"] = torch.stack(recorded_membrane, dim=1)
+            info["readout_features"] = features.detach().cpu()
         return logits, info

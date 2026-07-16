@@ -1,0 +1,26 @@
+{
+  "complete": true,
+  "n_cells": 18,
+  "selection_rule_applied_per_cell": true,
+  "thresholds": [
+    {
+      "threshold": 0.2,
+      "viable_all_cells": true,
+      "across_condition_mean_hidden_spikes": 17.320666472117107,
+      "distance_to_target_10": 7.320666472117107
+    },
+    {
+      "threshold": 0.3,
+      "viable_all_cells": true,
+      "across_condition_mean_hidden_spikes": 10.06599990526835,
+      "distance_to_target_10": 0.06599990526835064
+    },
+    {
+      "threshold": 0.5,
+      "viable_all_cells": false,
+      "across_condition_mean_hidden_spikes": 2.6770000060399375,
+      "distance_to_target_10": 7.322999993960062
+    }
+  ],
+  "selected_threshold": 0.3
+}

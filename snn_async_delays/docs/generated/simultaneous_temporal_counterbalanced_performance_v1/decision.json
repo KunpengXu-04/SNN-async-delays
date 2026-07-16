@@ -1,0 +1,28 @@
+{
+  "protocol": "simultaneous_temporal_counterbalanced_performance_v1",
+  "complete": true,
+  "routing_floor_supported": {
+    "d0": false,
+    "scalar": false,
+    "fixed_matched": false,
+    "fixed_full_support": false,
+    "w_and_d": false
+  },
+  "strongest_nonlearned_controls": [
+    "d0",
+    "scalar",
+    "fixed_matched"
+  ],
+  "primary_comparator_is_tied": true,
+  "wad_minus_strongest_primary_mean": 0.0,
+  "wad_minus_strongest_exact_mean": 0.24792592613785358,
+  "wad_positive_primary_seeds_by_control": {
+    "d0": 0,
+    "scalar": 0,
+    "fixed_matched": 0
+  },
+  "wad_superiority_supported": false,
+  "secondary_wad_minus_fixed_full_mean_balanced": 0.07770610517925687,
+  "secondary_wad_minus_fixed_full_exact": 0.08466666357384789,
+  "test_split_opened": false
+}

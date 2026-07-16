@@ -1,0 +1,45 @@
+{
+  "protocol_id": "xor_difficulty_calibration_v1",
+  "completed_cells": 54,
+  "evaluation_split": "val",
+  "qualifying_settings": [
+    {
+      "K": 4,
+      "hidden_size": 50
+    },
+    {
+      "K": 3,
+      "hidden_size": 35
+    },
+    {
+      "K": 3,
+      "hidden_size": 50
+    },
+    {
+      "K": 2,
+      "hidden_size": 20
+    },
+    {
+      "K": 2,
+      "hidden_size": 35
+    },
+    {
+      "K": 2,
+      "hidden_size": 50
+    }
+  ],
+  "recommended_primary_setting": {
+    "K": 3,
+    "hidden_size": 35,
+    "T": 40,
+    "sub_win": 10
+  },
+  "recommended_stress_setting": {
+    "K": 4,
+    "hidden_size": 50,
+    "T": 50,
+    "sub_win": 10
+  },
+  "selection_basis": "K=3,N=35 is the smallest N at K=3 for which both conditions meet the preregistered target/variance rule; K=3,N=20 fails for d0. K=4,N=50 also qualifies exactly at the lower target boundary and is retained as a stress setting rather than the sole primary point.",
+  "claim_boundary": "Calibration choice only; no test-set or WAD superiority claim."
+}

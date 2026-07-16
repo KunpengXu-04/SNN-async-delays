@@ -1,0 +1,63 @@
+{
+  "protocol": "spatial_vs_temporal_pareto_mlp_scaffold_v2",
+  "root_kind": "exploratory",
+  "expected_cells": 160,
+  "complete_cells": 160,
+  "incomplete_artifacts": [],
+  "spatial_and_oracle_viability": {
+    "spatial_independent_d0": {
+      "per_seed_any_surface_point_ge_0p90": {
+        "307": true,
+        "613": true
+      },
+      "all_seeds": true
+    },
+    "shared_temporal_oracle": {
+      "per_seed_any_surface_point_ge_0p90": {
+        "307": true,
+        "613": true
+      },
+      "all_seeds": true
+    }
+  },
+  "oracle_better_than_temporal_d0_any_matched_cell": true,
+  "mean_oracle_minus_temporal_d0_worst_balanced": 0.263671875,
+  "robust_feasible_conditions_at_0p90": [
+    "shared_temporal_oracle",
+    "spatial_independent_d0"
+  ],
+  "matched_0p90_selected_points": {
+    "spatial_independent_d0": {
+      "condition": "spatial_independent_d0",
+      "T": 18,
+      "surface_hidden_width": 24,
+      "worst_balanced_min_seed": 1.0,
+      "exact_trial_min_seed": 1.0,
+      "hidden_neurons_total": 48.0,
+      "neuron_updates_per_trial": 864.0,
+      "dense_synapse_macs_per_trial": 3456.0,
+      "mean_synaptic_events_total": 192.0,
+      "delay_buffer_elements_per_sample": 8.0,
+      "delay_value_storage_elements": 192.0,
+      "decoder_weight_macs_per_trial": 1200.0
+    },
+    "shared_temporal_oracle": {
+      "condition": "shared_temporal_oracle",
+      "T": 18,
+      "surface_hidden_width": 24,
+      "worst_balanced_min_seed": 1.0,
+      "exact_trial_min_seed": 1.0,
+      "hidden_neurons_total": 24.0,
+      "neuron_updates_per_trial": 432.0,
+      "dense_synapse_macs_per_trial": 3456.0,
+      "mean_synaptic_events_total": 192.0,
+      "delay_buffer_elements_per_sample": 40.0,
+      "delay_value_storage_elements": 192.0,
+      "decoder_weight_macs_per_trial": 1200.0
+    }
+  },
+  "oracle_area_ratio_to_spatial_at_0p90": 0.5,
+  "direct_spiking_output_solved": false,
+  "formal_phase0_stage_b_unlocked": false,
+  "publication_claim_allowed": false
+}

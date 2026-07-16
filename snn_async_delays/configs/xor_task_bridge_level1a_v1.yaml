@@ -1,0 +1,257 @@
+protocol_id: xor_task_bridge_level1a_v1
+status: preregistered_stage_i_ready
+preregistered_at: 2026-07-16
+study_class: diagnostic_task_calibration
+parent_protocol: delay_hard_output_soft_credit_level0d_v1
+
+question: >
+  Can the one-event hard-output/continuous-arrival delay bridge survive a
+  complete K=1 XOR task when synaptic weights and one global input-to-hidden
+  delay are optimized jointly, after first establishing that the hard-spiking
+  opponent interface is seed-robust under fixed causal schedules?
+
+hypotheses:
+  interface_gate: >
+    Exact truth-table batching plus a global one-target/no-extra-spike voltage
+    envelope can make both a d0 causal control and a fixed interior-delay oracle
+    emit exactly one correct opponent spike at their declared target times.
+  task_only_delay_credit: >
+    Filtered hard-spike task loss, optionally with the selected voltage
+    envelope, may still give inconsistent delay directions across random weight
+    initializations.
+  arrival_bridge: >
+    A prespecified centroid loss on the unweighted shared input-arrival trace
+    will provide bidirectional delay credit without replacing the hard-spike
+    XOR endpoint.
+
+scope:
+  includes:
+    - K1 XOR and the exhaustive four-pattern truth table
+    - four-channel equal-event binary one-hot input
+    - one shared input-to-hidden delay scalar
+    - trainable input-hidden and hidden-output weights
+    - two hard-spiking class-opponent outputs
+    - fixed d0 and fixed interior-delay controls
+    - exact output-spike semantics and delay-gradient diagnostics
+  excludes:
+    - K greater than one
+    - per-neuron or per-synapse delay degrees of freedom
+    - two-event micro-bursts or timing jitter
+    - rate encoding
+    - trainable hidden-to-output delays
+    - MLP or linear non-spiking readout
+    - held-out task generalization, resource advantage or Pareto claims
+
+task:
+  operation: XOR
+  K: 1
+  truth_patterns: 4
+  training_batch: exhaustive_truth_table_full_batch
+  checkpoint_selection: final_only
+  test_split_opened: false
+
+encoding:
+  mode: binary_one_hot
+  channels: [A0, A1, B0, B1]
+  selected_channel_events: 1
+  events_per_trial: 2
+  input_window_steps: 10
+  event_phase: 1.0
+  event_step: 9
+  jitter_steps: 0
+  rationale: >
+    Remove the known consecutive-microburst early-collision confound while
+    keeping event count identical for all XOR inputs. Two-event burst
+    robustness is downstream of Level 1A.
+
+model:
+  architecture: 4_to_16_to_2_class_opponent_spiking
+  hidden_neurons: 16
+  output_neurons: 2
+  d_max_steps: 8
+  input_hidden_delay_parameterization: sigmoid
+  learned_delay_tying: one_global_scalar_broadcast_to_4x16
+  output_delay_mode: d0
+  hidden_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.2
+    reset_au: 0.0
+    refractory_steps: 2
+  output_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.03
+    reset_au: 0.0
+    refractory_steps: 2
+  surrogate_beta: 4.0
+  dt_steps: 1.0
+  units_note: membrane_and_threshold_values_are_dimensionless_simulator_arbitrary_units
+
+timing:
+  read_window_steps: 10
+  total_steps: 20
+  effective_layer_delay_formula: emitted_step_plus_nominal_delay_plus_one
+  output_target_formula: input_event_step_plus_input_hidden_delay_plus_two_layer_offsets
+  d0_causal_target:
+    input_hidden_delay_steps: 0.0
+    hidden_arrival_step: 10
+    output_target_step: 11
+    output_window_offset_steps: 1
+  interior_oracle_target:
+    input_hidden_delay_steps: 4.0
+    hidden_arrival_step: 14
+    output_target_step: 15
+    output_window_offset_steps: 5
+
+losses:
+  filtered_hard_spike:
+    weight: 1.0
+    filter_tau_steps: 3.0
+    formula: class_balanced_mse_between_causal_filtered_output_and_one_hot_target_spike_trains
+  global_voltage_envelope:
+    candidate_weights: [0.0, 0.1, 1.0]
+    formula: half_balanced_logistic_target_crossing_plus_half_balanced_logistic_non_target_suppression
+    uses: production_pre_reset_output_voltage_at_every_time_and_both_outputs
+  shared_arrival_centroid:
+    candidate_weights: [0.0, 0.01, 0.1, 1.0]
+    target_delay_steps: 4.0
+    formula: half_squared_error_between_unweighted_input_arrival_centroid_and_fixed_oracle_arrival_centroid
+    interpretation: teacher_timing_scaffold_not_task_derived_routing
+  total:
+    formula: filtered_hard_spike_plus_eta_times_global_voltage_envelope_plus_lambda_times_shared_arrival_centroid
+  explicitly_absent:
+    - signed_count_bce
+    - post_reset_membrane_centroid
+    - direct_raw_delay_supervision
+
+optimization:
+  optimizer: Adam
+  full_batch_updates: 500
+  candidate_weight_learning_rates: [0.001, 0.003, 0.01]
+  candidate_delay_learning_rates: [0.01, 0.05]
+  learned_delay_initial_raw_values: [-2.0, 2.0]
+  gradient_clip_norm: 1.0
+  seeds: [101, 203, 307, 409, 503]
+
+stage_i_interface_gate:
+  status: preregistered_ready
+  fixed_controls:
+    - name: fixed_d0_causal
+      fixed_input_hidden_delay_steps: 0.0
+      target_delay_steps: 0.0
+    - name: fixed_oracle_d4
+      fixed_input_hidden_delay_steps: 4.0
+      target_delay_steps: 4.0
+  grid:
+    fixed_controls: 2
+    voltage_envelope_weights: 3
+    weight_learning_rates: 3
+    seeds: 5
+    deterministic_cells: 90
+  candidate_definition: same_eta_and_weight_lr_across_both_fixed_controls_and_all_five_seeds
+  pass_rule: all_10_cells_pass_exact_interface_gate
+  selection_priority:
+    - lowest_voltage_envelope_weight
+    - lowest_weight_learning_rate
+  stage_ii_authorized: only_if_at_least_one_candidate_passes
+
+stage_ii_learned_delay_gate:
+  status: locked_pending_stage_i
+  fixed_negative_control:
+    name: fixed_d0_delayed_target
+    fixed_input_hidden_delay_steps: 0.0
+    target_delay_steps: 4.0
+    role: structurally_wrong_timing_control_not_selection_eligible
+  learned_condition:
+    name: learned_shared_delay
+    trainable_delay_parameters: 1
+    target_delay_steps: 4.0
+  grid:
+    fixed_negative_cells: 5
+    arrival_auxiliary_weights: 4
+    delay_learning_rates: 2
+    initial_raw_values: 2
+    seeds: 5
+    learned_cells: 80
+    deterministic_cells: 85
+  candidate_definition: same_lambda_and_delay_lr_across_both_initial_directions_and_all_five_seeds
+  pass_rule: all_10_learned_cells_pass_task_interface_delay_and_gradient_gates
+  selection_priority:
+    - lowest_arrival_auxiliary_weight
+    - lowest_delay_learning_rate
+  level1a_pass: stage_i_pass_and_at_least_one_learned_candidate_passes
+
+metrics:
+  primary:
+    - exact_truth_table_completion
+    - exact_target_spike_train_match
+  reliability:
+    - balanced_accuracy
+    - pooled_accuracy_descriptive
+    - silent_rate
+    - collision_rate
+    - correct_target_time_rate
+    - mean_output_spikes_per_trial
+  mechanism:
+    - hidden_active_pattern_count
+    - initial_and_final_shared_delay_steps
+    - final_delay_error_steps
+    - input_arrival_centroid_trajectory
+    - initial_spike_loss_delay_gradient
+    - initial_voltage_envelope_delay_gradient
+    - initial_arrival_auxiliary_delay_gradient
+    - initial_total_delay_gradient
+    - input_hidden_weight_gradient_norm
+    - hidden_output_weight_gradient_norm
+    - gradient_conflict
+  resources:
+    - trainable_parameters
+    - trainable_delay_parameters
+    - neuron_updates
+    - dense_synapse_macs
+    - measured_input_hidden_output_events
+    - delay_buffer_memory
+
+per_cell_gates:
+  exact_truth_table_completion: true
+  exact_target_spike_train_matches: 4
+  balanced_accuracy: 1.0
+  silent_rate: 0.0
+  collision_rate: 0.0
+  correct_target_time_rate: 1.0
+  mean_output_spikes_per_trial: 1.0
+  hidden_active_pattern_count: 4
+  learned_only:
+    final_delay_error_at_most_steps: 0.1
+    initial_total_delay_gradient: nonzero_and_correct_direction
+
+artifacts:
+  root: runs/exploratory/xor_task_bridge_level1a_v1
+  per_cell:
+    - config.json
+    - metrics.json
+    - final_model.pt
+    - training_log.json
+    - exhaustive_truth_table_results.json
+    - resource_ledger.json
+    - plots/diagnostic_data.npz
+    - plots/diagnostic_panel.png
+  aggregate:
+    - docs/generated/xor_task_bridge_level1a_v1/stage_i/cells.csv
+    - docs/generated/xor_task_bridge_level1a_v1/stage_i/decision.json
+    - docs/generated/xor_task_bridge_level1a_v1/stage_ii/cells.csv
+    - docs/generated/xor_task_bridge_level1a_v1/stage_ii/decision.json
+
+exclusion_rules:
+  - Stage II cannot run until the complete Stage-I decision authorizes it.
+  - Formal cells cannot be selectively launched or removed.
+  - Failed seeds and truth patterns remain failures, not exclusions.
+  - No best-epoch or best-seed checkpoint selection is allowed.
+  - No threshold, target time, hidden width, loss weight or optimizer candidate may be added after Stage I starts.
+  - Smoke artifacts are invalid for claims and cannot be pooled with formal cells.
+  - Level 1A cannot support learned routing, K scaling, tying superiority, generalization or resource claims.
+
+next_authorization:
+  if_pass: preregister_k1_delay_granularity_and_two_event_burst_robustness_level1b
+  if_stage_i_fails: stop_and_repair_xor_representation_or_hard_output_interface
+  if_stage_i_passes_but_stage_ii_fails: stop_and_diagnose_task_level_delay_optimization
+  K_greater_than_one: remains_locked

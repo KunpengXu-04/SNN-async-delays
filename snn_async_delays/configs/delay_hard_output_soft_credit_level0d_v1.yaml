@@ -1,0 +1,198 @@
+protocol_id: delay_hard_output_soft_credit_level0d_v1
+status: completed_pass_hard_plus_current_lam_0p1
+preregistered_at: 2026-07-15
+study_class: diagnostic_unit_experiment
+parent_protocol: delay_soft_trace_credit_level0c_v1
+
+question: >
+  Can a continuous-state centroid auxiliary train one production sigmoid delay
+  so that a suprathreshold production LIF emits exactly one hard spike at the
+  correct target time in both temporal directions, and can that auxiliary
+  coexist with the Level-0B hard filtered-spike objective?
+
+hypotheses:
+  hard_filtered_baseline: >
+    The hard filtered-spike objective alone will reproduce the partial and
+    directionally biased Level-0B result.
+  current_soft_bridge: >
+    Current-centroid supervision will recover the delay and therefore place the
+    evaluated hard spike correctly even though the hard spike itself is not the
+    soft training trace.
+  pre_reset_soft_bridge: >
+    A centroid of production pre-reset voltage will preserve timing credit
+    closer to the output threshold than post-reset voltage.
+  compatibility: >
+    At least one prespecified auxiliary source and weight will retain complete
+    hard-spike recovery when combined with the hard filtered-spike loss.
+
+scope:
+  includes:
+    - production DelayedSynapticLayer circular buffer
+    - one production suprathreshold LIF neuron
+    - hard output spike as the only recovery endpoint
+    - current and pre-reset membrane centroid auxiliaries
+    - hard filtered-spike loss and auxiliary-weight ablation
+  excludes:
+    - post-reset membrane as an auxiliary
+    - direct delay supervision
+    - trainable synaptic weights
+    - XOR, labels, readout, multiple neurons or multiple synapses
+    - accuracy, generalization, resources or Pareto claims
+
+timeline:
+  total_steps: 16
+  input_spike_step: 2
+  d_max_steps: 8
+  target_nominal_delays_steps: [1.0, 5.0, 7.0]
+  target_arrival_formula: input_step_plus_nominal_delay_plus_one
+
+lif:
+  fixed_synaptic_weight: 4.0
+  tau_m_steps: 10.0
+  threshold_au: 0.2
+  reset_au: 0.0
+  refractory_steps: 2
+  dt_steps: 1.0
+  surrogate_beta: 4.0
+  validity_contract: exactly_one_hard_spike_at_final_evaluation
+  pre_reset_definition: decay_times_previous_post_reset_voltage_plus_one_minus_decay_times_current_times_not_refractory
+
+losses:
+  hard_filtered:
+    formula: mean_squared_error_between_causal_filtered_hard_output_and_target_spike_traces
+    filter_tau_steps: 3.0
+  soft_centroid:
+    formula: half_squared_difference_between_normalized_auxiliary_and_target_centroids
+    sources: [synaptic_current, pre_reset_membrane]
+  total:
+    formula: hard_weight_times_hard_filtered_plus_auxiliary_weight_times_soft_centroid
+
+conditions:
+  - name: hard_filtered_only
+    role: negative_control
+    hard_weight: 1.0
+    auxiliary_source: none
+    auxiliary_weight: 0.0
+  - name: current_soft_only
+    role: bridge_positive_control
+    hard_weight: 0.0
+    auxiliary_source: synaptic_current
+    auxiliary_weight: 1.0
+  - name: pre_reset_soft_only
+    role: bridge_positive_control
+    hard_weight: 0.0
+    auxiliary_source: pre_reset_membrane
+    auxiliary_weight: 1.0
+  - name: hard_plus_current_lam_0p01
+    role: compatibility_candidate
+    hard_weight: 1.0
+    auxiliary_source: synaptic_current
+    auxiliary_weight: 0.01
+  - name: hard_plus_current_lam_0p1
+    role: compatibility_candidate
+    hard_weight: 1.0
+    auxiliary_source: synaptic_current
+    auxiliary_weight: 0.1
+  - name: hard_plus_current_lam_1
+    role: compatibility_candidate
+    hard_weight: 1.0
+    auxiliary_source: synaptic_current
+    auxiliary_weight: 1.0
+  - name: hard_plus_pre_reset_lam_0p01
+    role: compatibility_candidate
+    hard_weight: 1.0
+    auxiliary_source: pre_reset_membrane
+    auxiliary_weight: 0.01
+  - name: hard_plus_pre_reset_lam_0p1
+    role: compatibility_candidate
+    hard_weight: 1.0
+    auxiliary_source: pre_reset_membrane
+    auxiliary_weight: 0.1
+  - name: hard_plus_pre_reset_lam_1
+    role: compatibility_candidate
+    hard_weight: 1.0
+    auxiliary_source: pre_reset_membrane
+    auxiliary_weight: 1.0
+
+delay:
+  implementation: snn.synapses.DelayedSynapticLayer
+  parameterization: sigmoid
+  initial_raw_values: [-4.0, -2.0, 0.0, 2.0, 4.0]
+  optimizer: Adam
+  learning_rate: 0.05
+  optimizer_steps: 200
+  trainable_scalar_count: 1
+  trainable_weights: false
+
+grid:
+  conditions: 9
+  targets: 3
+  initializations: 5
+  deterministic_cells: 135
+  seeds: none_no_stochastic_quantity_affects_the_trajectory
+
+metrics:
+  primary: final_hard_spike_w1_steps
+  primary_formula: sum_absolute_difference_between_output_and_target_spike_cdfs
+  mechanism:
+    - final_hard_spike_arrival_error_steps
+    - final_hard_spike_count
+    - final_nominal_delay_error_steps
+    - initial_total_raw_gradient
+    - initial_hard_raw_gradient
+    - initial_auxiliary_raw_gradient
+    - initial_gradient_conflict
+    - convergence_step
+    - current_centroid_trajectory
+    - pre_reset_centroid_trajectory
+  recovery_tolerance_steps: 0.1
+  required_final_hard_spike_count: 1.0
+  initial_gradient_zero_tolerance: 1.0e-12
+
+decision_rules:
+  per_cell_recovery: >
+    Final hard output contains exactly one spike and its normalized temporal W1
+    from the one-hot target spike is at most 0.1 step.
+  directional_pair: >
+    A pair is initially aligned when initial hard-spike W1 is at most 0.1;
+    otherwise total loss must have a nonzero gradient whose sign moves the
+    declared auxiliary temporal coordinate toward its target. For the hard-only
+    control, hard spike arrival supplies the signed direction.
+  condition_coverage_pass: all_15_target_initialization_cells_recover
+  compatibility_pass: >
+    A compatibility candidate must recover all 15 cells and have correct
+    nonzero initial total-gradient directions for every initially misaligned
+    pair.
+  level0d_pass: at_least_one_compatibility_candidate_passes
+  selection_priority:
+    auxiliary_sources: [pre_reset_membrane, synaptic_current]
+    auxiliary_weight: lowest_passing_weight
+  level1a_k1_xor_preregistration_authorized: equal_to_level0d_pass
+  level1_xor_result_claim_authorized: false
+  interpretation:
+    - Soft-only success establishes a hard-output bridge but not loss compatibility.
+    - Only a combined hard-plus-auxiliary condition can pass Level 0D.
+    - A pass authorizes only preregistration of a K1 XOR calibration, not pairwise WAD or K scaling.
+
+artifacts:
+  root: runs/exploratory/delay_hard_output_soft_credit_level0d_v1
+  per_cell:
+    - config.json
+    - metrics.json
+    - final_parameter.pt
+    - plots/diagnostic_data.npz
+    - plots/diagnostic_panel.png
+  aggregate:
+    - docs/generated/delay_hard_output_soft_credit_level0d_v1/cells.csv
+    - docs/generated/delay_hard_output_soft_credit_level0d_v1/decision.json
+    - final hard-spike error heatmaps by condition
+    - condition recovery summary
+    - initial-gradient direction and gradient-conflict summaries
+
+exclusion_rules:
+  - Missing per-cell artifacts make a cell incomplete and failed.
+  - Final silence or multiple hard spikes are failures, not exclusions.
+  - Transient passage through the gate does not count unless the final state passes.
+  - Conditions and auxiliary weights must be reported separately.
+  - No post-hoc loss normalization, lambda, target, tolerance or optimizer change is allowed.
+  - No result transfers to XOR, pairwise WAD, tying, accuracy or Pareto claims without a new protocol.

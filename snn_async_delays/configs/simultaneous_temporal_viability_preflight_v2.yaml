@@ -1,0 +1,58 @@
+protocol_id: simultaneous_temporal_viability_preflight_v2
+status: completed_passed_viability_only
+execution_session_id: 59956
+purpose: >
+  Re-test the shared opponent temporal interface with mechanism-valid output
+  arrival/current support gates and a window/class-balanced training objective.
+  This remains a viability audit, not an accuracy or method-selection screen.
+source_protocol: simultaneous_temporal_routing_pilot_v1
+source_audit: simultaneous_temporal_checkpoint_mechanism_audit_v1
+design_seed_used_by_audit: 0
+held_out_execution_seeds: [1, 42]
+endpoint: opponent_shared_windowed
+conditions: [fixed_full_support, temporal_scaffold, w_and_d]
+cells: 6
+loss_reduction: window_class_balanced
+frozen_output_threshold: 0.2
+output_membrane_warmup_epochs: 20
+output_membrane_aux_weight: 0.2
+checkpoint_selection: final
+fixed_full_range: [0.0, 30.0]
+temporal_scaffold:
+  per_input_channel_delays: [8, 8, 18, 18, 28, 28]
+  hidden_output_delay: 0
+training:
+  epochs: 100
+  n_train: 2000
+  n_val: 500
+  batch_size: 128
+  lr_w: 0.001
+  lr_readout: 0.001
+locked_viability_gates:
+  all_cells_complete_and_finite: true
+  all_cells_use_window_class_balanced_loss: true
+  scaffold_min_output_current_support_each_window: 0.50
+  scaffold_min_output_activity_each_window: 0.10
+  fixed_full_min_output_current_support_each_window: 0.50
+  fixed_full_min_output_activity_each_window: 0.10
+  fixed_full_min_window_output_weight_grad_norm: 1.0e-8
+  wad_min_output_current_support_each_window: 0.50
+  wad_min_output_activity_each_window: 0.10
+  wad_min_realized_arrival_mass_each_window: 0.05
+  wad_min_window_output_weight_grad_norm: 1.0e-8
+  wad_min_window_total_delay_grad_norm: 1.0e-8
+  wad_min_final_delay_movement: 0.05
+  wad_max_final_delay_saturation_fraction: 0.95
+rules:
+  - Validation only; test remains sealed.
+  - Seed 0 informed the audit and gate design and is excluded from v2 execution.
+  - Every locked gate must pass separately in both held-out seeds; no averaging can rescue a failed seed.
+  - Accuracy, exact-trial accuracy, class-current gaps and relative condition ranking are descriptive only.
+  - Hidden spike emission inside a window is diagnostic only and is not an event-arrival gate.
+  - Output-current support is measured at syn_ho after applying delays; realized arrival mass uses actually observed hidden spikes and frozen hidden-output delays.
+  - The window/class-balanced objective macro-averages windows and label classes because XOR, NAND and NOR have different prevalences.
+  - No WAD initialization, delay range, threshold, learning rate or optimization schedule is changed from the frozen recipe.
+  - Temporal scaffold remains an execution control and cannot enter a routing claim.
+  - If any gate fails, the full temporal matrix remains locked; do not tune thresholds on v2 accuracy.
+  - If all gates pass, amend and preregister a new full temporal protocol using the balanced objective and fixed-full control before launch.
+required_artifacts: [config, best_checkpoint, final_checkpoint, train_log, validation, exhaustive_truth_table, resource_ledger, diagnostic_npz, diagnostic_panel]

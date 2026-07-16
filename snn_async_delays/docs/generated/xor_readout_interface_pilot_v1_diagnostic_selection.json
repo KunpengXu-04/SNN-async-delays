@@ -1,0 +1,19 @@
+{
+  "protocol_id": "xor_readout_interface_pilot_v1",
+  "selection_rule": {
+    "seed": 0,
+    "readout_type": "mlp",
+    "include_every_delay_condition": true,
+    "include_every_observation_mode": true,
+    "reason": "lowest preregistered seed; no performance or spike-richness selection"
+  },
+  "selected_runs": [
+    "runs/canonical/xor_readout_interface_pilot_v1/XOR_d0_h50_K2_sw10_seed0_thr0.3",
+    "runs/canonical/xor_readout_interface_pilot_v1/XOR_d0_h50_K2_sw10_seed0_thr0.3_obsall_time",
+    "runs/canonical/xor_readout_interface_pilot_v1/XOR_d0_h50_K2_sw10_seed0_thr0.3_obstime_binned",
+    "runs/canonical/xor_readout_interface_pilot_v1/XOR_wad_h50_K2_sw10_seed0_thr0.3",
+    "runs/canonical/xor_readout_interface_pilot_v1/XOR_wad_h50_K2_sw10_seed0_thr0.3_obsall_time",
+    "runs/canonical/xor_readout_interface_pilot_v1/XOR_wad_h50_K2_sw10_seed0_thr0.3_obstime_binned"
+  ],
+  "evidence_boundary": "Illustrative diagnostic subset only; use the full 36-cell group summary for inference."
+}

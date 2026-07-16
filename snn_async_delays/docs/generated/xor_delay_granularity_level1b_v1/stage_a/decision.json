@@ -1,0 +1,62 @@
+{
+  "protocol_id": "xor_delay_granularity_level1b_v1",
+  "stage": "stage_a",
+  "expected_cells": 60,
+  "complete_cells": 60,
+  "all_cells_complete": true,
+  "candidate_results": [
+    {
+      "granularity": "global",
+      "arrival_condition": "task_only",
+      "arrival_auxiliary_weight": 0.0,
+      "complete_cells": 10,
+      "passing_cells": 1,
+      "candidate_pass": false
+    },
+    {
+      "granularity": "global",
+      "arrival_condition": "scaffold",
+      "arrival_auxiliary_weight": 0.01,
+      "complete_cells": 10,
+      "passing_cells": 10,
+      "candidate_pass": true
+    },
+    {
+      "granularity": "per_hidden_neuron",
+      "arrival_condition": "task_only",
+      "arrival_auxiliary_weight": 0.0,
+      "complete_cells": 10,
+      "passing_cells": 0,
+      "candidate_pass": false
+    },
+    {
+      "granularity": "per_hidden_neuron",
+      "arrival_condition": "scaffold",
+      "arrival_auxiliary_weight": 0.01,
+      "complete_cells": 10,
+      "passing_cells": 2,
+      "candidate_pass": false
+    },
+    {
+      "granularity": "per_synapse",
+      "arrival_condition": "task_only",
+      "arrival_auxiliary_weight": 0.0,
+      "complete_cells": 10,
+      "passing_cells": 0,
+      "candidate_pass": false
+    },
+    {
+      "granularity": "per_synapse",
+      "arrival_condition": "scaffold",
+      "arrival_auxiliary_weight": 0.01,
+      "complete_cells": 10,
+      "passing_cells": 0,
+      "candidate_pass": false
+    }
+  ],
+  "global_scaffold_replication_pass": true,
+  "higher_dof_extension_pass": false,
+  "stage_b_controls_authorized": true,
+  "K_greater_than_one_authorized": false,
+  "test_split_opened": false
+}

@@ -60,6 +60,14 @@ def _load_model_from_run(run_dir: str, device: str):
         delay_param_type  = cfg.get("delay_param_type", "sigmoid"),
         delay_step        = cfg.get("delay_step", 1.0),
         fixed_delay_value = cfg.get("fixed_delay_value", None),
+        fixed_delay_distribution = cfg.get("fixed_delay_distribution", None),
+        fixed_delay_seed = cfg.get("fixed_delay_seed", 0),
+        fixed_delay_low = cfg.get("fixed_delay_low", 0.0),
+        fixed_delay_high = cfg.get("fixed_delay_high", None),
+        shared_delay = cfg.get("shared_delay", False),
+        delay_init_mode = cfg.get("delay_init_mode", "constant"),
+        delay_init_raw = cfg.get("delay_init_raw", -2.0),
+        delay_init_std = cfg.get("delay_init_std", 0.25),
         lif_tau_m         = cfg["lif_tau_m"],
         lif_threshold     = cfg["lif_threshold"],
         lif_reset         = cfg["lif_reset"],
@@ -70,6 +78,12 @@ def _load_model_from_run(run_dir: str, device: str):
         readout_type      = cfg.get("readout_type", "linear"),
         num_hidden_layers = num_layers,
         hidden_sizes      = hidden_sizes,
+        use_output_spikes = cfg.get("use_output_spikes", False),
+        n_output_neurons  = cfg.get("n_output_neurons", None),
+        lif_output_threshold = cfg.get("lif_output_threshold", None),
+        observation_mode  = cfg.get("observation_mode", "late_window"),
+        opponent_output_mode = cfg.get("opponent_output_mode", None),
+        output_window_len = cfg.get("output_window_len", None),
     )
     state = torch.load(ckpt_path, map_location=device, weights_only=True)
     model.load_state_dict(state)

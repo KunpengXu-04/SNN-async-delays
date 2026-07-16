@@ -1,0 +1,212 @@
+{
+  "protocol_id": "delay_hard_output_soft_credit_level0d_v1",
+  "expected_cells": 135,
+  "complete_cells": 135,
+  "all_cells_complete": true,
+  "condition_results": [
+    {
+      "condition": "hard_filtered_only",
+      "role": "negative_control",
+      "hard_weight": 1.0,
+      "auxiliary_source": "none",
+      "auxiliary_weight": 0.0,
+      "recovered_cells": 10,
+      "total_cells": 15,
+      "condition_coverage_pass": false,
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 8,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 5,
+        "already_hard_aligned": 2
+      },
+      "direction_pass": false,
+      "initial_gradient_conflict_cells": 0,
+      "compatibility_pass": false
+    },
+    {
+      "condition": "current_soft_only",
+      "role": "bridge_positive_control",
+      "hard_weight": 0.0,
+      "auxiliary_source": "synaptic_current",
+      "auxiliary_weight": 1.0,
+      "recovered_cells": 15,
+      "total_cells": 15,
+      "condition_coverage_pass": true,
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 13,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 0,
+        "already_hard_aligned": 2
+      },
+      "direction_pass": true,
+      "initial_gradient_conflict_cells": 5,
+      "compatibility_pass": false
+    },
+    {
+      "condition": "pre_reset_soft_only",
+      "role": "bridge_positive_control",
+      "hard_weight": 0.0,
+      "auxiliary_source": "pre_reset_membrane",
+      "auxiliary_weight": 1.0,
+      "recovered_cells": 3,
+      "total_cells": 15,
+      "condition_coverage_pass": false,
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 5,
+        "zero_gradient": 8,
+        "wrong_nonzero_sign": 0,
+        "already_hard_aligned": 2
+      },
+      "direction_pass": false,
+      "initial_gradient_conflict_cells": 2,
+      "compatibility_pass": false
+    },
+    {
+      "condition": "hard_plus_current_lam_0p01",
+      "role": "compatibility_candidate",
+      "hard_weight": 1.0,
+      "auxiliary_source": "synaptic_current",
+      "auxiliary_weight": 0.01,
+      "recovered_cells": 10,
+      "total_cells": 15,
+      "condition_coverage_pass": false,
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 9,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 4,
+        "already_hard_aligned": 2
+      },
+      "direction_pass": false,
+      "initial_gradient_conflict_cells": 5,
+      "compatibility_pass": false
+    },
+    {
+      "condition": "hard_plus_current_lam_0p1",
+      "role": "compatibility_candidate",
+      "hard_weight": 1.0,
+      "auxiliary_source": "synaptic_current",
+      "auxiliary_weight": 0.1,
+      "recovered_cells": 15,
+      "total_cells": 15,
+      "condition_coverage_pass": true,
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 13,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 0,
+        "already_hard_aligned": 2
+      },
+      "direction_pass": true,
+      "initial_gradient_conflict_cells": 5,
+      "compatibility_pass": true
+    },
+    {
+      "condition": "hard_plus_current_lam_1",
+      "role": "compatibility_candidate",
+      "hard_weight": 1.0,
+      "auxiliary_source": "synaptic_current",
+      "auxiliary_weight": 1.0,
+      "recovered_cells": 15,
+      "total_cells": 15,
+      "condition_coverage_pass": true,
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 13,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 0,
+        "already_hard_aligned": 2
+      },
+      "direction_pass": true,
+      "initial_gradient_conflict_cells": 5,
+      "compatibility_pass": true
+    },
+    {
+      "condition": "hard_plus_pre_reset_lam_0p01",
+      "role": "compatibility_candidate",
+      "hard_weight": 1.0,
+      "auxiliary_source": "pre_reset_membrane",
+      "auxiliary_weight": 0.01,
+      "recovered_cells": 10,
+      "total_cells": 15,
+      "condition_coverage_pass": false,
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 9,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 4,
+        "already_hard_aligned": 2
+      },
+      "direction_pass": false,
+      "initial_gradient_conflict_cells": 2,
+      "compatibility_pass": false
+    },
+    {
+      "condition": "hard_plus_pre_reset_lam_0p1",
+      "role": "compatibility_candidate",
+      "hard_weight": 1.0,
+      "auxiliary_source": "pre_reset_membrane",
+      "auxiliary_weight": 0.1,
+      "recovered_cells": 10,
+      "total_cells": 15,
+      "condition_coverage_pass": false,
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 10,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 3,
+        "already_hard_aligned": 2
+      },
+      "direction_pass": false,
+      "initial_gradient_conflict_cells": 2,
+      "compatibility_pass": false
+    },
+    {
+      "condition": "hard_plus_pre_reset_lam_1",
+      "role": "compatibility_candidate",
+      "hard_weight": 1.0,
+      "auxiliary_source": "pre_reset_membrane",
+      "auxiliary_weight": 1.0,
+      "recovered_cells": 10,
+      "total_cells": 15,
+      "condition_coverage_pass": false,
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 10,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 3,
+        "already_hard_aligned": 2
+      },
+      "direction_pass": false,
+      "initial_gradient_conflict_cells": 2,
+      "compatibility_pass": false
+    }
+  ],
+  "selected_compatibility_candidate": {
+    "condition": "hard_plus_current_lam_0p1",
+    "role": "compatibility_candidate",
+    "hard_weight": 1.0,
+    "auxiliary_source": "synaptic_current",
+    "auxiliary_weight": 0.1,
+    "recovered_cells": 15,
+    "total_cells": 15,
+    "condition_coverage_pass": true,
+    "initial_gradient_direction": {
+      "directional_pairs": 13,
+      "correct_sign": 13,
+      "zero_gradient": 0,
+      "wrong_nonzero_sign": 0,
+      "already_hard_aligned": 2
+    },
+    "direction_pass": true,
+    "initial_gradient_conflict_cells": 5,
+    "compatibility_pass": true
+  },
+  "level0d_pass": true,
+  "level1a_k1_xor_preregistration_authorized": true,
+  "level1_xor_result_claim_authorized": false,
+  "pairwise_wad_or_scaling_authorized": false
+}

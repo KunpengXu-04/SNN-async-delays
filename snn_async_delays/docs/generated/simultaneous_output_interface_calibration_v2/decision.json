@@ -1,0 +1,79 @@
+{
+  "complete": true,
+  "n_evidence_cells": 18,
+  "thresholds": [
+    {
+      "threshold": 0.2,
+      "arms": {
+        "spatial_d0": {
+          "mean_worst_balanced": 0.742250939210256,
+          "mean_silent_rate": 0.1484444464246432,
+          "mean_tie_rate": 0.20400000115235647,
+          "mean_collision_rate": 0.05555555410683155,
+          "mean_output_spikes_per_query": 1.0755555497275457,
+          "viable": true
+        },
+        "temporal_scaffold": {
+          "mean_worst_balanced": 0.5,
+          "mean_silent_rate": 0.2908888906240463,
+          "mean_tie_rate": 0.2908888906240463,
+          "mean_collision_rate": 0.0,
+          "mean_output_spikes_per_query": 0.8580000185304217,
+          "viable": true
+        }
+      },
+      "viable": true,
+      "pooled_mean_output_spikes": 0.9667777841289839,
+      "distance_to_one_spike": 0.03322221587101615
+    },
+    {
+      "threshold": 0.3,
+      "arms": {
+        "spatial_d0": {
+          "mean_worst_balanced": 0.6769647399584452,
+          "mean_silent_rate": 0.14066666861375174,
+          "mean_tie_rate": 0.1722222218910853,
+          "mean_collision_rate": 0.03244444541633129,
+          "mean_output_spikes_per_query": 1.009777777724796,
+          "viable": true
+        },
+        "temporal_scaffold": {
+          "mean_worst_balanced": 0.5,
+          "mean_silent_rate": 0.26911111424366635,
+          "mean_tie_rate": 0.29555555681387585,
+          "mean_collision_rate": 0.02644444505373637,
+          "mean_output_spikes_per_query": 0.8664444552527533,
+          "viable": true
+        }
+      },
+      "viable": true,
+      "pooled_mean_output_spikes": 0.9381111164887747,
+      "distance_to_one_spike": 0.061888883511225345
+    },
+    {
+      "threshold": 0.5,
+      "arms": {
+        "spatial_d0": {
+          "mean_worst_balanced": 0.5452995498975118,
+          "mean_silent_rate": 0.17466666797796884,
+          "mean_tie_rate": 0.20511111617088318,
+          "mean_collision_rate": 0.030444443846742313,
+          "mean_output_spikes_per_query": 0.9577777783075968,
+          "viable": true
+        },
+        "temporal_scaffold": {
+          "mean_worst_balanced": 0.5,
+          "mean_silent_rate": 0.6993333299954733,
+          "mean_tie_rate": 0.7066666483879089,
+          "mean_collision_rate": 0.007333333293596904,
+          "mean_output_spikes_per_query": 0.3753333331810103,
+          "viable": false
+        }
+      },
+      "viable": false,
+      "pooled_mean_output_spikes": 0.6665555557443036,
+      "distance_to_one_spike": 0.3334444442556964
+    }
+  ],
+  "selected_output_threshold": 0.2
+}

@@ -1,0 +1,11 @@
+{
+  "source": "historical aggregate eval_results.json",
+  "metric": "minimum(per_query_acc) computed within each seed/run, then averaged",
+  "tau": 0.9,
+  "n_cells": 88,
+  "limitations": [
+    "not a fresh checkpoint evaluation",
+    "no exact-trial metric is recoverable from historical aggregates",
+    "mean-threshold selection is descriptive, not a confirmatory Max-K claim"
+  ]
+}

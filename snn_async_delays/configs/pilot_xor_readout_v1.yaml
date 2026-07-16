@@ -1,0 +1,65 @@
+# PRE-REGISTERED: do not modify after any pilot cell has been launched.
+protocol_id: xor_readout_interface_pilot_v1
+status: preregistered
+purpose: >
+  Mechanism-identification pilot: test whether the relative behaviour of WAD
+  and d0 on balanced XOR changes under explicit observation interfaces.
+  This is not a capacity, energy, or publication-confirmatory experiment.
+
+task:
+  op_name: XOR
+  same_op: true
+  K: [2]
+  encoding_mode: burst
+  sub_win: 10
+  read_len: 10
+  burst_n_spikes_on: 2
+  burst_n_spikes_off: 1
+  burst_phase_on: 0.20
+  burst_phase_off: 0.80
+  burst_jitter_ms: 0
+
+factors:
+  hidden_size: [50]
+  seeds: [0, 1, 42]
+  delay_conditions: [w_and_d, d0]
+  observation_modes: [late_window, all_time, time_binned]
+  readout_types: [linear, mlp]
+
+fixed_training:
+  dt: 1.0
+  lif_tau_m: 10.0
+  lif_threshold: 0.3
+  lif_reset: 0.0
+  lif_refractory: 2
+  surrogate_beta: 4.0
+  delay_param_type: sigmoid
+  delay_step: 1.0
+  lr_w: 0.001
+  lr_d: 0.001
+  lr_readout: 0.001
+  batch_size: 128
+  epochs: 100
+  n_train: 2000
+  n_val: 500
+  n_test: 1000
+  spike_penalty: 0.0
+  delay_penalty: 0.0
+  homeo_lambda: 0.0
+  homeo_target: 0.0
+  grad_clip: 1.0
+  r_on: 400.0
+  r_off: 10.0
+
+primary_outputs:
+  - worst_query_accuracy
+  - exact_trial_accuracy
+  - balanced_accuracy
+  - resource_ledger
+
+interpretation_rules:
+  - Do not use a single seed or pooled accuracy as evidence of multiplexing.
+  - Compare late_window to all_time before interpreting any d0 failure.
+  - Treat time_binned as a temporal-information and decoder-capacity control.
+  - Report resource vectors; do not call them energy.
+  - No cell is canonical: three seeds are a pilot only.

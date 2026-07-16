@@ -1,0 +1,28 @@
+{
+  "protocol": "spatial_vs_temporal_pareto_mlp_scaffold_v1",
+  "root_kind": "smoke",
+  "expected_cells": null,
+  "complete_cells": 7,
+  "incomplete_artifacts": [],
+  "spatial_and_oracle_viability": {
+    "spatial_independent_d0": {
+      "per_seed_any_surface_point_ge_0p90": {
+        "307": false,
+        "613": false
+      },
+      "all_seeds": false
+    },
+    "shared_temporal_oracle": {
+      "per_seed_any_surface_point_ge_0p90": {
+        "307": false,
+        "613": false
+      },
+      "all_seeds": false
+    }
+  },
+  "oracle_better_than_temporal_d0_any_matched_cell": false,
+  "mean_oracle_minus_temporal_d0_worst_balanced": 0.0,
+  "direct_spiking_output_solved": false,
+  "formal_phase0_stage_b_unlocked": false,
+  "publication_claim_allowed": false
+}

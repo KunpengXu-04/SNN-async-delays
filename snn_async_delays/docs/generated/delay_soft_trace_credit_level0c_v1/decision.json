@@ -1,0 +1,311 @@
+{
+  "protocol_id": "delay_soft_trace_credit_level0c_v1",
+  "expected_cells": 360,
+  "complete_cells": 360,
+  "all_cells_complete": true,
+  "combination_results": [
+    {
+      "parameterization": "sigmoid",
+      "path": "buffer_current",
+      "objective": "causal_filtered_trace",
+      "objective_role": "preregistered_negative_control_not_selection_eligible",
+      "recovered_pairs_by_any_lr": 5,
+      "recovered_cells_per_learning_rate": {
+        "0.01": 5,
+        "0.05": 5
+      },
+      "fixed_lr_path_passes": [],
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 8,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 5,
+        "already_aligned": 2
+      },
+      "all_cells_path_valid": true
+    },
+    {
+      "parameterization": "sigmoid",
+      "path": "buffer_current",
+      "objective": "soft_centroid",
+      "objective_role": "candidate",
+      "recovered_pairs_by_any_lr": 15,
+      "recovered_cells_per_learning_rate": {
+        "0.01": 6,
+        "0.05": 15
+      },
+      "fixed_lr_path_passes": [
+        "0.05"
+      ],
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 13,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 0,
+        "already_aligned": 2
+      },
+      "all_cells_path_valid": true
+    },
+    {
+      "parameterization": "sigmoid",
+      "path": "buffer_current",
+      "objective": "symmetric_kernel_alignment",
+      "objective_role": "candidate",
+      "recovered_pairs_by_any_lr": 15,
+      "recovered_cells_per_learning_rate": {
+        "0.01": 6,
+        "0.05": 15
+      },
+      "fixed_lr_path_passes": [
+        "0.05"
+      ],
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 13,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 0,
+        "already_aligned": 2
+      },
+      "all_cells_path_valid": true
+    },
+    {
+      "parameterization": "sigmoid",
+      "path": "lif_membrane",
+      "objective": "causal_filtered_trace",
+      "objective_role": "preregistered_negative_control_not_selection_eligible",
+      "recovered_pairs_by_any_lr": 15,
+      "recovered_cells_per_learning_rate": {
+        "0.01": 6,
+        "0.05": 15
+      },
+      "fixed_lr_path_passes": [
+        "0.05"
+      ],
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 13,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 0,
+        "already_aligned": 2
+      },
+      "all_cells_path_valid": true
+    },
+    {
+      "parameterization": "sigmoid",
+      "path": "lif_membrane",
+      "objective": "soft_centroid",
+      "objective_role": "candidate",
+      "recovered_pairs_by_any_lr": 15,
+      "recovered_cells_per_learning_rate": {
+        "0.01": 6,
+        "0.05": 15
+      },
+      "fixed_lr_path_passes": [
+        "0.05"
+      ],
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 13,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 0,
+        "already_aligned": 2
+      },
+      "all_cells_path_valid": true
+    },
+    {
+      "parameterization": "sigmoid",
+      "path": "lif_membrane",
+      "objective": "symmetric_kernel_alignment",
+      "objective_role": "candidate",
+      "recovered_pairs_by_any_lr": 0,
+      "recovered_cells_per_learning_rate": {
+        "0.01": 0,
+        "0.05": 0
+      },
+      "fixed_lr_path_passes": [],
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 12,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 1,
+        "already_aligned": 2
+      },
+      "all_cells_path_valid": true
+    },
+    {
+      "parameterization": "direct",
+      "path": "buffer_current",
+      "objective": "causal_filtered_trace",
+      "objective_role": "preregistered_negative_control_not_selection_eligible",
+      "recovered_pairs_by_any_lr": 5,
+      "recovered_cells_per_learning_rate": {
+        "0.01": 5,
+        "0.05": 5
+      },
+      "fixed_lr_path_passes": [],
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 8,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 5,
+        "already_aligned": 2
+      },
+      "all_cells_path_valid": true
+    },
+    {
+      "parameterization": "direct",
+      "path": "buffer_current",
+      "objective": "soft_centroid",
+      "objective_role": "candidate",
+      "recovered_pairs_by_any_lr": 11,
+      "recovered_cells_per_learning_rate": {
+        "0.01": 5,
+        "0.05": 11
+      },
+      "fixed_lr_path_passes": [],
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 13,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 0,
+        "already_aligned": 2
+      },
+      "all_cells_path_valid": true
+    },
+    {
+      "parameterization": "direct",
+      "path": "buffer_current",
+      "objective": "symmetric_kernel_alignment",
+      "objective_role": "candidate",
+      "recovered_pairs_by_any_lr": 15,
+      "recovered_cells_per_learning_rate": {
+        "0.01": 6,
+        "0.05": 15
+      },
+      "fixed_lr_path_passes": [
+        "0.05"
+      ],
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 13,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 0,
+        "already_aligned": 2
+      },
+      "all_cells_path_valid": true
+    },
+    {
+      "parameterization": "direct",
+      "path": "lif_membrane",
+      "objective": "causal_filtered_trace",
+      "objective_role": "preregistered_negative_control_not_selection_eligible",
+      "recovered_pairs_by_any_lr": 15,
+      "recovered_cells_per_learning_rate": {
+        "0.01": 5,
+        "0.05": 15
+      },
+      "fixed_lr_path_passes": [
+        "0.05"
+      ],
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 13,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 0,
+        "already_aligned": 2
+      },
+      "all_cells_path_valid": true
+    },
+    {
+      "parameterization": "direct",
+      "path": "lif_membrane",
+      "objective": "soft_centroid",
+      "objective_role": "candidate",
+      "recovered_pairs_by_any_lr": 11,
+      "recovered_cells_per_learning_rate": {
+        "0.01": 5,
+        "0.05": 11
+      },
+      "fixed_lr_path_passes": [],
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 13,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 0,
+        "already_aligned": 2
+      },
+      "all_cells_path_valid": true
+    },
+    {
+      "parameterization": "direct",
+      "path": "lif_membrane",
+      "objective": "symmetric_kernel_alignment",
+      "objective_role": "candidate",
+      "recovered_pairs_by_any_lr": 0,
+      "recovered_cells_per_learning_rate": {
+        "0.01": 0,
+        "0.05": 0
+      },
+      "fixed_lr_path_passes": [],
+      "initial_gradient_direction": {
+        "directional_pairs": 13,
+        "correct_sign": 12,
+        "zero_gradient": 0,
+        "wrong_nonzero_sign": 1,
+        "already_aligned": 2
+      },
+      "all_cells_path_valid": true
+    }
+  ],
+  "candidate_evaluations": [
+    {
+      "objective": "soft_centroid",
+      "learning_rate": 0.01,
+      "recovered_sigmoid_cells_across_both_paths": 12,
+      "total_sigmoid_cells_across_both_paths": 30,
+      "gradient_direction_pass_both_paths": true,
+      "all_paths_valid": true,
+      "production_candidate_pass": false
+    },
+    {
+      "objective": "soft_centroid",
+      "learning_rate": 0.05,
+      "recovered_sigmoid_cells_across_both_paths": 30,
+      "total_sigmoid_cells_across_both_paths": 30,
+      "gradient_direction_pass_both_paths": true,
+      "all_paths_valid": true,
+      "production_candidate_pass": true
+    },
+    {
+      "objective": "symmetric_kernel_alignment",
+      "learning_rate": 0.01,
+      "recovered_sigmoid_cells_across_both_paths": 6,
+      "total_sigmoid_cells_across_both_paths": 30,
+      "gradient_direction_pass_both_paths": false,
+      "all_paths_valid": true,
+      "production_candidate_pass": false
+    },
+    {
+      "objective": "symmetric_kernel_alignment",
+      "learning_rate": 0.05,
+      "recovered_sigmoid_cells_across_both_paths": 15,
+      "total_sigmoid_cells_across_both_paths": 30,
+      "gradient_direction_pass_both_paths": false,
+      "all_paths_valid": true,
+      "production_candidate_pass": false
+    }
+  ],
+  "selected_candidate": {
+    "objective": "soft_centroid",
+    "learning_rate": 0.05,
+    "recovered_sigmoid_cells_across_both_paths": 30,
+    "total_sigmoid_cells_across_both_paths": 30,
+    "gradient_direction_pass_both_paths": true,
+    "all_paths_valid": true,
+    "production_candidate_pass": true
+  },
+  "level0c_pass": true,
+  "level0d_authorized": true,
+  "level1_xor_authorized": false,
+  "routing_or_accuracy_claim_authorized": false
+}

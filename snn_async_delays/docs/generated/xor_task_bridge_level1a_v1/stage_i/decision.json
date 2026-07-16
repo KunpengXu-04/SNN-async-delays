@@ -1,0 +1,82 @@
+{
+  "protocol_id": "xor_task_bridge_level1a_v1",
+  "stage": "stage_i",
+  "expected_cells": 90,
+  "complete_cells": 90,
+  "all_cells_complete": true,
+  "candidate_results": [
+    {
+      "voltage_envelope_weight": 0.0,
+      "weight_learning_rate": 0.001,
+      "complete_cells": 10,
+      "passing_cells": 0,
+      "candidate_pass": false
+    },
+    {
+      "voltage_envelope_weight": 0.0,
+      "weight_learning_rate": 0.003,
+      "complete_cells": 10,
+      "passing_cells": 8,
+      "candidate_pass": false
+    },
+    {
+      "voltage_envelope_weight": 0.0,
+      "weight_learning_rate": 0.01,
+      "complete_cells": 10,
+      "passing_cells": 10,
+      "candidate_pass": true
+    },
+    {
+      "voltage_envelope_weight": 0.1,
+      "weight_learning_rate": 0.001,
+      "complete_cells": 10,
+      "passing_cells": 0,
+      "candidate_pass": false
+    },
+    {
+      "voltage_envelope_weight": 0.1,
+      "weight_learning_rate": 0.003,
+      "complete_cells": 10,
+      "passing_cells": 4,
+      "candidate_pass": false
+    },
+    {
+      "voltage_envelope_weight": 0.1,
+      "weight_learning_rate": 0.01,
+      "complete_cells": 10,
+      "passing_cells": 7,
+      "candidate_pass": false
+    },
+    {
+      "voltage_envelope_weight": 1.0,
+      "weight_learning_rate": 0.001,
+      "complete_cells": 10,
+      "passing_cells": 0,
+      "candidate_pass": false
+    },
+    {
+      "voltage_envelope_weight": 1.0,
+      "weight_learning_rate": 0.003,
+      "complete_cells": 10,
+      "passing_cells": 0,
+      "candidate_pass": false
+    },
+    {
+      "voltage_envelope_weight": 1.0,
+      "weight_learning_rate": 0.01,
+      "complete_cells": 10,
+      "passing_cells": 8,
+      "candidate_pass": false
+    }
+  ],
+  "selected_interface_candidate": {
+    "voltage_envelope_weight": 0.0,
+    "weight_learning_rate": 0.01,
+    "complete_cells": 10,
+    "passing_cells": 10,
+    "candidate_pass": true
+  },
+  "stage_i_pass": true,
+  "stage_ii_authorized": true,
+  "test_split_opened": false
+}

@@ -1,0 +1,90 @@
+# PRE-REGISTERED: do not modify after any calibration cell has launched.
+protocol_id: xor_difficulty_calibration_v1
+status: preregistered
+purpose: >
+  Validation-only difficulty calibration for locating a stable, non-floor,
+  non-ceiling XOR regime before the causal delay-control matrix. This protocol
+  cannot support a test-set, capacity, multiplexing, or superiority claim.
+
+task:
+  op_name: XOR
+  same_op: true
+  K: [2, 3, 4]
+  encoding_mode: burst
+  timing_regime: fixed_subwindow_growing_T
+  sub_win: 10
+  read_len: 10
+  burst_n_spikes_on: 2
+  burst_n_spikes_off: 1
+  burst_phase_on: 0.20
+  burst_phase_off: 0.80
+  burst_jitter_ms: 0
+
+factors:
+  hidden_size: [20, 35, 50]
+  seeds: [0, 1, 42]
+  delay_conditions: [w_and_d, d0]
+
+fixed_interface:
+  observation_mode: all_time
+  readout_type: linear
+
+fixed_training:
+  dt: 1.0
+  lif_tau_m: 10.0
+  lif_threshold: 0.3
+  lif_reset: 0.0
+  lif_refractory: 2
+  surrogate_beta: 4.0
+  delay_param_type: sigmoid
+  delay_step: 1.0
+  lr_w: 0.001
+  lr_d: 0.001
+  lr_readout: 0.001
+  batch_size: 128
+  epochs: 100
+  n_train: 2000
+  n_val: 500
+  spike_penalty: 0.0
+  delay_penalty: 0.0
+  homeo_lambda: 0.0
+  homeo_target: 0.0
+  grad_clip: 1.0
+  r_on: 400.0
+  r_off: 10.0
+  evaluation_split: val
+  result_filename: validation_results.json
+
+primary_outputs:
+  - validation_worst_query_accuracy
+  - validation_exact_trial_accuracy
+  - validation_balanced_accuracy
+  - resource_ledger
+
+difficulty_selection_rule:
+  target_band_worst_query: [0.65, 0.95]
+  hard_floor: 0.55
+  hard_ceiling: 0.98
+  rule: >
+    Prefer adjacent K/N settings where both WAD and d0 group-mean validation
+    worst-query accuracy lie inside the target band, no condition is below the
+    hard floor or above the hard ceiling, and seed standard deviation is no
+    greater than 0.12. If no cell qualifies, report failure and revise task or
+    training in a new protocol; do not inspect the test split.
+
+diagnostics:
+  generate_per_completed_cell: true
+  retain_diagnostic_npz: true
+  trace_seed: 999
+  reason: >
+    User-requested execution amendment: every completed cell must immediately
+    retain diagnostic_data.npz and diagnostic_panel.png. Panels remain
+    illustrative and must not be used for cell selection.
+
+interpretation_rules:
+  - Validation is used both for checkpoint selection and calibration; values are optimistic and non-confirmatory.
+  - Do not rank WAD and d0 as methods from this search.
+  - This stage studies fixed subwindow duration with growing total T only.
+  - Do not open or report the test split.
+  - If results saturate, change difficulty through a new protocol rather than selecting a convenient cell post hoc.
+  - Every cell retains a diagnostic NPZ and panel, but panels are illustrative; the complete 54-cell table is the calibration evidence.

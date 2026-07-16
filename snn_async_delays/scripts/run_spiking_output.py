@@ -39,7 +39,9 @@ def run_one(run_cfg, model_cfg, K, runs_dir, device):
                "n_input": n_input, "sub_win": sub_win}
 
     set_seed(seed)
-    run_dir  = os.path.join(runs_dir, f"{name}_K{K}_seed{seed}")
+    observation_mode = model_cfg.get("observation_mode", "late_window")
+    observation_tag = "" if observation_mode == "late_window" else f"_obs{observation_mode}"
+    run_dir  = os.path.join(runs_dir, f"{name}_K{K}_seed{seed}{observation_tag}")
     eval_path = os.path.join(run_dir, "eval_results.json")
     os.makedirs(run_dir, exist_ok=True)
 
@@ -74,6 +76,7 @@ def run_one(run_cfg, model_cfg, K, runs_dir, device):
         num_hidden_layers   = num_layers,
         hidden_sizes        = hidden_sizes,
         use_output_spikes   = model_cfg.get("use_output_spikes", False),
+        observation_mode   = model_cfg.get("observation_mode", "late_window"),
         n_output_neurons    = model_cfg.get("n_output_neurons", None),
         lif_output_threshold= run_cfg.get("lif_output_threshold", None),
     ).to(device)

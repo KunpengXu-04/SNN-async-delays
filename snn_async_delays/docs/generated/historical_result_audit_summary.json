@@ -1,0 +1,6 @@
+{
+  "n_eval_files": 915,
+  "n_with_per_query": 915,
+  "n_pooled_90_but_worst_below_90": 64,
+  "limitation": "Exact-trial and balanced accuracy cannot be reconstructed from historical aggregate files that lack per-sample predictions."
+}

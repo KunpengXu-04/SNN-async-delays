@@ -1,0 +1,55 @@
+protocol_id: simultaneous_spatial_control_pilot_v1
+status: completed_primary_negative_exploratory_opponent_exact_signal
+execution_session_id: 47364
+purpose: >
+  Spatial-parallel control for simultaneous mixed Boolean operations. Separate
+  output pairs/heads are allowed here; results must not be called temporal multiplexing.
+query_ops: [XOR, NAND, NOR]
+K: 3
+input_schedule: simultaneous
+input_win: 10
+read_len: 10
+hidden_size: 50
+seeds: [0, 1, 42]
+conditions: [d0, scalar, fixed_matched, w_and_d]
+endpoints: [linear, mlp, opponent_parallel]
+frozen_wad_config:
+  threshold: 0.3
+  d_max: 30
+  lr_d: 0.001
+  delay_init_mode: constant
+  optimization_schedule: joint
+frozen_output_threshold: 0.2
+fixed_matched_delay_range: [1.0, 9.0]
+encoding:
+  mode: burst
+  n_spikes_on: 2
+  n_spikes_off: 1
+  phase_on: 0.20
+  phase_off: 0.80
+  jitter_ms: 0
+training:
+  epochs: 100
+  n_train: 2000
+  n_val: 500
+  batch_size: 128
+  lr_w: 0.001
+  lr_readout: 0.001
+  output_threshold: null
+primary_metric: worst_query_balanced_accuracy
+required_evaluation:
+  - exhaustive_64_pattern_truth_table
+  - per_operation_accuracy
+  - per_operation_balanced_accuracy
+  - worst_operation_balanced_accuracy
+  - exact_trial_accuracy
+  - routing_selectivity_matrix
+  - output_silent_tie_collision_rates
+  - resource_ledger
+rules:
+  - Validation only; test is sealed.
+  - Dedicated query inputs and outputs make this a spatial control.
+  - Linear is the primary representation probe; MLP is secondary.
+  - opponent_parallel uses two output neurons per query and signed count differences.
+  - Pooled accuracy is descriptive only because XOR/NAND/NOR have different class prevalence.
+  - Do not launch until frozen_output_threshold is filled from the output-interface calibration.

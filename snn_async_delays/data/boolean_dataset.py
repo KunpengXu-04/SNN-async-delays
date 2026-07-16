@@ -189,6 +189,56 @@ class MultiQueryDataset(Dataset):
         return self.A[idx], self.B[idx], self.op_ids[idx], self.labels[idx]
 
 
+class FixedOperationQueryDataset(Dataset):
+    """K simultaneous queries with one preregistered operation per position.
+
+    Position identifies the operation, avoiding a random-op task with no op cue.
+    This is appropriate for spatial-control and fixed-schedule routing pilots;
+    it does not establish generalization to unseen operation assignments.
+    """
+
+    def __init__(self, n_samples: int, query_ops: List[str], seed: int = 42):
+        rng = np.random.RandomState(seed)
+        self.query_ops = list(query_ops)
+        K = len(query_ops)
+        A = rng.randint(0, 2, (n_samples, K)).astype(np.float32)
+        B = rng.randint(0, 2, (n_samples, K)).astype(np.float32)
+        labels = np.array([
+            [compute_label(query_ops[k], int(A[s, k]), int(B[s, k])) for k in range(K)]
+            for s in range(n_samples)
+        ], dtype=np.float32)
+        self.A = torch.from_numpy(A)
+        self.B = torch.from_numpy(B)
+        self.op_ids = torch.arange(K, dtype=torch.long).unsqueeze(0).expand(n_samples, K).clone()
+        self.labels = torch.from_numpy(labels)
+
+    def __len__(self):
+        return len(self.A)
+
+    def __getitem__(self, idx):
+        return self.A[idx], self.B[idx], self.op_ids[idx], self.labels[idx]
+
+
+class ExhaustiveFixedOperationQueryDataset(FixedOperationQueryDataset):
+    """Exactly enumerate all 2^(2K) input patterns for fixed query operations."""
+
+    def __init__(self, query_ops: List[str]):
+        K = len(query_ops)
+        patterns = np.array([
+            [(value >> bit) & 1 for bit in range(2 * K)]
+            for value in range(2 ** (2 * K))
+        ], dtype=np.float32)
+        A, B = patterns[:, 0::2], patterns[:, 1::2]
+        labels = np.array([
+            [compute_label(query_ops[k], int(A[s, k]), int(B[s, k])) for k in range(K)]
+            for s in range(len(patterns))
+        ], dtype=np.float32)
+        self.query_ops = list(query_ops)
+        self.A, self.B = torch.from_numpy(A), torch.from_numpy(B)
+        self.op_ids = torch.arange(K, dtype=torch.long).unsqueeze(0).expand(len(patterns), K).clone()
+        self.labels = torch.from_numpy(labels)
+
+
 class BroadcastOpDataset(Dataset):
     """
     Topology: one-query, many-op. Each sample has ONE shared (A, B) pair,

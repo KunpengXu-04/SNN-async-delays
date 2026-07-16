@@ -1,0 +1,102 @@
+protocol_id: delay_parameter_recovery_level0a_v1
+status: completed_current_recipe_failed_interior_rescue_passed
+preregistered_at: 2026-07-15
+study_class: diagnostic_unit_experiment
+
+question: >
+  Can the production sigmoid delay parameterization recover declared scalar
+  delay targets from short, central, and long initializations under the current
+  200-step learning-rate regime and two preregistered rescue learning rates?
+hypotheses:
+  current_recipe: >
+    The current scaffold setting (init_raw=-2, lr=0.001, 200 steps) may fail to
+    recover a long interior target because Adam moves the raw sigmoid parameter
+    too little.
+  numerical_recoverability: >
+    At least one preregistered learning rate will recover every interior target
+    from every initialization, showing that the production parameterization is
+    numerically capable even if the current recipe is not.
+
+scope:
+  includes:
+    - one production DelayedSynapticLayer delay parameter
+    - direct scalar delay-target loss
+    - optimizer and sigmoid geometry
+  excludes:
+    - spike buffers
+    - LIF neurons
+    - XOR
+    - oracle imitation
+    - temporal credit assignment through task loss
+    - accuracy or resource-frontier claims
+
+parameterization:
+  implementation: snn.synapses.DelayedSynapticLayer.get_delays
+  type: sigmoid
+  formula: d_max_times_sigmoid_raw
+  d_max_steps: 8.0
+  delay_unit: nominal_simulator_steps
+  note: effective_synaptic_shift_is_d_plus_one_but_not_exercised_in_level0a
+
+grid:
+  initial_raw_values: [-4.0, -2.0, 0.0, 2.0, 4.0]
+  interior_targets_steps: [1.0, 5.0, 7.0]
+  boundary_stress_targets_steps: [0.0, 8.0]
+  learning_rates: [0.001, 0.01, 0.05]
+  optimizer_steps: 200
+  deterministic_cells: 75
+  seeds: none_no_stochastic_quantity_affects_the_delay_trajectory
+
+optimization:
+  optimizer: Adam
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+  weight_decay: 0.0
+  loss: half_squared_nominal_delay_error
+  formula: 0.5_times_(delay_minus_target)_squared
+
+metrics:
+  primary: final_absolute_delay_error_steps
+  secondary:
+    - convergence_step
+    - initial_and_final_delay_steps
+    - initial_and_final_raw_parameter
+    - raw_gradient_trajectory
+    - absolute_delay_error_trajectory
+    - loss_trajectory
+  recovery_tolerance_steps: 0.1
+
+decision_rules:
+  current_recipe_cell:
+    initial_raw: -2.0
+    learning_rate: 0.001
+    target_steps: 5.0
+  current_recipe_pass: final_absolute_delay_error_steps_lte_0.1
+  interior_recoverability_pass: >
+    For every combination of interior target and initial raw value, at least
+    one preregistered learning rate reaches absolute error <= 0.1 by step 200.
+  boundary_stress: descriptive_only_because_sigmoid_cannot_equal_0_or_dmax_at_finite_raw
+  interpretation:
+    - Passing Level 0A establishes only direct numerical parameter recovery.
+    - Failing Level 0A localizes a parameterization or optimizer-budget problem.
+    - Passing Level 0A does not establish temporal credit assignment; Level 0B remains required.
+
+artifacts:
+  root: runs/exploratory/delay_parameter_recovery_level0a_v1
+  per_cell:
+    - config.json
+    - metrics.json
+    - final_parameter.pt
+    - plots/diagnostic_data.npz
+    - plots/diagnostic_panel.png
+  aggregate:
+    - docs/generated/delay_parameter_recovery_level0a_v1/cells.csv
+    - docs/generated/delay_parameter_recovery_level0a_v1/decision.json
+    - docs/generated/delay_parameter_recovery_level0a_v1/final_error_heatmaps.png
+    - docs/generated/delay_parameter_recovery_level0a_v1/convergence_heatmaps.png
+
+exclusion_rules:
+  - A cell missing any required artifact is incomplete, not a failure or pass.
+  - Boundary targets cannot gate the interior numerical-recoverability claim.
+  - Learning-rate selection is not transferred to XOR without a new Level-0B/Level-1 preregistration.
+  - No test split, task data, accuracy metric, or publication claim is involved.

@@ -1,0 +1,49 @@
+protocol_id: simultaneous_temporal_viability_preflight_v1
+status: completed_failed_wad_window_support
+execution_session_id: 5312
+purpose: >
+  Audit whether the frozen shared-opponent temporal interface has event support
+  and usable gradients under current delay controls before any 36/45-cell
+  temporal pilot is allowed to launch. This is not an accuracy screen.
+source_protocol: simultaneous_temporal_routing_pilot_v1
+seed: 0
+endpoint: opponent_shared_windowed
+conditions: [d0, scalar, fixed_matched, fixed_full_support, temporal_scaffold, w_and_d]
+cells: 6
+frozen_output_threshold: 0.2
+output_membrane_warmup_epochs: 20
+output_membrane_aux_weight: 0.2
+checkpoint_selection: final
+fixed_narrow_range: [1.0, 9.0]
+fixed_full_range: [0.0, 30.0]
+temporal_scaffold:
+  per_input_channel_delays: [8, 8, 18, 18, 28, 28]
+  hidden_output_delay: 0
+training:
+  epochs: 100
+  n_train: 2000
+  n_val: 500
+  batch_size: 128
+  lr_w: 0.001
+  lr_readout: 0.001
+locked_viability_gates:
+  all_cells_complete_and_finite: true
+  scaffold_min_hidden_activity_fraction_each_window: 0.10
+  scaffold_max_output_silent_rate: 0.50
+  fixed_full_min_hidden_activity_fraction_each_window: 0.05
+  fixed_full_min_output_gradient_epoch_fraction: 0.95
+  wad_min_hidden_activity_fraction_each_window: 0.05
+  wad_min_output_gradient_epoch_fraction: 0.95
+  wad_min_delay_gradient_epoch_fraction: 0.95
+  wad_min_final_delay_movement: 0.05
+  wad_max_final_delay_saturation_fraction: 0.95
+rules:
+  - Validation only; test remains sealed.
+  - Accuracy, exact-trial accuracy and the relative ranking of conditions are descriptive and cannot pass, fail or select this preflight.
+  - D0, scalar and fixed_matched [1,9] are retained as geometry diagnostics and are not required to cover every window.
+  - Temporal scaffold is a positive execution control only and can never enter a routing claim.
+  - Fixed_full_support is a non-learned support-matched control; it samples frozen heterogeneous delays over [0,dmax].
+  - Every condition uses threshold 0.2, the same 20-epoch membrane curriculum, 0.2 auxiliary weight, final checkpoint and training budget.
+  - If any locked gate fails, keep the temporal matrix locked and version the redesign; do not tune on preflight accuracy.
+  - If all gates pass, amend the full temporal protocol before launch to retain fixed_full_support and the matched output curriculum.
+required_artifacts: [config, best_checkpoint, final_checkpoint, train_log, validation, exhaustive_truth_table, resource_ledger, diagnostic_npz, diagnostic_panel]

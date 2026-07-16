@@ -1,0 +1,6 @@
+{
+  "output": "D:\\xukun\\Documents\\IC\\SNN\\SNN_project\\snn_async_delays\\docs\\generated\\readout_resource_ledger_v1.csv",
+  "n_rows": 48,
+  "scope": "static architecture/simulator ledger; no accuracy or measured events",
+  "schema_version": "resource_ledger_v1"
+}

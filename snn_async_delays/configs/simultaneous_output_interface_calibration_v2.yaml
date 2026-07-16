@@ -1,0 +1,56 @@
+protocol_id: simultaneous_output_interface_calibration_v2
+status: completed
+implementation_status: formal_complete
+selected_output_threshold: 0.2
+formal_completion:
+  new_temporal_cells: 9
+  reused_spatial_cells: 9
+  test_split_opened: false
+  decision_artifact: docs/generated/simultaneous_output_interface_calibration_v2/decision.json
+purpose: >
+  Replace the structurally invalid temporal-d0 arm of v1 without modifying its
+  evidence. Reuse the completed spatial-d0 arm and calibrate the shared temporal
+  opponent pair with a frozen, non-learned timing scaffold that guarantees
+  presynaptic events in all three output windows. No WAD result is used.
+spatial_evidence:
+  protocol_id: simultaneous_output_interface_calibration_v1
+  completed_cells: 9
+temporal_arm:
+  thresholds: [0.2, 0.3, 0.5]
+  seeds: [0, 1, 42]
+  condition: temporal_scaffold
+  endpoint: opponent_shared_windowed
+  cells: 9
+  output_membrane_warmup_epochs: 20
+  output_membrane_aux_weight: 0.2
+  checkpoint_selection: final
+  input_hidden_delay_scaffold:
+    per_input_channel_delays: [8, 8, 18, 18, 28, 28]
+    hidden_output_delay: 0
+    rationale: >
+      Burst events at phases 0.2/0.8 of the 10-step input window arrive near
+      10/16, 20/26 and 30/36 for XOR, NAND and NOR respectively. The scaffold
+      supplies timing only and is not an experimental delay control.
+frozen_task:
+  query_ops: [XOR, NAND, NOR]
+  K: 3
+  input_win: 10
+  output_window_len: 10
+  read_len: 30
+  hidden_size: 50
+  hidden_threshold: 0.3
+  d_max: 30
+selection_rule: >
+  A threshold is viable only if both the completed spatial arm and new temporal
+  scaffold arm have finite metrics, mean worst balanced accuracy in [0.50,0.95],
+  mean silent rate <0.50, mean tie rate <0.50 and mean collision rate <0.25.
+  Among viable thresholds select the one whose pooled spatial-plus-temporal mean
+  output spikes per operation/window is closest to 1. Accuracy is a gate, not
+  the tie-breaker. If none is viable, keep both pilots locked.
+interpretation_rules:
+  - The scaffold is an output-interface calibration device, not evidence that fixed delays solve routing.
+  - V1 temporal d0 remains archived as a protocol-design failure.
+  - Test data remain sealed.
+  - The first 20 epochs use class-wise peak-voltage logits relative to the output threshold to require the correct opponent neuron to cross threshold and the incorrect neuron to remain below it. Epochs 21-100 optimize spike-count loss plus a fixed 0.2 peak-voltage auxiliary term; every reported endpoint uses spike-count differences only.
+  - Calibration evaluates last_model.pt because pooled accuracy is discrete and may remain flat during the membrane curriculum; best_model.pt is retained only for audit.
+  - Training logs must expose spike-count loss and membrane loss separately, and every cell must save output-membrane traces, NPZ and a threshold-aware diagnostic panel during the run.

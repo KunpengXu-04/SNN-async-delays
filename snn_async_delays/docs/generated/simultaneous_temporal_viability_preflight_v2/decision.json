@@ -1,0 +1,342 @@
+{
+  "complete": true,
+  "cells": [
+    {
+      "condition": "fixed_full_support",
+      "seed": 1,
+      "artifacts_complete": true,
+      "finite": true,
+      "loss_reduction": "window_class_balanced",
+      "output_current_support": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "output_activity": [
+        0.3125,
+        0.8125,
+        0.890625
+      ],
+      "hidden_emission_support_descriptive": [
+        1.0,
+        0.953125,
+        0.71875
+      ],
+      "signed_current_class_gap_descriptive": [
+        0.7079342529177666,
+        2.8821184635162354,
+        13.835962176322937
+      ],
+      "realized_arrival_mass": [
+        0.09745233285658642,
+        0.29993708861551577,
+        0.4312288855420416
+      ],
+      "window_output_weight_grad_norm": [
+        0.035899627953767776,
+        0.5018292665481567,
+        0.36278069019317627
+      ],
+      "window_total_delay_grad_norm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "final_delay_movement": 0.0,
+      "final_delay_saturation_fraction": 0.0,
+      "worst_balanced_descriptive": 0.7017820477485657,
+      "per_window_balanced_descriptive": [
+        0.7017820477485657,
+        0.8149058818817139,
+        0.7432432174682617
+      ],
+      "exact_trial_descriptive": 0.5080000162124634,
+      "output_silent_rate_descriptive": 0.33666667342185974,
+      "output_tie_rate_descriptive": 0.3540000021457672
+    },
+    {
+      "condition": "temporal_scaffold",
+      "seed": 1,
+      "artifacts_complete": true,
+      "finite": true,
+      "loss_reduction": "window_class_balanced",
+      "output_current_support": [
+        1.0,
+        0.6875,
+        1.0
+      ],
+      "output_activity": [
+        1.0,
+        0.375,
+        0.734375
+      ],
+      "hidden_emission_support_descriptive": [
+        1.0,
+        0.6875,
+        1.0
+      ],
+      "signed_current_class_gap_descriptive": [
+        1.7795286178588867,
+        7.531594514846802,
+        22.90167987346649
+      ],
+      "realized_arrival_mass": [
+        0.32582577815991304,
+        0.11829541323935597,
+        0.5558788086007309
+      ],
+      "window_output_weight_grad_norm": [
+        0.13698475062847137,
+        0.21479496359825134,
+        0.1507614701986313
+      ],
+      "window_total_delay_grad_norm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "final_delay_movement": 0.0,
+      "final_delay_saturation_fraction": 0.5,
+      "worst_balanced_descriptive": 0.5,
+      "per_window_balanced_descriptive": [
+        0.5,
+        0.6790450811386108,
+        0.5
+      ],
+      "exact_trial_descriptive": 0.2160000056028366,
+      "output_silent_rate_descriptive": 0.30666667222976685,
+      "output_tie_rate_descriptive": 0.30666667222976685
+    },
+    {
+      "condition": "w_and_d",
+      "seed": 1,
+      "artifacts_complete": true,
+      "finite": true,
+      "loss_reduction": "window_class_balanced",
+      "output_current_support": [
+        1.0,
+        1.0,
+        0.5
+      ],
+      "output_activity": [
+        0.828125,
+        0.828125,
+        0.234375
+      ],
+      "hidden_emission_support_descriptive": [
+        0.984375,
+        0.484375,
+        0.0
+      ],
+      "signed_current_class_gap_descriptive": [
+        12.060008764266968,
+        13.495664834976196,
+        -0.03795981407165527
+      ],
+      "realized_arrival_mass": [
+        0.6111682054723534,
+        0.2000825737220106,
+        0.051083389534515376
+      ],
+      "window_output_weight_grad_norm": [
+        0.20299823582172394,
+        0.1504344791173935,
+        0.1607367843389511
+      ],
+      "window_total_delay_grad_norm": [
+        0.6329429596662521,
+        0.8376640677452087,
+        0.6051193326711655
+      ],
+      "final_delay_movement": 2.302722215652466,
+      "final_delay_saturation_fraction": 0.0,
+      "worst_balanced_descriptive": 0.5,
+      "per_window_balanced_descriptive": [
+        0.982758641242981,
+        0.8912466764450073,
+        0.5
+      ],
+      "exact_trial_descriptive": 0.6039999723434448,
+      "output_silent_rate_descriptive": 0.37933334708213806,
+      "output_tie_rate_descriptive": 0.38866665959358215
+    },
+    {
+      "condition": "fixed_full_support",
+      "seed": 42,
+      "artifacts_complete": true,
+      "finite": true,
+      "loss_reduction": "window_class_balanced",
+      "output_current_support": [
+        0.9375,
+        1.0,
+        1.0
+      ],
+      "output_activity": [
+        0.15625,
+        0.96875,
+        0.859375
+      ],
+      "hidden_emission_support_descriptive": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "signed_current_class_gap_descriptive": [
+        -0.2013627290725708,
+        4.794950723648071,
+        20.161033391952515
+      ],
+      "realized_arrival_mass": [
+        0.09270278761233428,
+        0.23429319302850193,
+        0.4791280319215293
+      ],
+      "window_output_weight_grad_norm": [
+        0.029467470943927765,
+        0.2173854112625122,
+        0.18968720734119415
+      ],
+      "window_total_delay_grad_norm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "final_delay_movement": 0.0,
+      "final_delay_saturation_fraction": 0.0,
+      "worst_balanced_descriptive": 0.48653846979141235,
+      "per_window_balanced_descriptive": [
+        0.48653846979141235,
+        0.8997527956962585,
+        0.7457627058029175
+      ],
+      "exact_trial_descriptive": 0.37599998712539673,
+      "output_silent_rate_descriptive": 0.32866665720939636,
+      "output_tie_rate_descriptive": 0.36666667461395264
+    },
+    {
+      "condition": "temporal_scaffold",
+      "seed": 42,
+      "artifacts_complete": true,
+      "finite": true,
+      "loss_reduction": "window_class_balanced",
+      "output_current_support": [
+        1.0,
+        0.6875,
+        1.0
+      ],
+      "output_activity": [
+        1.0,
+        0.1875,
+        0.75
+      ],
+      "hidden_emission_support_descriptive": [
+        1.0,
+        0.6875,
+        1.0
+      ],
+      "signed_current_class_gap_descriptive": [
+        0.18367528915405273,
+        4.538309216499329,
+        24.029446840286255
+      ],
+      "realized_arrival_mass": [
+        0.2518538250927676,
+        0.09405553331156727,
+        0.6540906415956652
+      ],
+      "window_output_weight_grad_norm": [
+        0.13123692572116852,
+        0.187284454703331,
+        0.15974463522434235
+      ],
+      "window_total_delay_grad_norm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "final_delay_movement": 0.0,
+      "final_delay_saturation_fraction": 0.5,
+      "worst_balanced_descriptive": 0.5,
+      "per_window_balanced_descriptive": [
+        0.5,
+        0.579365074634552,
+        0.5
+      ],
+      "exact_trial_descriptive": 0.18199999630451202,
+      "output_silent_rate_descriptive": 0.3499999940395355,
+      "output_tie_rate_descriptive": 0.3499999940395355
+    },
+    {
+      "condition": "w_and_d",
+      "seed": 42,
+      "artifacts_complete": true,
+      "finite": true,
+      "loss_reduction": "window_class_balanced",
+      "output_current_support": [
+        1.0,
+        1.0,
+        0.765625
+      ],
+      "output_activity": [
+        0.859375,
+        0.765625,
+        0.328125
+      ],
+      "hidden_emission_support_descriptive": [
+        1.0,
+        0.75,
+        0.0
+      ],
+      "signed_current_class_gap_descriptive": [
+        11.896525740623474,
+        22.43977665901184,
+        -0.06877613067626953
+      ],
+      "realized_arrival_mass": [
+        0.5191113549046092,
+        0.22442106743150808,
+        0.08385009688398162
+      ],
+      "window_output_weight_grad_norm": [
+        0.14794504642486572,
+        0.13820981979370117,
+        0.1096358373761177
+      ],
+      "window_total_delay_grad_norm": [
+        0.5482135117053986,
+        1.118653953075409,
+        0.6085558757185936
+      ],
+      "final_delay_movement": 2.301919937133789,
+      "final_delay_saturation_fraction": 0.0,
+      "worst_balanced_descriptive": 0.5,
+      "per_window_balanced_descriptive": [
+        0.9312499761581421,
+        0.8187830448150635,
+        0.5
+      ],
+      "exact_trial_descriptive": 0.4740000069141388,
+      "output_silent_rate_descriptive": 0.35333332419395447,
+      "output_tie_rate_descriptive": 0.38066667318344116
+    }
+  ],
+  "checks": {
+    "all_cells_complete_and_finite": true,
+    "all_cells_use_window_class_balanced_loss": true,
+    "scaffold_output_current_support": true,
+    "scaffold_output_activity": true,
+    "fixed_full_output_current_support": true,
+    "fixed_full_output_activity": true,
+    "fixed_full_window_output_gradient": true,
+    "wad_output_current_support": true,
+    "wad_output_activity": true,
+    "wad_realized_arrival_mass": true,
+    "wad_window_output_gradient": true,
+    "wad_window_delay_gradient": true,
+    "wad_delay_movement": true,
+    "wad_delay_not_saturated": true
+  },
+  "preflight_passed": true,
+  "accuracy_used_for_decision": false,
+  "seed0_used_for_decision": false
+}

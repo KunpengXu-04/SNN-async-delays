@@ -1,0 +1,84 @@
+{
+  "protocol_id": "xor_task_bridge_level1a_v1",
+  "stage": "stage_ii",
+  "expected_cells": 85,
+  "complete_cells": 85,
+  "all_cells_complete": true,
+  "stage_i_pass": true,
+  "selected_interface_candidate": {
+    "voltage_envelope_weight": 0.0,
+    "weight_learning_rate": 0.01,
+    "complete_cells": 10,
+    "passing_cells": 10,
+    "candidate_pass": true
+  },
+  "candidate_results": [
+    {
+      "arrival_auxiliary_weight": 0.0,
+      "delay_learning_rate": 0.01,
+      "complete_cells": 10,
+      "passing_cells": 0,
+      "candidate_pass": false
+    },
+    {
+      "arrival_auxiliary_weight": 0.0,
+      "delay_learning_rate": 0.05,
+      "complete_cells": 10,
+      "passing_cells": 1,
+      "candidate_pass": false
+    },
+    {
+      "arrival_auxiliary_weight": 0.01,
+      "delay_learning_rate": 0.01,
+      "complete_cells": 10,
+      "passing_cells": 10,
+      "candidate_pass": true
+    },
+    {
+      "arrival_auxiliary_weight": 0.01,
+      "delay_learning_rate": 0.05,
+      "complete_cells": 10,
+      "passing_cells": 10,
+      "candidate_pass": true
+    },
+    {
+      "arrival_auxiliary_weight": 0.1,
+      "delay_learning_rate": 0.01,
+      "complete_cells": 10,
+      "passing_cells": 10,
+      "candidate_pass": true
+    },
+    {
+      "arrival_auxiliary_weight": 0.1,
+      "delay_learning_rate": 0.05,
+      "complete_cells": 10,
+      "passing_cells": 10,
+      "candidate_pass": true
+    },
+    {
+      "arrival_auxiliary_weight": 1.0,
+      "delay_learning_rate": 0.01,
+      "complete_cells": 10,
+      "passing_cells": 10,
+      "candidate_pass": true
+    },
+    {
+      "arrival_auxiliary_weight": 1.0,
+      "delay_learning_rate": 0.05,
+      "complete_cells": 10,
+      "passing_cells": 10,
+      "candidate_pass": true
+    }
+  ],
+  "selected_learned_delay_candidate": {
+    "arrival_auxiliary_weight": 0.01,
+    "delay_learning_rate": 0.01,
+    "complete_cells": 10,
+    "passing_cells": 10,
+    "candidate_pass": true
+  },
+  "level1a_pass": true,
+  "level1b_preregistration_authorized": true,
+  "K_greater_than_one_authorized": false,
+  "test_split_opened": false
+}

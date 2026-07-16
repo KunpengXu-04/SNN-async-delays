@@ -1,0 +1,16 @@
+hidden_size,seed,balanced_accuracy,exact_trial_accuracy,exhaustive_complete,silent_rate,collision_rate,mean_output_spikes,target_timing_hit_rate,mean_abs_target_timing_error_steps,hidden_spikes,neuron_updates,dense_synapse_macs,synaptic_events,passes_accuracy,passes_truth_table,passes_silence,passes_collision,passes_timing_hit,passes_timing_error,passes_output_spike_count,passes_all_locked_gates
+12,107,1.0,1.0,True,0.0,0.0,1.0,1.0,0.0,1.2578125,280,1440,50.515625,True,True,True,True,True,True,True,True
+12,211,0.7429149746894836,0.751953125,False,0.0,0.53515625,1.53515625,1.0,0.0,3.265625,280,1440,54.53125,False,False,True,False,True,True,False,False
+12,509,1.0,1.0,True,0.0,0.0,1.0,1.0,0.0,1.0,280,1440,50.0,True,True,True,True,True,True,True,True
+16,107,0.7509434223175049,0.7421875,False,0.2578125,0.0,0.7421875,0.7421875,0.0,2.70703125,360,1920,69.4140625,False,False,False,True,False,True,True,False
+16,211,0.7570850253105164,0.765625,False,0.234375,0.0,0.765625,0.765625,0.0,3.095703125,360,1920,70.19140625,False,False,False,True,False,True,True,False
+16,509,1.0,1.0,True,0.0,0.0,1.0,1.0,0.0,1.515625,360,1920,67.03125,True,True,True,True,True,True,True,True
+24,107,1.0,1.0,True,0.0,0.0,1.0,1.0,0.0,3.81640625,520,2880,103.6328125,True,True,True,True,True,True,True,True
+24,211,0.7570850253105164,0.765625,False,0.0,0.234375,1.234375,1.0,0.0,6.28125,520,2880,108.5625,False,False,True,False,True,True,True,False
+24,509,1.0,1.0,True,0.0,0.0,1.0,1.0,0.0,5.248046875,520,2880,106.49609375,True,True,True,True,True,True,True,True
+4,107,0.7490565776824951,0.740234375,False,0.7421875,0.0,0.2578125,0.2578125,0.0,0.2578125,120,480,16.515625,False,False,False,True,False,True,False,False
+4,211,1.0,1.0,True,0.287109375,0.0,0.712890625,0.712890625,0.0,0.712890625,120,480,17.42578125,True,True,False,True,False,True,True,False
+4,509,0.7459999918937683,0.751953125,False,0.515625,0.0,0.484375,0.484375,0.0,0.484375,120,480,16.96875,False,False,False,True,False,True,False,False
+8,107,0.7509434223175049,0.7421875,False,0.2578125,0.0,0.7421875,0.7421875,0.0,1.517578125,200,960,35.03515625,False,False,False,True,False,True,True,False
+8,211,0.7429149746894836,0.751953125,False,0.248046875,0.0,0.751953125,0.751953125,0.0,1.97265625,200,960,35.9453125,False,False,False,True,False,True,True,False
+8,509,1.0,1.0,True,0.0,0.0,1.0,1.0,0.0,2.0234375,200,960,36.046875,True,True,True,True,True,True,True,True

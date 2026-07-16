@@ -1,0 +1,139 @@
+protocol_id: delay_temporal_credit_level0b_v1
+status: completed_strict_fail_directional_temporal_credit
+preregistered_at: 2026-07-15
+study_class: diagnostic_unit_experiment
+parent_protocol: delay_parameter_recovery_level0a_v1
+
+question: >
+  Can an output-timing loss move the production sigmoid delay through the
+  actual circular spike buffer, and does that credit survive one fixed LIF
+  neuron with surrogate-gradient spikes?
+hypotheses:
+  buffer_centroid: >
+    A differentiable arrival-centroid objective should reproduce the numerical
+    recoverability found in Level 0A when computed only from the emitted current
+    trace, establishing correct buffer timing and gradient transport.
+  buffer_filtered: >
+    A filtered trace-matching loss may show distance-dependent failure because
+    its timing signal is more local than the centroid objective.
+  lif_centroid: >
+    With a fixed suprathreshold weight, a one-spike LIF trace should retain
+    enough surrogate credit for at least one preregistered optimizer arm to
+    place its output spike at each interior target time.
+  lif_filtered: >
+    The project-style filtered spike-trace loss is the strictest Level-0B test
+    and may fail even if the global centroid objective passes.
+
+scope:
+  includes:
+    - production DelayedSynapticLayer circular-buffer forward path
+    - one deterministic input spike
+    - buffer-current trace
+    - optional one production LIFNeurons layer
+    - arrival_centroid and filtered_trace timing losses
+  excludes:
+    - direct loss on delay_raw or delay value
+    - XOR or labels
+    - trainable synaptic weights
+    - readout
+    - oracle imitation
+    - accuracy or resource-frontier claims
+
+timeline:
+  total_steps: 16
+  input_spike_step: 2
+  d_max_steps: 8
+  target_nominal_delays_steps: [1.0, 5.0, 7.0]
+  target_arrival_formula: input_step_plus_nominal_delay_plus_one
+
+paths:
+  - buffer_current
+  - lif_spike
+loss_modes:
+  arrival_centroid:
+    formula: 0.5_times_(trace_centroid_minus_target_arrival)_squared
+    interpretation: global_timing_auxiliary_not_task_BCE
+  filtered_trace:
+    formula: mean_squared_error_between_causal_exponentially_filtered_output_and_target_traces
+    filter_tau_steps: 3.0
+    interpretation: project_style_local_timing_objective
+
+lif:
+  fixed_synaptic_weight: 4.0
+  tau_m_steps: 10.0
+  threshold_au: 0.2
+  reset_au: 0.0
+  refractory_steps: 2
+  dt_steps: 1.0
+  surrogate_beta: 4.0
+  calibration_contract: one_integer_delay_event_produces_one_suprathreshold_spike
+
+delay:
+  implementation: snn.synapses.DelayedSynapticLayer
+  parameterization: sigmoid
+  formula: d_max_times_sigmoid_raw
+  initial_raw_values: [-4.0, -2.0, 0.0, 2.0, 4.0]
+  learning_rates: [0.001, 0.01, 0.05]
+  optimizer: Adam
+  optimizer_steps: 200
+  fixed_weight_for_buffer_path: 1.0
+  fixed_weight_for_lif_path: 4.0
+
+grid:
+  paths: 2
+  loss_modes: 2
+  targets: 3
+  initializations: 5
+  learning_rates: 3
+  deterministic_cells: 180
+  seeds: none_no_stochastic_quantity_affects_the_trajectory
+
+metrics:
+  primary: final_output_arrival_error_steps
+  mechanism:
+    - final_nominal_delay_error_steps
+    - convergence_step
+    - output_trace_mass
+    - output_spike_count_for_lif_path
+    - raw_gradient_trajectory
+    - delay_trajectory
+    - output_arrival_centroid_trajectory
+  arrival_recovery_tolerance_steps: 0.1
+  minimum_output_trace_mass: 0.5
+
+decision_rules:
+  current_recipe_analogue:
+    initial_raw: -2.0
+    learning_rate: 0.001
+    target_nominal_delay_steps: 5.0
+  per_path_loss_recoverability_pass: >
+    For every target and initialization combination, at least one
+    preregistered learning rate reaches final arrival error <= 0.1 with output
+    trace mass >= 0.5.
+  level0b_strict_pass: both_paths_and_both_losses_pass_their_recoverability_gate
+  interpretation:
+    - buffer-centroid pass establishes global differentiable timing through the buffer only.
+    - LIF-centroid pass establishes global timing credit through one LIF only.
+    - filtered-trace pass is required before transferring a timing objective toward XOR.
+    - no learning rate is authorized for XOR by Level 0B alone.
+
+artifacts:
+  root: runs/exploratory/delay_temporal_credit_level0b_v1
+  per_cell:
+    - config.json
+    - metrics.json
+    - final_parameter.pt
+    - plots/diagnostic_data.npz
+    - plots/diagnostic_panel.png
+  aggregate:
+    - docs/generated/delay_temporal_credit_level0b_v1/cells.csv
+    - docs/generated/delay_temporal_credit_level0b_v1/decision.json
+    - four path-loss final-error heatmaps
+    - path_loss_recovery_summary.png
+    - initial_gradient_direction_summary.png
+
+exclusion_rules:
+  - Missing per-cell artifacts make a cell incomplete.
+  - Centroid and filtered-trace losses must be reported separately.
+  - LIF silence or multiple spikes are mechanism failures, not silently excluded cells.
+  - No result transfers to XOR, per-query delays, pairwise WAD or publication claims without a new protocol.

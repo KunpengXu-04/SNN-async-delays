@@ -1,0 +1,6 @@
+condition,hidden_marginal_range,latency_marginal_range,grid_ss_hidden_fraction,grid_ss_latency_fraction,grid_ss_interaction_fraction
+spatial_independent_d0,0.25,0.03125,0.93717277486911,0.015706806282722512,0.04712041884816754
+shared_spatial_d0,0.3125,0.03125,0.9774358974358974,0.009230769230769232,0.013333333333333334
+shared_temporal_d0,0.0,0.0,0.0,0.0,0.0
+shared_temporal_oracle,0.3984375,0.0078125,0.9957310565635006,0.00045738679676779996,0.0038115566397316663
+shared_temporal_wad,0.0,0.0,0.0,0.0,0.0

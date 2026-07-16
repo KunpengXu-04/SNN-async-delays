@@ -1,0 +1,21 @@
+{
+  "protocol_id": "xor_delay_control_matrix_v1",
+  "training_cells": 60,
+  "late_window_probes": 60,
+  "shuffle_probes": 15,
+  "evaluation_split": "val",
+  "primary_best_nonlearned_control": "scalar",
+  "primary_wad_minus_control_worst_mean": -0.020799994468688965,
+  "primary_positive_paired_seeds": 1,
+  "primary_total_paired_seeds": 5,
+  "primary_shuffle_worst_drop_mean": 0.1156000018119812,
+  "primary_shuffle_positive_drops": 5,
+  "gate": {
+    "mean_margin_at_least_0.03": false,
+    "positive_in_at_least_4_of_5": false,
+    "shuffle_drop_in_at_least_4_of_5": true
+  },
+  "decision": "reject_positive_learned_delay_superiority_programme",
+  "reason": "Optimized scalar is the strongest primary non-learned control; WAD is worse on mean primary worst-query and wins only one paired seed. Shuffle sensitivity supports co-adapted placement but not superiority.",
+  "test_split_opened": false
+}

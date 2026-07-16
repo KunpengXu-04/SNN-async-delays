@@ -1,0 +1,52 @@
+{
+  "protocol_id": "xor_delay_granularity_rescue_level1br_v1",
+  "stage": "r3",
+  "expected_cells": 30,
+  "complete_cells": 30,
+  "all_cells_complete": true,
+  "candidate_results": [
+    {
+      "condition": "global_anchor",
+      "granularity": "global",
+      "complete_cells": 10,
+      "passing_cells": 10,
+      "interface_passing_cells": 10,
+      "all_coordinate_direction_cells": 10,
+      "full_delay_coverage_cells": 10,
+      "gradient_clipping_flagged_cells": 0,
+      "candidate_pass": true
+    },
+    {
+      "condition": "confirm_per_hidden_neuron",
+      "granularity": "per_hidden_neuron",
+      "complete_cells": 10,
+      "passing_cells": 10,
+      "interface_passing_cells": 10,
+      "all_coordinate_direction_cells": 10,
+      "full_delay_coverage_cells": 10,
+      "gradient_clipping_flagged_cells": 0,
+      "candidate_pass": true
+    },
+    {
+      "condition": "confirm_per_synapse",
+      "granularity": "per_synapse",
+      "complete_cells": 10,
+      "passing_cells": 10,
+      "interface_passing_cells": 10,
+      "all_coordinate_direction_cells": 10,
+      "full_delay_coverage_cells": 10,
+      "gradient_clipping_flagged_cells": 0,
+      "candidate_pass": true
+    }
+  ],
+  "global_anchor_confirmation_pass": true,
+  "passing_higher_dimensional_granularities": [
+    "per_hidden_neuron",
+    "per_synapse"
+  ],
+  "selected_rescued_granularity": "per_hidden_neuron",
+  "level1br_pass": true,
+  "microburst_authorized": false,
+  "K_greater_than_one_authorized": false,
+  "test_split_opened": false
+}

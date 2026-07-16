@@ -1,0 +1,99 @@
+protocol_id: spatial_vs_temporal_pareto_phase0
+status: stage_a_formal_complete_failed
+purpose: >
+  Establish a single-query XOR capacity baseline and validate an equal-event
+  input / class-opponent target-spike output interface before constructing a
+  spatial-parallel versus temporal-multiplexed Pareto matrix.
+paper_inspiration:
+  citation: Habashy_et_al_2024_PLoS_Computational_Biology
+  retained: [single_burst_impulse_probe, filtered_target_spike_train]
+  rejected_as_primary: [variable_0_to_5_input_spike_count, zero_vs_nonzero_output_code, evolutionary_training]
+encoding_decision:
+  input: binary_one_hot_equal_event
+  input_channels_per_query: 4
+  spikes_per_selected_value_channel: 2
+  input_events_per_query: 4
+  one_hot_phase: 1.0
+  jitter_ms: 0
+  output: class_opponent_one_target_spike
+  output_target_timing: simultaneous_offset
+  output_target_offset_steps: 1
+  target_filter_tau_steps: 5.0
+  target_spike_loss_weight: 1.0
+  target_timing_tolerance_steps: 2
+stage_a:
+  status: formal_complete_failed
+  K: 1
+  operation: XOR
+  architecture: four_input_one_hot_to_d0_hidden_to_opponent_spiking_output
+  hidden_sizes: [4, 8, 12, 16, 24]
+  seeds: [107, 211, 509]
+  cells: 15
+  input_win: 10
+  output_window_len: 10
+  read_len: 10
+  hidden_threshold: 0.2
+  output_threshold: 0.03
+  d_max: 20
+  input_delays: d0
+  output_delay_mode: d0
+  output_membrane_warmup_epochs: 20
+  output_membrane_aux_weight: 0.2
+  checkpoint_selection: final
+  training:
+    epochs: 100
+    n_train: 1024
+    n_val: 512
+    batch_size: 128
+    lr_w: 0.001
+    lr_d: 0.001
+    lr_readout: 0.001
+  locked_selection:
+    balanced_accuracy_each_seed: 0.90
+    exhaustive_truth_table_complete_each_seed: true
+    max_silent_rate_each_seed: 0.10
+    max_collision_rate_each_seed: 0.10
+    min_target_timing_hit_rate_each_seed: 0.90
+    max_mean_abs_target_timing_error_steps_each_seed: 2.0
+    mean_output_spikes_lower: 0.50
+    mean_output_spikes_upper: 1.50
+    rule: smallest_hidden_size_passing_every_gate_in_every_seed
+stage_b:
+  status: locked_stage_a_failed
+  K: 2
+  operation: XOR
+  baseline_hidden_per_query: null
+  shared_hidden_multipliers_of_baseline: [0.5, 1.0, 1.5, 2.0]
+  architectures:
+    - spatial_independent_d0
+    - shared_spatial_d0
+    - shared_temporal_d0
+    - shared_temporal_fixed_full
+    - shared_temporal_fixed_query_schedule_positive_control
+    - shared_temporal_wad
+  spatial_timeline: {input_win: 10, output_windows: 1, output_window_len: 10}
+  temporal_timeline: {input_win: 10, output_windows: 2, output_window_len: 10}
+  delay_placement: input_to_hidden_only
+  output_delays: d0
+  primary_metrics: [worst_query_balanced_accuracy, exact_trial_accuracy]
+  cost_vector:
+    - hidden_area_ratio
+    - latency_ratio
+    - hidden_update_ratio
+    - dense_synapse_compute_ratio
+    - trainable_parameters
+    - delay_storage
+    - neuron_updates
+    - dense_synapse_macs
+    - measured_synaptic_events
+  lock_rule: stage_b_config_must_be_materialized_from_stage_a_decision_before_any_stage_b_training
+rules:
+  - Validation only; test remains sealed.
+  - Stage A cannot use K greater than one and cannot support a multiplexing claim.
+  - Stage B cannot be generated until Stage A selects one baseline hidden size.
+  - Input event count is identical for bit 0 and bit 1.
+  - Each binary target is one spike in exactly one neuron of an opponent pair.
+  - Surrogate-gradient training remains primary; evolutionary search is not used in Phase 0.
+  - Cost is a vector. Hidden n*T is reported only as a hidden-neuron-update proxy.
+  - No single 90 percent threshold replaces the full reliability-resource frontier.
+required_artifacts: [config, best_checkpoint, final_checkpoint, train_log, validation, exhaustive_truth_table, resource_ledger, diagnostic_npz, diagnostic_panel]

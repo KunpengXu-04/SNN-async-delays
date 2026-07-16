@@ -1,0 +1,132 @@
+# PRE-REGISTERED: do not modify after any matrix cell has launched.
+protocol_id: xor_delay_control_matrix_v1
+status: preregistered
+purpose: >
+  Validation-stage causal comparison of learned heterogeneous delays against
+  zero, optimized shared-scalar, and fixed heterogeneous delay controls at
+  difficulty settings selected by xor_difficulty_calibration_v1. Test remains sealed.
+
+task:
+  op_name: XOR
+  encoding_mode: burst
+  sub_win: 10
+  read_len: 10
+  burst_n_spikes_on: 2
+  burst_n_spikes_off: 1
+  burst_phase_on: 0.20
+  burst_phase_off: 0.80
+  burst_jitter_ms: 0
+
+settings:
+  - name: primary
+    K: 3
+    hidden_size: 35
+    readout_types: [linear, mlp]
+  - name: stress
+    K: 4
+    hidden_size: 50
+    readout_types: [linear]
+
+factors:
+  seeds: [0, 1, 2, 3, 42]
+  delay_conditions: [d0, scalar, fixed_heterogeneous, w_and_d]
+  observation_mode: all_time
+
+delay_controls:
+  d0:
+    train_mode: weights_only
+    fixed_delay_value: 0.0
+  scalar:
+    train_mode: weights_and_delays
+    shared_delay: true
+    initialization: sigmoid_raw_minus_2
+  fixed_heterogeneous:
+    train_mode: weights_only
+    fixed_delay_distribution: uniform
+    range: [0.0, d_max]
+    seed_rule: training_seed
+  w_and_d:
+    train_mode: weights_and_delays
+    shared_delay: false
+
+post_training_interventions:
+  - name: shuffle_learned_delays
+    applies_to: w_and_d
+    split: val
+    intervention_seed_rule: 10000_plus_training_seed
+    preserve: [weights, decoder, delay_multiset]
+  - name: late_window_probe
+    applies_to: all_delay_conditions
+    split: val
+    rule: evaluate_same_checkpoint_and_decoder_with_late_window_accumulation
+
+fixed_training:
+  dt: 1.0
+  lif_tau_m: 10.0
+  lif_threshold: 0.3
+  lif_reset: 0.0
+  lif_refractory: 2
+  surrogate_beta: 4.0
+  delay_param_type: sigmoid
+  delay_step: 1.0
+  lr_w: 0.001
+  lr_d: 0.001
+  lr_readout: 0.001
+  batch_size: 128
+  epochs: 100
+  n_train: 2000
+  n_val: 500
+  spike_penalty: 0.0
+  delay_penalty: 0.0
+  homeo_lambda: 0.0
+  homeo_target: 0.0
+  grad_clip: 1.0
+  r_on: 400.0
+  r_off: 10.0
+  evaluation_split: val
+  result_filename: validation_results.json
+
+primary_endpoint:
+  metric: worst_query_accuracy
+  primary_setting: primary
+  primary_readout: linear
+  primary_comparison: w_and_d_vs_best_nonlearned_delay_control
+  practical_margin: 0.03
+
+secondary_endpoints:
+  - exact_trial_accuracy
+  - balanced_accuracy
+  - paired_seed_effects
+  - resource_ledger
+  - delay_shuffle_effect
+  - late_window_interaction
+
+decision_gate:
+  positive_programme_requires:
+    - WAD mean paired worst-query advantage >= 0.03 over the best of d0/scalar/fixed_heterogeneous.
+    - At least 4 of 5 paired-seed differences against that control are positive.
+    - WAD is not dominated in the declared resource vector.
+    - Shuffling WAD delays causes a consistent degradation in at least 4 of 5 seeds.
+  otherwise: >
+    Reject a positive delay-learning claim and reframe toward delay structure,
+    observation alignment, or a controlled negative result.
+
+diagnostics:
+  per_completed_training_cell: true
+  retain_npz: true
+  trace_seed: 999
+  required_content:
+    - input_hidden_spike_raster
+    - hidden_membrane_heatmap
+    - query_labels_predictions_logits
+    - explicit_decoder_decision_semantics
+    - delay_routing_plot
+
+interpretation_rules:
+  - No test evaluation in v1 matrix execution.
+  - Validation selected checkpoints and effects are exploratory, not confirmatory.
+  - Beating d0 alone does not support delay learning.
+  - Fixed heterogeneous delays test delay structure; shuffle tests learned placement.
+  - Late-window probe is an intervention on a decoder trained all-time, not a separately optimized late-window model.
+  - MLP is secondary and run only at the primary setting.
+  - All failed/non-converged cells remain in the analysis.

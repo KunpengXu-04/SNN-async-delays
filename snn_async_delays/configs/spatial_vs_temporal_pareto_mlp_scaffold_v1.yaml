@@ -1,0 +1,150 @@
+protocol_id: spatial_vs_temporal_pareto_mlp_scaffold_v1
+status: aborted_after_one_cell_runtime_budget_error
+study_class: exploratory_mlp_scaffold
+purpose: >
+  Produce an interpretable XOR T-by-hidden-width resource/reliability surface
+  for a supervisor progress discussion while the direct-spiking-output
+  interface remains unresolved. This study cannot unlock formal Phase-0 Stage B.
+
+scientific_scope:
+  task: repeated_XOR
+  K: 2
+  simultaneous_inputs: true
+  input_channels_per_query: 4
+  direct_spiking_output: false
+  decoder: mlp
+  primary_metric: worst_query_balanced_accuracy
+  secondary_metrics: [exact_trial_accuracy, pooled_accuracy, per_query_balanced_accuracy]
+
+conditions:
+  - spatial_independent_d0
+  - shared_spatial_d0
+  - shared_temporal_d0
+  - shared_temporal_oracle
+  - shared_temporal_wad
+
+condition_contracts:
+  spatial_independent_d0:
+    topology: K_independent_block_diagonal_modules
+    hidden_interpretation: h_per_query_total_Kh
+    observation_mode: all_time
+    delay: all_input_hidden_d0
+    decoder: one_shared_mlp_applied_K_times
+  shared_spatial_d0:
+    topology: dense_shared_hidden
+    hidden_interpretation: h_total
+    observation_mode: all_time
+    delay: all_input_hidden_d0
+    decoder: one_K_output_mlp
+    interpretation: ordinary_shared_representation_control_not_temporal_routing
+  shared_temporal_d0:
+    topology: dense_shared_hidden
+    hidden_interpretation: h_total
+    observation_mode: windowed_shared
+    delay: all_input_hidden_d0
+    decoder: one_shared_mlp_applied_once_per_output_window
+    interpretation: negative_temporal_control
+  shared_temporal_oracle:
+    topology: dense_shared_hidden
+    hidden_interpretation: h_total
+    observation_mode: windowed_shared
+    delay: query0_0_query1_one_output_window
+    decoder: one_shared_mlp_applied_once_per_output_window
+    interpretation: fixed_query_scheduled_positive_control
+  shared_temporal_wad:
+    topology: dense_shared_hidden
+    hidden_interpretation: h_total
+    observation_mode: windowed_shared
+    delay: learnable_input_hidden
+    decoder: one_shared_mlp_applied_once_per_output_window
+
+surface:
+  total_latency_steps: [18, 22, 26, 30]
+  hidden_widths: [4, 8, 16, 24]
+  seeds: [307, 613]
+  cells: 160
+  input_window_steps: 10
+  output_window_rule: (T-input_window_steps)/K
+
+encoding:
+  mode: binary_one_hot
+  one_hot_phase: 1.0
+  spikes_per_selected_value_channel: 2
+  events_per_query: 4
+  jitter_ms: 0
+
+neuron:
+  tau_m: 10.0
+  threshold: 0.2
+  reset: 0.0
+  refractory_steps: 2
+  surrogate_beta: 4.0
+
+delay:
+  placement: input_to_hidden_only
+  parameterization: sigmoid
+  step: 1.0
+  init_mode: constant
+  init_raw: -2.0
+  init_std: 0.25
+  dmax_rule: one_output_window
+  hidden_to_output_delay: not_applicable_nonspiking_decoder
+
+training:
+  epochs: 300
+  exact_truth_table_repeats_per_epoch: 8
+  batch_size: 16
+  lr_w: 0.001
+  lr_d: 0.001
+  lr_readout: 0.001
+  grad_clip: 1.0
+  checkpoint_selection: best_pooled_accuracy
+  loss: pooled_binary_cross_entropy_on_balanced_exhaustive_batches
+
+smoke_gate:
+  cells: 5
+  point: {T: 26, hidden_width: 16, seed: 307}
+  epochs: 80
+  requirements:
+    - every_condition_writes_complete_artifact_set
+    - finite_training_loss_and_metrics
+    - spatial_and_oracle_models_have_nonzero_hidden_activity
+    - oracle_delay_tensor_matches_locked_schedule
+
+exploratory_success_checks:
+  - spatial_independent_and_temporal_oracle_each_reach_worst_balanced_accuracy_at_least_0.90_at_one_or_more_surface_points_in_both_seeds
+  - temporal_oracle_outperforms_shared_temporal_d0_at_one_or_more_matched_surface_points
+  - report_all_cells_even_if_the_wad_condition_fails
+  - no_surface_point_or_accuracy_threshold_may_be_selected_post_hoc_as_the_only_report
+
+required_artifacts:
+  - config
+  - best_checkpoint
+  - final_checkpoint
+  - train_log
+  - validation
+  - exhaustive_truth_table
+  - resource_ledger
+  - diagnostic_npz
+  - diagnostic_panel
+
+reporting:
+  required_figures:
+    - figC_nhid_T_plane.png
+    - figC_nhid_T_plane_worst_seed.png
+    - figC_exact_trial_T_plane.png
+    - pareto_resource_frontiers.png
+  resource_axes:
+    - hidden_neurons_total
+    - latency_steps
+    - neuron_updates_per_trial
+    - dense_synapse_macs_per_trial
+    - mean_synaptic_events_total
+    - delay_value_storage_elements
+
+locked_caveats:
+  - MLP output is a diagnostic scaffold and is not evidence that the direct-spiking-output problem is solved.
+  - The same MLP architecture is shared across query modules/windows where structurally possible; shared_spatial_d0 necessarily uses a K-output decoder and its decoder cost is separately ledgered.
+  - A WAD advantage over d0 is not a temporal-reuse mechanism result without the oracle, window permutation, and routing-selectivity evidence.
+  - Two seeds are adequate only for a progress-display pilot, not a publication-level variance estimate.
+  - Validation and exhaustive XOR truth-table data are used; no sealed test claim is made.

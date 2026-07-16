@@ -1,0 +1,38 @@
+[
+  {
+    "run_path": "runs/NAND_compress_burst_(planD)/d0_h10_K1_sw10_seed0",
+    "status": "ok",
+    "protocol_version": "checkpoint_reevaluation_v1",
+    "evaluation_seed": 20260711,
+    "task_interface": "sequential_plan_d_late_window",
+    "result": {
+      "accuracy": 0.753000020980835,
+      "per_query_acc": [
+        0.753000020980835
+      ],
+      "worst_query_accuracy": 0.753000020980835,
+      "exact_trial_accuracy": 0.753000020980835,
+      "per_query_balanced_accuracy": [
+        0.5
+      ],
+      "balanced_accuracy": 0.5,
+      "mean_hidden_spikes": 0.0,
+      "throughput_K_per_spk": null,
+      "ops_per_neuron_per_ms": 0.005,
+      "mean_active_hidden_fraction": 0.0,
+      "binary_confusion": [
+        [
+          0,
+          247
+        ],
+        [
+          0,
+          753
+        ]
+      ],
+      "K": 1,
+      "layer1_hidden_spikes": null,
+      "layer2_hidden_spikes": null
+    }
+  }
+]

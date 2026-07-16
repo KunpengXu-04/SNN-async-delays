@@ -1,0 +1,34 @@
+protocol_id: spatial_vs_temporal_pareto_mlp_scaffold_v2
+status: completed_positive_fixed_oracle_negative_wad
+parent_config: spatial_vs_temporal_pareto_mlp_scaffold_v1.yaml
+amendment_time: 2026-07-14
+amendment_reason: >
+  V1 repeated the identical exhaustive 16-pattern batch eight times per epoch,
+  producing 2400 redundant optimizer steps per cell and a multi-hour sweep.
+  The V1 process was stopped for runtime before its buffered output was read;
+  subsequent artifact inspection found one completed cell and one partial cell.
+  V2 was defined from the runtime diagnosis, not from cell performance.
+amendment_scope:
+  unchanged:
+    - task
+    - conditions
+    - T_grid
+    - hidden_grid
+    - seeds
+    - model_architectures
+    - encoding
+    - neuron_and_delay_parameters
+    - metrics
+    - resource_ledger
+    - checkpoint_selection
+  changed:
+    - one_exact_truth_table_batch_per_epoch
+    - 200_epochs_equal_200_optimizer_steps_per_cell
+overrides:
+  training:
+    epochs: 200
+    exact_truth_table_repeats_per_epoch: 1
+  smoke_gate:
+    epochs: 80
+locked_caveats_addition:
+  - V1 formal artifacts are aborted exploratory provenance and must not be pooled with V2.

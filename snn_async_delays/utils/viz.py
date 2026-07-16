@@ -1097,8 +1097,8 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
         span n_ops output heads).
     """
     import torch
-    from data.boolean_dataset import MultiQueryDataset
-    from data.encoding import encode_sequential_trial
+    from data.boolean_dataset import MultiQueryDataset, FixedOperationQueryDataset
+    from data.encoding import encode_sequential_trial, encode_simultaneous_trial
 
     model.eval()
     n_ops = cfg.get("n_ops", 0)
@@ -1110,6 +1110,8 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
         burst_phase_on=cfg.get("burst_phase_on", 0.2),
         burst_phase_off=cfg.get("burst_phase_off", 0.8),
         burst_jitter_ms=cfg.get("burst_jitter_ms", 0),
+        one_hot_phase=cfg.get("one_hot_phase", 1.0),
+        one_hot_n_spikes=cfg.get("one_hot_n_spikes", 1),
     )
     if dataset_override is not None:
         A, B, op_ids, labels = dataset_override
@@ -1129,7 +1131,11 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
         # chance of all-zero spikes when A=0 or B=0.
         for _try in range(10):
             _seed = seed + _try
-            if op == "mixed":
+            if cfg.get("input_schedule") == "simultaneous" and cfg.get("query_ops"):
+                ds = FixedOperationQueryDataset(
+                    n_samples=1, query_ops=cfg["query_ops"], seed=_seed,
+                )
+            elif op == "mixed":
                 ds = MultiQueryDataset(K=K, n_samples=1, same_op=False,
                                        ops_list=cfg["ops_list"], seed=_seed,
                                        op_sampling=cfg.get("op_sampling", "uniform"))
@@ -1139,7 +1145,10 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
                                        seed=_seed)
             A, B, op_ids, labels = ds[0]
             torch.manual_seed(_seed)
-            spike_input = encode_sequential_trial(
+            encoder = (encode_simultaneous_trial
+                       if cfg.get("input_schedule") == "simultaneous"
+                       else encode_sequential_trial)
+            spike_input = encoder(
                 A.unsqueeze(0), B.unsqueeze(0),
                 win_len=cfg["win_len"], read_len=cfg["read_len"],
                 r_on=cfg["r_on"], r_off=cfg["r_off"],
@@ -1161,33 +1170,116 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
         "win_len":  cfg["win_len"],
         "read_len": cfg["read_len"],
         "sub_win":  cfg.get("sub_win"),
+        "observation_mode": cfg.get("observation_mode", "late_window"),
+        "output_window_len": cfg.get("output_window_len"),
+        "input_schedule": cfg.get("input_schedule"),
+        "query_ops": np.asarray(cfg.get("query_ops", [])),
+        "readout_endpoint": cfg.get("readout_endpoint", ""),
+        "topology_type": cfg.get(
+            "topology_type", getattr(model, "topology_type", "shared_dense")
+        ),
+        "hidden_per_query": (
+            cfg.get("surface_hidden_width")
+            if hasattr(model, "syn_ih_modules") else None
+        ),
+        "encoding_mode": cfg.get("encoding_mode", "rate"),
+        "one_hot_n_spikes": cfg.get("one_hot_n_spikes", 1),
+        "opponent_target_timing_mode": cfg.get("opponent_target_timing_mode", ""),
+        "output_target_offset_steps": cfg.get("output_target_offset_steps", -1),
+        "target_filter_tau_steps": cfg.get("target_filter_tau_steps", -1),
         "K":        K,
         "T":        T_val,
         "output_logits": logits[0].detach().cpu().numpy(),        # [K] per-query logits
+        "output_probabilities": torch.sigmoid(logits[0]).detach().cpu().numpy(),
+        "output_predictions": (logits[0] > 0).to(torch.int64).detach().cpu().numpy(),
+        "query_labels": labels.detach().cpu().numpy(),
+        "output_semantics": "spiking_output" if "output_spike_train" in info else "decoder_decision",
     }
+    if "hidden_membrane_train" in info:
+        traces["hidden_membrane"] = info["hidden_membrane_train"][0].numpy()
     if "output_spike_train" in info:
         traces["output_spikes"] = info["output_spike_train"][0].cpu().numpy()  # [T, n_out]
+    if "output_membrane_train" in info:
+        traces["output_membrane"] = info["output_membrane_train"][0].cpu().numpy()
+    if "output_window_counts" in info:
+        traces["output_window_counts"] = info["output_window_counts"][0].numpy()
+    if "output_pair_counts" in info:
+        traces["output_pair_counts"] = info["output_pair_counts"][0].numpy()
     if "hidden1_spike_train" in info:
         # 2-layer: hidden_spike_train = h2; hidden1_spike_train = h1
         traces["hidden2_spikes"] = traces.pop("hidden1_spikes")      # rename h_last→h2
         traces["hidden1_spikes"] = info["hidden1_spike_train"][0].numpy()  # h1
 
     # Weights
-    weights_dict: dict = {
-        "ih": model.syn_ih.weight.detach().cpu().numpy(),
-    }
+    if hasattr(model, "syn_ih_modules"):
+        hidden_per_query = int(model.hidden_per_query)
+        combined_weights = np.zeros((model.n_input, model.n_hidden), dtype=np.float32)
+        combined_delays = np.zeros_like(combined_weights)
+        for query, layer in enumerate(model.syn_ih_modules):
+            in_slice = slice(4 * query, 4 * (query + 1))
+            hidden_slice = slice(
+                hidden_per_query * query, hidden_per_query * (query + 1)
+            )
+            combined_weights[in_slice, hidden_slice] = (
+                layer.weight.detach().cpu().numpy()
+            )
+            combined_delays[in_slice, hidden_slice] = (
+                layer.get_delays().detach().cpu().numpy()
+            )
+        weights_dict: dict = {"ih": combined_weights}
+    else:
+        weights_dict = {
+            "ih": model.syn_ih.weight.detach().cpu().numpy(),
+        }
     if hasattr(model, "syn_h1h2"):
         weights_dict["h1h2"] = model.syn_h1h2.weight.detach().cpu().numpy()
     if hasattr(model, "syn_ho"):
         weights_dict["ho"] = model.syn_ho.weight.detach().cpu().numpy()
     if model.readout_type == "linear" and model.readout is not None:
         weights_dict["readout"] = model.readout.weight.detach().cpu().numpy()
+    elif model.readout_type == "mlp" and model.readout is not None:
+        linear_layers = [
+            layer for layer in model.readout.modules()
+            if isinstance(layer, torch.nn.Linear)
+        ]
+        if linear_layers:
+            weights_dict["readout_in"] = (
+                linear_layers[0].weight.detach().cpu().numpy()
+            )
+        if len(linear_layers) > 1:
+            weights_dict["readout_out"] = (
+                linear_layers[-1].weight.detach().cpu().numpy()
+            )
 
     # Delays
-    raw_delays = model.get_delays()
-    delays_dict: dict = {k: v.detach().cpu().numpy() for k, v in raw_delays.items()}
+    if hasattr(model, "syn_ih_modules"):
+        delays_dict: dict = {"ih": combined_delays}
+    else:
+        raw_delays = model.get_delays()
+        delays_dict = {k: v.detach().cpu().numpy() for k, v in raw_delays.items()}
 
     return traces, weights_dict, delays_dict
+
+
+def _opponent_target_times(values: dict) -> list[int]:
+    """Return declared target-spike timesteps for diagnostic overlays."""
+    mode = values.get("opponent_target_timing_mode")
+    if not mode:
+        return []
+    input_steps = int(values.get("win_len", 0))
+    window_len = int(values.get("output_window_len") or 0)
+    if window_len <= 0:
+        return []
+    if mode in {"simultaneous_center", "sequential_centers"}:
+        within_window = window_len // 2
+    elif mode in {"simultaneous_offset", "sequential_offsets"}:
+        within_window = int(values.get("output_target_offset_steps", 0))
+    else:
+        return []
+    queries = int(values.get("K", 1))
+    if mode.startswith("sequential"):
+        return [input_steps + q * window_len + within_window for q in range(queries)]
+    return [input_steps + within_window]
 
 
 def plot_weight_heatmaps(
@@ -1204,7 +1296,10 @@ def plot_weight_heatmaps(
     axes         : pre-allocated list of axes for embedding in diagnostic panel.
                    If None, a new figure is created and saved.
     """
-    keys_order = [k for k in ("ih", "h1h2", "readout") if k in weights_dict]
+    keys_order = [
+        key for key in ("ih", "h1h2", "readout", "readout_in", "readout_out")
+        if key in weights_dict
+    ]
     n_panels   = len(keys_order)
     if n_panels == 0:
         return
@@ -1213,6 +1308,8 @@ def plot_weight_heatmaps(
         "ih":      "Input → Hidden1  weights",
         "h1h2":    "Hidden1 → Hidden2  weights",
         "readout": "Hidden → Readout  weights",
+        "readout_in": "Hidden → MLP hidden weights",
+        "readout_out": "MLP hidden → logit weights",
     }
 
     own_fig = axes is None
@@ -1589,6 +1686,9 @@ def draw_mechanism_on_ax(ax, traces, weights_dict, delays_dict, title=True):
     K = int(traces.get("K", 1))
     out_spikes = traces.get("output_spikes")
     out_logits = traces.get("output_logits")
+    observation_mode = traces.get("observation_mode", "late_window")
+    output_window_len = traces.get("output_window_len")
+    query_ops = list(traces.get("query_ops", []))
     has_ho = ("ho" in weights_dict) and ("ho" in delays_dict) and (out_spikes is not None)
     # arcs map to the layer the shown delays connect to: d_ho -> last hidden,
     # d_ih -> first hidden. (For 1-layer nets these coincide.)
@@ -1602,12 +1702,36 @@ def draw_mechanism_on_ax(ax, traces, weights_dict, delays_dict, title=True):
     ax.axvspan(0, win, color="#e8eef7", alpha=0.7, zorder=0)
     ax.axvspan(win, T, color="#e7f4ea", alpha=0.9, zorder=0)
     ax.axvline(win, color="#2e7d32", ls="--", lw=1.2, zorder=1)
+    for target_time in _opponent_target_times(traces):
+        ax.axvline(target_time, color="#8e44ad", ls="-.", lw=1.1, zorder=1)
+        ax.text(target_time, yout + .28, f"target t={target_time}", rotation=90,
+                ha="right", va="bottom", fontsize=5.5, color="#8e44ad")
     ax.text(win / 2, yout + 0.5, "input", ha="center", fontsize=7, color="#4666a0")
-    ax.text((win + T) / 2, yout + 0.5, "readout", ha="center", fontsize=7,
+    if observation_mode == "late_window":
+        observed_label = "observed: final window"
+        observed = lambda t: win <= t < T
+    elif observation_mode == "all_time":
+        observed_label = "observed: all time"
+        observed = lambda t: 0 <= t < T
+    elif observation_mode == "windowed_shared":
+        observed_label = "observed: shared output windows"
+        observed = lambda t: win <= t < T
+    else:
+        observed_label = "observed: time bins"
+        observed = lambda t: 0 <= t < T
+    ax.text((win + T) / 2, yout + 0.5, observed_label, ha="center", fontsize=7,
             color="#2e7d32", fontweight="bold")
     if K > 1 and sub:
         for k in range(1, K):
             ax.axvline(k * sub, color="#4666a0", ls=":", lw=0.8, alpha=0.6, zorder=1)
+    if output_window_len and K > 1:
+        for k in range(K + 1):
+            ax.axvline(win + k * int(output_window_len), color="#2e7d32",
+                       ls=":" if k not in (0, K) else "--", lw=.9, alpha=.75, zorder=1)
+        for k in range(K):
+            label = str(query_ops[k]) if k < len(query_ops) else f"Q{k}"
+            ax.text(win + (k + .5) * int(output_window_len), yout + .05,
+                    f"W{k}:{label}", ha="center", va="bottom", fontsize=6, color="#2e7d32")
 
     ti, ci = np.where(inp > 0)
     for t, c in zip(ti, ci):
@@ -1623,18 +1747,26 @@ def draw_mechanism_on_ax(ax, traces, weights_dict, delays_dict, title=True):
     landed = 0
 
     if len(th) > 0 and has_ho:                       # spike-based: hidden -> output
-        d_ho = delays_dict["ho"][:, 0]; w_ho = weights_dict["ho"][:, 0]
+        d_ho = delays_dict["ho"]; w_ho = weights_dict["ho"]
+        n_out = w_ho.shape[1]
         wmax = float(np.abs(w_ho).max()) + 1e-9
+        def yo(o):
+            return yout + (o - (n_out - 1) / 2) * min(.22, .8 / max(n_out, 1))
         for t, j in zip(th, jh):
             ax.plot([t], [yq(j)], "o", ms=4.5, color="#1f4e9c", zorder=6)
-            arr = t + d_ho[j]; col = "#c0392b" if w_ho[j] >= 0 else "#2c5fa8"
-            _arc(t, yq(j), arr, yout, col, 0.3 + 0.6 * abs(w_ho[j]) / wmax,
-                 0.8 + 1.5 * abs(w_ho[j]) / wmax, "-|>")
-            inw = win <= arr < T; landed += int(inw)
-            ax.plot([arr], [yout], marker="v", ms=6,
-                    mfc=("#c0392b" if inw else "none"), mec=col, mew=1.1, zorder=6)
-        for t in np.where(out_spikes.sum(1) > 0)[0]:
-            ax.plot([t], [yout], marker="*", ms=14, color="#f1c40f", mec="#b8860b", zorder=7)
+            for o in np.argsort(-np.abs(w_ho[j]))[:min(2, n_out)]:
+                arr = t + d_ho[j, o]; col = "#c0392b" if w_ho[j, o] >= 0 else "#2c5fa8"
+                _arc(t, yq(j), arr, yo(o), col, 0.3 + 0.6 * abs(w_ho[j, o]) / wmax,
+                     0.8 + 1.5 * abs(w_ho[j, o]) / wmax, "-|>")
+                inw = observed(arr); landed += int(inw)
+                ax.plot([arr], [yo(o)], marker="v", ms=5,
+                        mfc=("#c0392b" if inw else "none"), mec=col, mew=1.0, zorder=6)
+        to, oo = np.where(out_spikes > 0)
+        for t, o in zip(to, oo):
+            ax.plot([t], [yo(o)], marker="*", ms=11, color="#f1c40f", mec="#b8860b", zorder=7)
+        if n_out == 2:
+            ax.text(T + .15, yo(0), "class 0", va="center", fontsize=5.5)
+            ax.text(T + .15, yo(1), "class 1", va="center", fontsize=5.5)
         mode = "hidden→output $d_{ho}$ (spike-based)"
 
     elif len(th) > 0:                                # spike-based: input -> hidden spike
@@ -1642,7 +1774,7 @@ def draw_mechanism_on_ax(ax, traces, weights_dict, delays_dict, title=True):
         wmax = float(np.abs(w_ih).max()) + 1e-9
         causal = max(int(sub or 10), 10) + 2
         for t, j in zip(th, jh):
-            inw = win <= t < T; landed += int(inw)
+            inw = observed(t); landed += int(inw)
             ax.plot([t], [yq(j)], "o", ms=5,
                     color=("#2e7d32" if inw else "#1f4e9c"), zorder=6)
             cand = []
@@ -1666,14 +1798,14 @@ def draw_mechanism_on_ax(ax, traces, weights_dict, delays_dict, title=True):
                 arr = t + d_ih[c, j]; col = "#c0392b" if w_ih[c, j] >= 0 else "#2c5fa8"
                 _arc(t, yc, arr, yq(j), col, 0.15 + 0.5 * abs(w_ih[c, j]) / wmax,
                      0.6 + 1.0 * abs(w_ih[c, j]) / wmax)
-                landed += int(win <= arr < T)
+                landed += int(observed(arr))
         mode = "input→hidden $d_{ih}$ (no spikes → arrival routing)"
 
     ax.text(-2.0, np.mean(yin), "In", ha="right", va="center", fontsize=7)
     ax.text(-2.0, np.mean(yhid), "Hid", ha="right", va="center", fontsize=7, color="#1f4e9c")
     if has_ho:
         ax.text(-2.0, yout, "Out", ha="right", va="center", fontsize=7, color="#b8860b")
-    ax.set_xlim(-3, T + 0.5)
+    ax.set_xlim(-3, T + 1.5)
     ax.set_ylim(-1.0, yout + 1.0)
     ax.set_yticks([])
     ax.set_xlabel("time (ms)", fontsize=7)
@@ -1681,7 +1813,7 @@ def draw_mechanism_on_ax(ax, traces, weights_dict, delays_dict, title=True):
     for s in ("top", "right", "left"):
         ax.spines[s].set_visible(False)
     if title:
-        ax.set_title(f"Delay routing mechanism\n{mode}  |  {landed} in readout win",
+        ax.set_title(f"Delay routing mechanism\n{mode}  |  {landed} observed ({observation_mode})",
                      fontsize=8)
     return landed
 
@@ -1704,8 +1836,8 @@ def plot_diagnostic_panel(
     """
     from matplotlib.gridspec import GridSpec
 
-    fig = plt.figure(figsize=(20, 16), constrained_layout=False)
-    gs  = GridSpec(4, 6, figure=fig, hspace=0.45, wspace=0.35)
+    fig = plt.figure(figsize=(20, 20), constrained_layout=False)
+    gs  = GridSpec(5, 6, figure=fig, hspace=0.48, wspace=0.35)
 
     # ── Row 0: config | loss | accuracy ──────────────────────────────────
     ax_cfg  = fig.add_subplot(gs[0, :2])
@@ -1718,8 +1850,15 @@ def plot_diagnostic_panel(
     lines = [
         f"n_input={cfg.get('n_input', 2)}  K={cfg.get('K', eval_results.get('K', '?'))}",
         f"hidden={hidden_sizes_str}",
+        f"topology={cfg.get('topology_type','shared_dense')}",
+        (f"surface_h={cfg.get('surface_hidden_width')} "
+         f"({cfg.get('hidden_width_semantics')})"
+         if cfg.get("surface_hidden_width") is not None else "surface_h=n/a"),
+        f"input_code={cfg.get('encoding_mode','rate')}",
         f"train_mode={cfg.get('train_mode','?')}",
         f"readout={cfg.get('readout_type','linear')}",
+        f"endpoint={cfg.get('readout_endpoint','count_decoder')}",
+        f"observe={cfg.get('observation_mode','late_window')}",
         f"delay_param={cfg.get('delay_param_type','sigmoid')}",
         (f"fixed_d={cfg['fixed_delay_value']}"
          if cfg.get("fixed_delay_value") is not None else "fixed_d=trainable"),
@@ -1730,14 +1869,26 @@ def plot_diagnostic_panel(
         f"lr_ro={cfg.get('lr_readout','?')}",
         f"epochs={cfg.get('epochs','?')}  batch={cfg.get('batch_size','?')}  "
         f"seed={cfg.get('seed','?')}",
+        (f"target={cfg.get('opponent_target_timing_mode')} "
+         f"t={','.join(map(str, _opponent_target_times({**traces, **cfg})))}"
+         if cfg.get("opponent_target_timing_mode") else "target=none"),
+        (f"intervention={eval_results.get('post_training_intervention', {}).get('name')}"
+         if eval_results.get("post_training_intervention") else "intervention=none"),
         "",
         "-" * 30,
         f"acc    = {eval_results.get('accuracy', float('nan')):.1%}",
-        f"K/spk  = {eval_results.get('throughput_K_per_spk', float('nan')):.3f}",
+        f"worst  = {eval_results.get('worst_query_accuracy', float('nan')):.1%}",
+        (f"worstB = {eval_results['worst_query_balanced_accuracy']:.1%}"
+         if eval_results.get('worst_query_balanced_accuracy') is not None else "worstB = n/a"),
+        f"exact  = {eval_results.get('exact_trial_accuracy', float('nan')):.1%}",
+        (f"K/spk  = {eval_results['throughput_K_per_spk']:.3f}"
+         if eval_results.get('throughput_K_per_spk') is not None else "K/spk  = n/a"),
         f"spk/tr = {eval_results.get('mean_hidden_spikes', float('nan')):.1f}",
+        (f"time-hit={eval_results['target_timing_hit_rate']:.1%}"
+         if eval_results.get('target_timing_hit_rate') is not None else "time-hit=n/a"),
     ]
     ax_cfg.text(0.05, 0.95, "\n".join(lines),
-                transform=ax_cfg.transAxes, fontsize=8.5,
+                transform=ax_cfg.transAxes, fontsize=7.3, linespacing=.95,
                 va="top", ha="left", family="monospace",
                 bbox=dict(boxstyle="round,pad=0.4", facecolor="#F5F5F5",
                           edgecolor="#BDBDBD", linewidth=0.8))
@@ -1748,6 +1899,15 @@ def plot_diagnostic_panel(
         epochs = [r["epoch"] for r in log_rows]
         ax_loss.plot(epochs, [r["train_loss"] for r in log_rows], label="train")
         ax_loss.plot(epochs, [r["val_loss"]   for r in log_rows], label="val")
+        if "train_spike_count_loss" in log_rows[0]:
+            ax_loss.plot(epochs, [r["train_spike_count_loss"] for r in log_rows],
+                         label="train spike", linestyle="--", alpha=.8)
+        if "train_target_spike_train_loss" in log_rows[0]:
+            ax_loss.plot(epochs, [r["train_target_spike_train_loss"] for r in log_rows],
+                         label="train timing", linestyle="-.", alpha=.85)
+        if "train_output_membrane_loss" in log_rows[0]:
+            ax_loss.plot(epochs, [r["train_output_membrane_loss"] for r in log_rows],
+                         label="train membrane", linestyle=":", alpha=.9)
         ax_loss.set_xlabel("Epoch", fontsize=8)
         ax_loss.set_ylabel("Loss", fontsize=8)
         ax_loss.legend(fontsize=7)
@@ -1756,7 +1916,6 @@ def plot_diagnostic_panel(
 
         ax_acc.plot(epochs, [r["train_acc"] for r in log_rows], label="train")
         ax_acc.plot(epochs, [r["val_acc"]   for r in log_rows], label="val")
-        ax_acc.axhline(0.90, color="#888", linestyle=":", linewidth=1)
         ax_acc.set_xlabel("Epoch", fontsize=8)
         ax_acc.set_ylabel("Accuracy", fontsize=8)
         ax_acc.set_ylim(0, 1.05)
@@ -1773,12 +1932,18 @@ def plot_diagnostic_panel(
     ax_acc.set_title("Training Accuracy", fontsize=9)
 
     # ── Row 1: weight heatmaps ────────────────────────────────────────────
-    w_keys  = [k for k in ("ih", "h1h2", "ho", "readout") if k in weights_dict]
+    w_keys = [
+        key for key in (
+            "ih", "h1h2", "ho", "readout", "readout_in", "readout_out"
+        ) if key in weights_dict
+    ]
     n_wkeys = len(w_keys)
     w_titles = {"ih": "W: Input→Hidden",
                 "h1h2": "W: H1→H2",
                 "ho": "W: Hidden→Output",
-                "readout": "W: H→Readout"}
+                "readout": "W: H→Readout",
+                "readout_in": "W: Hidden→MLP hidden",
+                "readout_out": "W: MLP hidden→logit"}
     w_axes = [fig.add_subplot(gs[1, i*2:(i+1)*2]) for i in range(min(n_wkeys, 3))]
     for ax, key in zip(w_axes, w_keys):
         W = weights_dict[key]
@@ -1809,6 +1974,88 @@ def plot_diagnostic_panel(
         ax.tick_params(labelsize=6)
 
     # ── Row 3 left: spike raster (Input / Hidden / Output) ───────────────
+    output_membrane = traces.get("output_membrane")
+    membrane_grid = gs[3, :3].subgridspec(
+        2 if output_membrane is not None else 1, 1, hspace=.42
+    )
+    ax_mem = fig.add_subplot(membrane_grid[0, 0])
+    membrane = traces.get("hidden_membrane")
+    if membrane is not None:
+        im = ax_mem.imshow(membrane.T, aspect="auto", origin="lower", cmap="magma")
+        plt.colorbar(im, ax=ax_mem, shrink=0.7, label="membrane potential")
+        ax_mem.set_ylabel("Hidden neuron")
+        if output_membrane is None:
+            ax_mem.set_xlabel("Timestep")
+        ax_mem.set_title("Hidden membrane dynamics (fixed diagnostic sample)")
+        ax_mem.axvline(traces.get("win_len", membrane.shape[0]),
+                       color="cyan", linestyle="--", linewidth=1)
+        hidden_per_query = traces.get("hidden_per_query")
+        if (hidden_per_query
+                and traces.get("topology_type") == "spatial_independent_shared_decoder"):
+            for boundary in range(
+                int(hidden_per_query), membrane.shape[1], int(hidden_per_query)
+            ):
+                ax_mem.axhline(
+                    boundary - .5, color="white", linestyle=":",
+                    linewidth=.9, alpha=.85,
+                )
+        for target_time in _opponent_target_times(traces):
+            ax_mem.axvline(target_time, color="#8e44ad", linestyle="-.", linewidth=1)
+    else:
+        ax_mem.text(0.5, 0.5, "Membrane trace unavailable", ha="center", va="center")
+        ax_mem.set_axis_off()
+
+    if output_membrane is not None:
+        ax_omem = fig.add_subplot(membrane_grid[1, 0])
+        for output_index in range(output_membrane.shape[1]):
+            ax_omem.plot(output_membrane[:, output_index],
+                         label=f"output {output_index}", linewidth=1.1)
+        threshold = cfg.get("lif_output_threshold")
+        if threshold is not None:
+            ax_omem.axhline(float(threshold), color="black", linestyle="--",
+                            linewidth=1, label=f"threshold={float(threshold):g}")
+        win_start = int(traces.get("win_len", 0))
+        window_len = traces.get("output_window_len")
+        if window_len:
+            for k in range(int(traces.get("K", 1)) + 1):
+                ax_omem.axvline(win_start + k * int(window_len), color="#777",
+                                linestyle=":", linewidth=.7)
+        for target_time in _opponent_target_times(traces):
+            ax_omem.axvline(target_time, color="#8e44ad", linestyle="-.", linewidth=1.2,
+                            label=f"target t={target_time}")
+        ax_omem.set_xlim(0, output_membrane.shape[0] - 1)
+        ax_omem.set_xlabel("Timestep")
+        ax_omem.set_ylabel("V")
+        ax_omem.set_title("Pre-reset output membrane vs firing threshold")
+        ax_omem.legend(fontsize=6, ncol=3, loc="upper left")
+        ax_omem.grid(True, alpha=.2)
+
+    ax_dec = fig.add_subplot(gs[3, 3:])
+    logits_q = np.asarray(traces.get("output_logits", []), dtype=float)
+    labels_q = np.asarray(traces.get("query_labels", []), dtype=int).reshape(-1)
+    preds_q = np.asarray(traces.get("output_predictions", logits_q > 0), dtype=int).reshape(-1)
+    q = np.arange(len(logits_q))
+    colors_q = ["#55A868" if i < len(labels_q) and preds_q[i] == labels_q[i]
+                else "#C44E52" for i in q]
+    ax_dec.bar(q, logits_q, color=colors_q)
+    ax_dec.axhline(0, color="black", linewidth=1)
+    ax_dec.set_xticks(q)
+    query_ops = list(cfg.get("query_ops", []))
+    ax_dec.set_xticklabels([
+        f"Q{i}{' '+query_ops[i] if i < len(query_ops) else ''}\n"
+        f"y={labels_q[i] if i < len(labels_q) else '?'} p={preds_q[i]}"
+        for i in q
+    ])
+    ax_dec.set_ylabel("Decoder logit")
+    temporal_windows = cfg.get("observation_mode") == "windowed_shared" or cfg.get("opponent_output_mode") == "shared_windowed"
+    ax_dec.set_title("Output-window decisions" if temporal_windows else "Operation-wise decoder decisions")
+    counts_q = traces.get("output_window_counts", traces.get("output_pair_counts"))
+    if counts_q is not None:
+        counts_q = np.asarray(counts_q)
+        for i in range(min(len(q), len(counts_q))):
+            ax_dec.text(i, logits_q[i], f"  n-={counts_q[i,0]:.0f}, n+={counts_q[i,1]:.0f}",
+                        rotation=90, va="bottom" if logits_q[i] >= 0 else "top", fontsize=6)
+
     s_in  = traces["input_spikes"]
     s_h1  = traces["hidden1_spikes"]
     s_h2  = traces.get("hidden2_spikes")
@@ -1817,6 +2064,7 @@ def plot_diagnostic_panel(
     rl    = traces.get("read_len", 0)
     sw    = traces.get("sub_win")
     K_val = traces.get("K", 1)
+    output_window_len = traces.get("output_window_len")
     out_logits   = traces.get("output_logits")   # [K] or None (old npz files)
     out_spikes   = traces.get("output_spikes")   # [T, n_out] real LIF output, or None
     has_real_out = out_spikes is not None         # true spiking output layer
@@ -1836,7 +2084,7 @@ def plot_diagnostic_panel(
     if has_out:
         heights_r.append(max(K_val, 2))
 
-    gs_r3 = gs[3, :3].subgridspec(n_lyr, 1,
+    gs_r3 = gs[4, :3].subgridspec(n_lyr, 1,
                                    height_ratios=heights_r, hspace=0.06)
     rax = [fig.add_subplot(gs_r3[i, 0]) for i in range(n_lyr)]
     COLORS_t10 = list(plt.cm.tab10.colors)
@@ -1858,18 +2106,47 @@ def plot_diagnostic_panel(
         ax.axvspan(wl, wl + rl, alpha=0.10, color="tomato")
         ax.set_xlim(-0.5, T_val - 0.5)
         ax.tick_params(labelsize=6)
+        hidden_per_query = traces.get("hidden_per_query")
+        if (lname == "Hidden" and hidden_per_query
+                and traces.get("topology_type") == "spatial_independent_shared_decoder"):
+            for boundary in range(int(hidden_per_query), n_nrn, int(hidden_per_query)):
+                ax.axhline(boundary - .5, color="#555", ls=":", lw=.7, alpha=.75)
         if sw and K_val > 1:
             for k in range(K_val):
                 ax.axvline(k * sw, color=COLORS_t10[k % len(COLORS_t10)],
                            ls="--", lw=0.7, alpha=0.7)
+        if output_window_len and K_val > 1:
+            for k in range(K_val + 1):
+                boundary = wl + k * int(output_window_len)
+                ax.axvline(boundary, color=COLORS_t10[k % len(COLORS_t10)],
+                           ls=":" if k not in (0, K_val) else "--", lw=0.9, alpha=0.8)
+            if lname == layer_data[0][0]:
+                for k in range(K_val):
+                    op_label = query_ops[k] if k < len(query_ops) else f"Q{k}"
+                    ax.text(wl + (k + .5) * int(output_window_len), n_nrn - .4,
+                            f"W{k}:{op_label}", ha="center", va="top", fontsize=5.5)
+        for target_time in _opponent_target_times(traces):
+            ax.axvline(target_time, color="#8e44ad", ls="-.", lw=1.0, alpha=.9)
+        if lname == "Output" and cfg.get("opponent_output_mode"):
+            if cfg.get("opponent_output_mode") == "shared_windowed" and n_nrn == 2:
+                ax.set_yticks([0, 1]); ax.set_yticklabels(["class 0", "class 1"], fontsize=5.5)
+            elif cfg.get("opponent_output_mode") == "parallel_pairs":
+                labels_out = []
+                for k in range(K_val):
+                    op_label = query_ops[k] if k < len(query_ops) else f"Q{k}"
+                    labels_out.extend([f"{op_label}:0", f"{op_label}:1"])
+                ax.set_yticks(range(min(n_nrn, len(labels_out))))
+                ax.set_yticklabels(labels_out[:n_nrn], fontsize=5)
 
     # Output strip: one row per query, decision marker at readout window centre.
     # len(out_logits) can be < K_val for aggregate-output topologies (one
     # readout head, K_val sub-windows) -- draw only the rows that exist.
     if has_out:
         ax_out = rax[len(layer_data)]
-        t_rc   = wl + max(rl // 2, 0)    # readout centre timestep
         for k in range(min(K_val, len(out_logits))):
+            t_rc = (wl + (k + .5) * int(output_window_len)
+                    if output_window_len and temporal_windows
+                    else wl + max(rl // 2, 0))
             lv  = float(out_logits[k])
             col_k = "#2ca02c" if lv > 0 else "#d62728"
             mrk_k = "|"       if lv > 0 else "x"
@@ -1878,21 +2155,26 @@ def plot_diagnostic_panel(
             ax_out.text(-0.5, float(k), f"Q{k}", ha="right", va="center",
                         fontsize=5.5, color="#555")
         ax_out.set_ylim(-0.5, K_val - 0.5)
-        ax_out.set_ylabel("Output", fontsize=7)
+        ax_out.set_ylabel("Decision", fontsize=7)
         ax_out.set_yticks([])
         ax_out.axvspan(0, wl, alpha=0.07, color="royalblue")
         ax_out.axvspan(wl, wl + rl, alpha=0.18, color="tomato")
         ax_out.set_xlim(-0.5, T_val - 0.5)
         ax_out.tick_params(labelsize=6)
+        if output_window_len and temporal_windows:
+            for k in range(K_val + 1):
+                ax_out.axvline(wl + k * int(output_window_len), color="#555", ls=":", lw=.8)
 
-    rax[0].set_title("Spike Raster: Input / Hidden / Output  (sample 0)",
-                     fontsize=9)
+    raster_title = ("Spike Raster: Input / Hidden / true Output spikes"
+                    if has_real_out else
+                    "Spike Raster + decoder decision markers (not output spikes)")
+    rax[0].set_title(raster_title + "  (fixed sample)", fontsize=9)
     rax[-1].set_xlabel("Timestep (ms)", fontsize=7)
     for a in rax[:-1]:
         a.tick_params(labelbottom=False)
 
     # ── Row 3 right: delay-routing mechanism (replaces the dense flow graph) ──
-    ax_flow = fig.add_subplot(gs[3, 3:])
+    ax_flow = fig.add_subplot(gs[4, 3:])
     draw_mechanism_on_ax(ax_flow, traces, weights_dict, delays_dict, title=True)
 
     _ensure_dir(save_path)

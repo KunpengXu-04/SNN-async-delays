@@ -1,0 +1,191 @@
+protocol_id: mixedop_rate_alignment_repair_v1
+status: stage_b_failed_stage_c_locked
+preregistered_at: 2026-07-17
+parent_protocol: mixedop_rate_wad_surface_calibration_v1
+study_class: exploratory_rate_alignment_and_low_dimensional_delay_repair
+
+question: >
+  Does aligning a short late-rate packet completely inside each declared
+  output window restore fixed-oracle feasibility, and only then can a
+  five-parameter per-query delay model learn the schedule?
+
+claim_boundary:
+  permitted:
+    - fixed-oracle rate-interface feasibility
+    - task-only versus explicitly routing-assisted per-query-delay diagnostics
+  forbidden:
+    - full WAD or temporal Pareto claims
+    - per-synapse delay trainability
+    - hardware energy claims
+    - treating routing-assisted learning as autonomous discovery
+
+workloads:
+  5: [AND, OR, XOR, XNOR, NAND]
+  operation_assignment: fixed_by_query_position
+  random_operation_per_trial: false
+  operation_identity_input_cue: false
+
+surface:
+  K_values: [5]
+  total_hidden_neurons: [120, 240]
+  output_window_lengths: [4, 6, 8, 12]
+  input_window_steps: 10
+  total_latency_formula: input_window_steps_plus_K_times_output_window_length
+  seed: 3301
+  conditions: [shared_temporal_oracle]
+
+encoding:
+  mode: binary_one_hot_rate
+  channels_per_query: 4
+  rate_start_step: 6
+  rate_steps: 4
+  packet_support_steps: [6, 9]
+  r_off_hz: 10.0
+  event_budget_candidates:
+    event4: {r_on_hz: 490.0, expected_events_per_query: 4.0}
+    event8: {r_on_hz: 990.0, expected_events_per_query: 8.0}
+  selected_value_channels: 2
+  unselected_value_channels: 2
+  validation_realization: fixed_across_checkpoints
+  training_realization: resampled_each_optimizer_update
+  selected_value_channel_events: 1
+  one_hot_phase: 1.0
+  jitter_steps: 0
+
+timing:
+  buffer_effective_offset_steps: 1
+  oracle_base_delay_steps: 3
+  oracle_formula: base_plus_query_index_times_output_window_length
+  derivation: input_window_10_minus_packet_start_6_minus_buffer_offset_1
+  delay_max_formula: base_plus_K_minus_1_times_output_window_length
+  packet_fits_window_requirement: output_window_length_at_least_rate_steps
+
+model:
+  readout: nonspiking_mlp
+  temporal_decoder: one_shared_mlp_applied_to_each_output_window
+  input_channels_per_query: 4
+  hidden_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.2
+    reset_au: 0.0
+    refractory_steps: 2
+    surrogate_beta: 4.0
+  temporal_delay:
+    placement: input_to_hidden_only
+    oracle_base_delay_steps: 3
+    oracle_schedule_formula: base_plus_query_index_times_output_window_length
+    wad_parameterization: sigmoid
+    wad_tying: per_query
+    wad_init_mode: constant
+    wad_init_raw: -2.0
+    wad_backward: right_linear_historical_comparator
+  hidden_to_output_delay: not_applicable_nonspiking_decoder
+
+data:
+  dataset: marginally_balanced_fixed_operation_query
+  train_samples: 2048
+  validation_samples: 2048
+  train_seed_offset: 1000
+  validation_seed_offset: 2000
+  validation_encoding_seed_offset: 4000
+  every_query_has_each_AB_pair_count: 512
+  test_split_opened: false
+
+optimization:
+  optimizer: Adam
+  weight_learning_rate: 0.01
+  readout_learning_rate: 0.01
+  delay_learning_rate: 0.01
+  gradient_clip_norm: 1.0
+  batch_size: 128
+  optimizer_updates: 200
+  validation_interval_updates: 20
+  loss: query_by_class_macro_balanced_BCE
+  checkpoint_selection:
+    primary: validation_worst_query_balanced_accuracy
+    tie_break_1: validation_exact_trial_accuracy
+    tie_break_2: earlier_update
+
+stage_a_oracle:
+  smoke:
+    status: authorized
+    invalid_for_claims: true
+    seed: 3299
+    total_hidden_neurons: 120
+    output_window_length: 6
+    event_budgets: [event4, event8]
+    optimizer_updates: 40
+    cells: 2
+  formal:
+    seeds: [3301, 3313, 3323]
+    total_hidden_neurons: [120, 240]
+    output_window_lengths: [4, 6, 8, 12]
+    event_budgets: [event4, event8]
+    cells: 48
+  candidate_pass:
+    all_three_seeds_required: true
+    worst_query_balanced_accuracy_minimum: 0.90
+    exact_trial_accuracy_minimum: 0.80
+    each_window_hidden_activity_fraction_minimum: 0.10
+    oracle_schedule_exact: true
+  selection_order:
+    - lower_measured_input_events
+    - lower_neuron_update_proxy_N_times_T
+    - lower_total_hidden_neurons
+    - lower_total_latency
+
+stage_b_per_query_wad:
+  status: locked_until_stage_a_selects_one_candidate
+  seeds: [3347, 3359, 3371]
+  delay_parameters: 5
+  arms:
+    - oracle_new_seed_control
+    - task_only
+    - routing_assisted
+  routing_assisted:
+    loss: population_query_arrival_mass_window_cross_entropy
+    weight: 0.10
+    sigmoid_temperature_steps: 0.75
+    interpretation: explicit_routing_supervision_not_autonomous_discovery
+  cells_after_materialization: 9
+  gates:
+    oracle_each_seed_worst_bacc_minimum: 0.90
+    oracle_each_seed_exact_minimum: 0.80
+    wad_each_seed_worst_bacc_minimum: 0.85
+    wad_each_seed_exact_minimum: 0.70
+    each_window_hidden_activity_fraction_minimum: 0.10
+    maximum_query_delay_error_steps: 1.0
+
+stage_c_scaffold_withdrawal:
+  status: locked
+  prerequisite: routing_assisted_passes_stage_b_schedule_and_function_gates
+  purpose: remove_routing_loss_and_test_schedule_retention
+
+required_cell_artifacts:
+  - config.json
+  - best_model.pt
+  - last_model.pt
+  - update_log.csv
+  - validation_log.csv
+  - validation_results.json
+  - validation_predictions.npz
+  - resource_ledger.json
+  - plots/diagnostic_data.npz
+  - plots/diagnostic_panel.png
+  - run_complete.json
+
+execution:
+  smoke_root: runs/smoke/mixedop_rate_alignment_repair_v1
+  formal_root: runs/exploratory/mixedop_rate_alignment_repair_v1/stage_a_oracle
+  stage_b_root: runs/exploratory/mixedop_rate_alignment_repair_v1/stage_b_per_query_wad
+  generated_root: docs/generated/mixedop_rate_alignment_repair_v1
+  device: cuda
+  completed_cells_immutable: true
+
+authorization:
+  stage_a_smoke_launch: true
+  stage_a_formal_launch: true
+  stage_b_launch: true
+  stage_c_launch: false
+  sealed_test: false
+  publication_claim: false

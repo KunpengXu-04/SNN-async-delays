@@ -1,0 +1,174 @@
+protocol_id: mixedop_k6_centroid_supervised_surface_v1
+status: surface_complete_single_seed_no_time_width_hyperbola
+preregistered_at: 2026-07-17
+study_class: exploratory_single_seed_explicitly_supervised_temporal_routing_surface
+
+question: >
+  Under explicit arrival-centroid supervision, how do simulation duration T
+  and total shared hidden width affect six-query mixed-operation reliability?
+
+claim_boundary:
+  permitted:
+    - single-seed descriptive T-by-hidden reliability and resource surfaces
+    - feasibility of explicitly supervised per-query temporal routing
+  forbidden:
+    - autonomous WAD or task-derived routing discovery
+    - spatial-versus-temporal Pareto superiority
+    - stable, significant, universal, or publication-grade scaling laws
+    - interpreting N_hidden times T as energy
+
+workloads:
+  6: [AND, OR, XOR, XNOR, NAND, NOR]
+  operation_assignment: fixed_by_query_position
+  simultaneous_queries: true
+
+surface:
+  K_values: [6]
+  total_hidden_neurons: [1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 30, 40, 60]
+  output_window_lengths: [4, 5, 6, 8, 10, 14, 20, 26]
+  input_window_steps: 10
+  total_latency_formula: 10_plus_6_times_output_window_length
+  total_latency_steps: [34, 40, 46, 58, 70, 94, 130, 166]
+  condition: shared_temporal_wad
+  grid_points: 112
+  seed: 3907
+
+encoding:
+  mode: binary_one_hot_rate
+  channels_per_query: 4
+  rate_start_step: 6
+  rate_steps: 4
+  packet_support_steps: [6, 9]
+  event_centroid_before_delay_steps: 8.5
+  r_on_hz: 990.0
+  r_off_hz: 10.0
+  selected_value_channel_events: 1
+  one_hot_phase: 1.0
+  jitter_steps: 0
+  validation_realization: fixed_across_checkpoints
+  training_realization: resampled_each_update
+
+model:
+  readout: nonspiking_mlp
+  temporal_decoder: one_shared_mlp_applied_to_each_output_window
+  hidden_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.2
+    reset_au: 0.0
+    refractory_steps: 2
+    surrogate_beta: 4.0
+  temporal_delay:
+    placement: input_to_hidden_only
+    delay_support_formula: [0, 6w_plus_2]
+    wad_parameterization: sigmoid
+    wad_tying: per_query
+    wad_init_mode: constant
+    wad_init_value_steps: null
+    wad_init_raw: -2.0
+    wad_backward: right_linear_historical_comparator
+    centroid_delay_target_formula: 1.5_plus_half_w_plus_qw
+    common_initial_delay_formula: 1.5_plus_half_w
+  hidden_to_output_delay: not_applicable_nonspiking_decoder
+
+supervision:
+  method_label: explicitly_supervised_temporal_routing
+  delay_loss: arrival_centroid_huber
+  delay_credit: centroid_gradient_only
+  weight_and_readout_credit: macro_balanced_task_BCE_only
+  withdrawal: false
+  mechanism_valid_max_centroid_error_steps: 0.5
+
+data:
+  dataset: marginally_balanced_fixed_operation_query
+  train_samples: 2048
+  validation_samples: 2048
+  train_seed_offset: 1000
+  validation_seed_offset: 2000
+  validation_encoding_seed_offset: 4000
+  every_query_has_each_AB_pair_count: 512
+  test_split_opened: false
+
+optimization:
+  optimizer: Adam
+  weight_learning_rate: 0.01
+  readout_learning_rate: 0.01
+  delay_learning_rate: 0.01
+  gradient_clip_norm: 1.0
+  batch_size: 128
+  optimizer_updates: 600
+  validation_interval_updates: 25
+  loss: query_by_class_macro_balanced_BCE
+  checkpoint_selection:
+    eligibility: max_centroid_error_at_most_0.5_step
+    primary: validation_worst_query_balanced_accuracy
+    tie_break_1: validation_exact_trial_accuracy
+    tie_break_2: earlier_update
+
+preflight:
+  seed: 3899
+  total_hidden_neurons: [1, 60]
+  output_window_lengths: [4, 26]
+  cells: 4
+  optimizer_updates: 600
+  invalid_for_claims: true
+  accuracy_and_hidden_activity_are_not_gates: true
+  gradient_gate_reconciliation: >
+    Common initialization equals q0's target. Therefore q0 must have a finite
+    near-zero initial routing gradient; q1 through q5 must each have a nonzero
+    target-directed initial routing gradient. Requiring all six to be nonzero
+    would contradict the frozen initialization and objective.
+
+boundary:
+  primary_metric: worst_query_balanced_accuracy
+  accuracy_threshold: 0.90
+  centroid_error_threshold_steps: 0.5
+  per_window_hidden_activity_fraction_minimum: 0.10
+  lower_censor_label: less_than_or_equal_to_1
+  upper_censor_label: greater_than_60
+  fit_minimum_nontruncated_columns: 4
+  fit_formula: N90_of_T_equals_Ninf_plus_C_over_T_minus_T0
+
+required_cell_artifacts:
+  - config.json
+  - best_model.pt
+  - last_model.pt
+  - update_log.csv
+  - validation_log.csv
+  - validation_results.json
+  - validation_predictions.npz
+  - resource_ledger.json
+  - plots/diagnostic_data.npz
+  - plots/diagnostic_panel.png
+  - run_complete.json
+
+required_aggregate_outputs:
+  - K6_T_vs_nhid_worst_bacc.png
+  - K6_T_vs_nhid_mechanism_valid_90_boundary.png
+  - K6_T_vs_nhid_exact_trial.png
+  - K6_T_vs_nhid_centroid_error.png
+  - K6_N90_vs_T.png
+  - K6_accuracy_vs_NT_proxy.png
+  - K6_factor_SS_decomposition.png
+  - six_per_query_balanced_accuracy_planes
+  - six_output_window_activity_planes
+  - K6_delay_target_correspondence.png
+  - K6_arrival_centroid_correspondence.png
+  - resource_planes
+  - surface_cells.csv
+  - N90_boundary_and_fit.json
+  - factor_diagnostics.json
+  - surface_decision.json
+
+execution:
+  preflight_root: runs/smoke/mixedop_k6_centroid_supervised_surface_v1/preflight
+  formal_root: runs/exploratory/mixedop_k6_centroid_supervised_surface_v1/surface
+  generated_root: docs/generated/mixedop_k6_centroid_supervised_surface_v1
+  device: cuda
+  no_per_cell_chat_updates: true
+  completed_cells_immutable: true
+
+authorization:
+  preflight_launch: true
+  formal_surface_launch: true
+  sealed_test: false
+  publication_claim: false

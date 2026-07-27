@@ -215,20 +215,28 @@ def _gradient_summary(array: np.ndarray | None) -> dict[str, float]:
 
 
 def run_cell(
-    protocol: dict[str, Any], spec: dict[str, Any], *, root: Path, device: str
+    protocol: dict[str, Any],
+    spec: dict[str, Any],
+    *,
+    root: Path,
+    device: str,
+    protocol_id: str = PROTOCOL_ID,
+    directory_builder: Any = cell_directory,
 ) -> dict[str, Any]:
-    directory = cell_directory(root, spec)
+    directory = directory_builder(root, spec)
     metrics_path = directory / "metrics.json"
     if metrics_path.exists():
         return json.loads(metrics_path.read_text(encoding="utf-8"))
     directory.mkdir(parents=True, exist_ok=True)
     cell_config = {
-        "protocol_id": PROTOCOL_ID,
+        "protocol_id": protocol_id,
         **spec,
         "operation": "XOR",
         "K": 1,
         "hidden_neurons": int(protocol["model"]["hidden_neurons"]),
-        "input_events_per_trial": int(protocol["encodings"]["single_event"]["events_per_trial"]),
+        "input_events_per_trial": int(
+            protocol["encodings"][str(spec["encoding"])]["events_per_trial"]
+        ),
         "target_output_step": int(protocol["timing"]["output_target_step"]),
         "checkpoint_selection": "final_only",
         "test_split_opened": False,
@@ -269,7 +277,7 @@ def run_cell(
         "complete": True,
     }
     truth = {
-        "protocol_id": PROTOCOL_ID,
+        "protocol_id": protocol_id,
         "evaluation_split": "exhaustive_truth_table_training_domain",
         "patterns": level1b._truth_records(record),
         "predictions": interface["predictions"],

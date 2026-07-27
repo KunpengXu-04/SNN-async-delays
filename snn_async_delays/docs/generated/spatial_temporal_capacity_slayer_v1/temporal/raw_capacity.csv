@@ -1,0 +1,5 @@
+condition,output_budget_B,capacity_observed,capacity,censoring
+shared_temporal_fixed,24,4,4,none
+shared_temporal_fixed,48,8,,above_tested_K
+shared_temporal_fixed,72,8,,above_tested_K
+shared_temporal_fixed,96,8,,above_tested_K

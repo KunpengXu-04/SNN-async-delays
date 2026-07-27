@@ -1,0 +1,50 @@
+{
+  "protocol_id": "mixedop_spatial_temporal_surface_preview_v1",
+  "reason": "researcher_requested_K5_first_gate_after_K8_had_started",
+  "completed_K8_cells_excluded": 5,
+  "interrupted_K8_cells_excluded": 2,
+  "cells": [
+    {
+      "run_dir": "runs\\exploratory\\mixedop_spatial_temporal_surface_preview_v1\\shared_temporal_wad\\K8\\T42_N160_w4_seed307",
+      "run_complete": false,
+      "interruption_audit": true,
+      "included_in_K5_gate": false
+    },
+    {
+      "run_dir": "runs\\exploratory\\mixedop_spatial_temporal_surface_preview_v1\\shared_temporal_wad\\K8\\T58_N160_w6_seed307",
+      "run_complete": true,
+      "interruption_audit": false,
+      "included_in_K5_gate": false
+    },
+    {
+      "run_dir": "runs\\exploratory\\mixedop_spatial_temporal_surface_preview_v1\\shared_temporal_wad\\K8\\T74_N160_w8_seed307",
+      "run_complete": true,
+      "interruption_audit": false,
+      "included_in_K5_gate": false
+    },
+    {
+      "run_dir": "runs\\exploratory\\mixedop_spatial_temporal_surface_preview_v1\\spatial_independent_d0\\K8\\T42_N40_w4_seed307",
+      "run_complete": true,
+      "interruption_audit": false,
+      "included_in_K5_gate": false
+    },
+    {
+      "run_dir": "runs\\exploratory\\mixedop_spatial_temporal_surface_preview_v1\\spatial_independent_d0\\K8\\T42_N80_w4_seed307",
+      "run_complete": false,
+      "interruption_audit": true,
+      "included_in_K5_gate": false
+    },
+    {
+      "run_dir": "runs\\exploratory\\mixedop_spatial_temporal_surface_preview_v1\\spatial_independent_d0\\K8\\T58_N40_w6_seed307",
+      "run_complete": true,
+      "interruption_audit": false,
+      "included_in_K5_gate": false
+    },
+    {
+      "run_dir": "runs\\exploratory\\mixedop_spatial_temporal_surface_preview_v1\\spatial_independent_d0\\K8\\T74_N40_w8_seed307",
+      "run_complete": true,
+      "interruption_audit": false,
+      "included_in_K5_gate": false
+    }
+  ]
+}

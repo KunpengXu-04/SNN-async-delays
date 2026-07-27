@@ -239,6 +239,52 @@ class ExhaustiveFixedOperationQueryDataset(FixedOperationQueryDataset):
         self.labels = torch.from_numpy(labels)
 
 
+class MarginallyBalancedFixedOperationQueryDataset(FixedOperationQueryDataset):
+    """Deterministic fixed-operation workload with exact per-query marginals.
+
+    The joint ``2 ** (2K)`` truth table becomes unnecessarily large at K=8.
+    This dataset instead guarantees that every query receives each of the four
+    ``(A,B)`` pairs exactly ``n_samples / 4`` times.  Query columns are shuffled
+    independently, so this is a sampled joint workload and must never be called
+    an exhaustive truth table.
+    """
+
+    def __init__(self, n_samples: int, query_ops: List[str], seed: int = 42):
+        if n_samples <= 0 or n_samples % 4:
+            raise ValueError("n_samples must be a positive multiple of four")
+        if not query_ops:
+            raise ValueError("query_ops must not be empty")
+        unknown = [op for op in query_ops if op not in _OPS]
+        if unknown:
+            raise ValueError(f"unknown operations: {unknown}")
+
+        rng = np.random.RandomState(seed)
+        K = len(query_ops)
+        base_pairs = np.tile(
+            np.array([[0, 0], [0, 1], [1, 0], [1, 1]], dtype=np.float32),
+            (n_samples // 4, 1),
+        )
+        A = np.empty((n_samples, K), dtype=np.float32)
+        B = np.empty((n_samples, K), dtype=np.float32)
+        for query in range(K):
+            order = rng.permutation(n_samples)
+            A[:, query] = base_pairs[order, 0]
+            B[:, query] = base_pairs[order, 1]
+
+        labels = np.array([
+            [compute_label(query_ops[q], int(A[s, q]), int(B[s, q])) for q in range(K)]
+            for s in range(n_samples)
+        ], dtype=np.float32)
+        self.query_ops = list(query_ops)
+        self.A = torch.from_numpy(A)
+        self.B = torch.from_numpy(B)
+        self.op_ids = torch.arange(K, dtype=torch.long).unsqueeze(0).expand(n_samples, K).clone()
+        self.labels = torch.from_numpy(labels)
+        self.K = K
+        self.ops_list = list(query_ops)
+        self.sampled_joint_workload = True
+
+
 class BroadcastOpDataset(Dataset):
     """
     Topology: one-query, many-op. Each sample has ONE shared (A, B) pair,

@@ -47,7 +47,7 @@ def static_resource_ledger(model: Any) -> dict[str, int | float | str]:
     delay_depth = int(model.d_max) + 1
 
     spatial_modules = getattr(model, "syn_ih_modules", None)
-    syn_ih = (
+    syn_ih = int(getattr(model, "input_hidden_synapse_count", 0)) or (
         sum(int(layer.n_pre) * int(layer.n_post) for layer in spatial_modules)
         if spatial_modules is not None else n_input * h1
     )
@@ -62,13 +62,22 @@ def static_resource_ledger(model: Any) -> dict[str, int | float | str]:
         delay_buffer_elements += delay_depth * h1
     if model.use_output_spikes:
         delay_buffer_elements += delay_depth * last_hidden
+    delay_buffer_elements = int(getattr(
+        model, "delay_buffer_elements_per_sample_override", delay_buffer_elements
+    ))
 
     spiking_neurons = h1 + h2 + (n_output if model.use_output_spikes else 0)
     neuron_state_elements = 2 * spiking_neurons  # membrane voltage + refractory state
     neuron_updates = T * spiking_neurons
     dense_synapse_macs = T * delayed_synapses
-    delay_buffer_reads = 2 * T * delayed_synapses  # floor + ceil gather
-    delay_interpolation_elementwise_ops = 3 * T * delayed_synapses
+    delay_buffer_reads = int(getattr(
+        model, "delay_buffer_reads_per_trial_override",
+        2 * T * delayed_synapses,  # floor + ceil gather
+    ))
+    delay_interpolation_elementwise_ops = int(getattr(
+        model, "delay_interpolation_ops_per_trial_override",
+        3 * T * delayed_synapses,
+    ))
 
     decoder_module = model.syn_ho if model.use_output_spikes else model.readout
     dense_decoder = None if model.use_output_spikes else model.readout
@@ -97,19 +106,25 @@ def static_resource_ledger(model: Any) -> dict[str, int | float | str]:
     # delayed synapse, including frozen d0 matrices.  This is distinct from
     # trainable degrees of freedom.
     synaptic_weight_storage = delayed_synapses
-    synapse_layers = (
-        list(spatial_modules) if spatial_modules is not None else [model.syn_ih]
+    delay_storage_override = getattr(
+        model, "delay_value_storage_elements_override", None
     )
-    if h2:
-        synapse_layers.append(model.syn_h1h2)
-    if model.use_output_spikes:
-        synapse_layers.append(model.syn_ho)
-    delay_value_storage = sum(
-        (layer.fixed_delay_tensor.numel()
-         if getattr(layer, "fixed_delay_tensor", None) is not None
-         else layer.delay_raw.numel())
-        for layer in synapse_layers
-    )
+    if delay_storage_override is not None:
+        delay_value_storage = int(delay_storage_override)
+    else:
+        synapse_layers = (
+            list(spatial_modules) if spatial_modules is not None else [model.syn_ih]
+        )
+        if h2:
+            synapse_layers.append(model.syn_h1h2)
+        if model.use_output_spikes:
+            synapse_layers.append(model.syn_ho)
+        delay_value_storage = sum(
+            (layer.fixed_delay_tensor.numel()
+             if getattr(layer, "fixed_delay_tensor", None) is not None
+             else layer.delay_raw.numel())
+            for layer in synapse_layers
+        )
     decoder_storage = 2 * syn_ho if model.use_output_spikes else decoder_parameters
     nonspiking_decoder_storage = 0 if model.use_output_spikes else decoder_parameters
     model_scalar_storage = (
@@ -119,6 +134,9 @@ def static_resource_ledger(model: Any) -> dict[str, int | float | str]:
     return {
         "schema_version": SCHEMA_VERSION,
         "topology_type": getattr(model, "topology_type", "shared_dense"),
+        "model_backend": getattr(model, "model_backend", "current"),
+        "delay_granularity": getattr(model, "delay_granularity", "synapse_pair"),
+        "delay_operator": getattr(model, "delay_operator", "interpolated_synaptic"),
         "latency_steps": T,
         "input_channels": n_input,
         "hidden_neurons_layer1": h1,

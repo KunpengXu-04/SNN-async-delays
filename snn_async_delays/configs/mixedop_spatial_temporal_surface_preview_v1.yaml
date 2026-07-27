@@ -1,0 +1,187 @@
+protocol_id: mixedop_spatial_temporal_surface_preview_v1
+status: k5_complete_k8_on_hold_by_researcher
+preregistered_at: 2026-07-16
+study_class: exploratory_single_seed_progress_preview
+purpose: >
+  Produce K=5 and K=8 fixed-mixed-operation accuracy surfaces over total
+  hidden neurons and latency for a supervisor progress discussion. The fixed
+  oracle is a hand-scheduled architectural upper bound; WAD is a diagnostic.
+  This protocol is not confirmatory temporal-multiplexing evidence.
+
+claim_boundary:
+  permitted: >
+    Descriptive accuracy sensitivity to latency and total hidden width for the
+    frozen workload, seed, MLP interface, and LR=0.01 recipe.
+  forbidden:
+    - learned temporal multiplexing is established
+    - WAD superiority is stable or general
+    - oracle routing is autonomously learned
+    - N_hidden_times_T is hardware energy
+    - single-seed differences are significant or universal
+    - sampled K8 validation is an exhaustive truth table
+
+workloads:
+  5: [AND, OR, XOR, XNOR, NAND]
+  8: [AND, OR, XOR, XNOR, NAND, NOR, A_IMP_B, B_IMP_A]
+  operation_assignment: fixed_by_query_position
+  random_operation_per_trial: false
+  operation_identity_input_cue: false
+
+surface:
+  K_values: [5, 8]
+  total_hidden_neurons: [40, 80, 120, 160]
+  output_window_lengths: [4, 6, 8]
+  input_window_steps: 10
+  total_latency_formula: input_window_steps_plus_K_times_output_window_length
+  delay_max_formula: (K_minus_1)_times_output_window_length
+  seed: 307
+  conditions:
+    - spatial_independent_d0
+    - shared_temporal_oracle
+    - shared_temporal_wad
+  formal_cells: 72
+
+encoding:
+  mode: binary_one_hot
+  selected_value_channel_events: 2
+  one_hot_phase: 1.0
+  event_steps_for_input_window_10: [8, 9]
+  events_per_query: 4
+  simultaneous_queries: true
+  jitter_steps: 0
+
+model:
+  readout: nonspiking_mlp
+  spatial_decoder: one_shared_mlp_applied_to_each_independent_module
+  temporal_decoder: one_shared_mlp_applied_to_each_output_window
+  input_channels_per_query: 4
+  hidden_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.2
+    reset_au: 0.0
+    refractory_steps: 2
+    surrogate_beta: 4.0
+  temporal_delay:
+    placement: input_to_hidden_only
+    oracle_schedule_formula: query_index_times_output_window_length
+    wad_parameterization: sigmoid
+    wad_tying: per_synapse
+    wad_init_mode: constant
+    wad_init_raw: -2.0
+    wad_backward: right_linear_historical_comparator
+  hidden_to_output_delay: not_applicable_nonspiking_decoder
+
+data:
+  dataset: marginally_balanced_fixed_operation_query
+  train_samples: 2048
+  validation_samples: 2048
+  train_seed_offset: 1000
+  validation_seed_offset: 2000
+  every_query_has_each_AB_pair_count: 512
+  validation_class: sampled_joint_workload
+  test_split_opened: false
+
+optimization:
+  optimizer: Adam
+  weight_learning_rate: 0.01
+  readout_learning_rate: 0.01
+  delay_learning_rate: 0.01
+  gradient_clip_norm: 1.0
+  batch_size: 128
+  optimizer_updates: 200
+  validation_interval_updates: 20
+  loss: query_by_class_macro_balanced_BCE
+  checkpoint_selection:
+    primary: validation_worst_query_balanced_accuracy
+    tie_break_1: validation_exact_trial_accuracy
+    tie_break_2: earlier_update
+
+smoke:
+  status: passed_6_of_6_2026_07_16
+  invalid_for_claims: true
+  K_values: [5, 8]
+  total_hidden_neurons: 80
+  output_window_length: 6
+  conditions: [spatial_independent_d0, shared_temporal_oracle, shared_temporal_wad]
+  optimizer_updates: 40
+  cells: 6
+  gates:
+    finite_loss_parameters_delays_and_gradients: true
+    nonzero_hidden_activity: true
+    oracle_schedule_exact: true
+    wad_delay_gradient_nonzero: true
+    delay_values_within_legal_support: true
+    final_20_updates_not_continuously_clipped: true
+    required_artifacts_complete: true
+  failure_action: stop_without_formal_launch_and_do_not_change_LR
+
+factor_decision:
+  primary_metric: worst_query_balanced_accuracy
+  hidden_more_valuable_only_if:
+    hidden_marginal_range_at_least_twice_latency_range: true
+    hidden_grid_SS_fraction_minimum: 0.80
+  otherwise: interaction_or_insufficient_evidence
+  single_seed_language_only: true
+
+required_metrics:
+  - worst_query_balanced_accuracy
+  - per_query_balanced_accuracy
+  - balanced_accuracy
+  - exact_trial_accuracy
+  - pooled_accuracy
+  - routing_selectivity_gap
+  - per_output_window_hidden_activity
+  - resource_vector
+
+required_cell_artifacts:
+  - config.json
+  - best_model.pt
+  - last_model.pt
+  - update_log.csv
+  - validation_log.csv
+  - validation_results.json
+  - validation_predictions.npz
+  - resource_ledger.json
+  - plots/diagnostic_data.npz
+  - plots/diagnostic_panel.png
+  - run_complete.json
+
+required_aggregate_figures:
+  - K5_T_total_hidden_plane.png
+  - K8_T_total_hidden_plane.png
+  - factor_value_summary.png
+  - K5_exact_trial_plane.png
+  - K8_exact_trial_plane.png
+  - accuracy_cost_pareto.png
+  - per_query_accuracy_heatmap.png
+  - routing_heatmaps.png
+  - hidden_window_activity.png
+  - resource_scaling.png
+
+execution:
+  smoke_root: runs/smoke/mixedop_spatial_temporal_surface_preview_v1
+  formal_root: runs/exploratory/mixedop_spatial_temporal_surface_preview_v1
+  generated_root: docs/generated/mixedop_spatial_temporal_surface_preview_v1
+  no_per_cell_chat_updates: true
+  completed_cells_immutable: true
+  interrupted_cells_require_audit: true
+  device: cuda
+
+authorization:
+  smoke_launch: true
+  formal_launch: false
+  K5_analysis: true
+  K8_launch: false
+  sealed_test: false
+  publication_claim: false
+  K_greater_than_8: false
+
+execution_amendment_2026_07_16:
+  timing: after_K5_completed_and_after_K8_had_started
+  requested_by: researcher
+  change: analyze_all_36_K5_cells_before_deciding_whether_to_continue_K8
+  K5_cells_complete: 36
+  K8_cells_completed_before_stop: 5
+  K8_cells_interrupted: 2
+  K8_current_analysis_status: excluded_from_K5_gate
+  restart_rule: future_K8_requires_explicit_authorization_and_versioned_sibling_for_interrupted_cells

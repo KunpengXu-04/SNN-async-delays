@@ -1,0 +1,69 @@
+{
+  "protocol_id": "mixedop_k6_centroid_supervised_surface_v1",
+  "stage": "preflight",
+  "invalid_for_claims": true,
+  "cells_expected": 4,
+  "cells_audited": 4,
+  "rows": [
+    {
+      "N_hidden": 1,
+      "w": 4,
+      "T": 34,
+      "artifacts_complete": true,
+      "finite": true,
+      "delays_legal": true,
+      "q0_gradient_finite_not_required_nonzero": true,
+      "q1_q5_initial_gradients_nonzero_target_directed": true,
+      "final_max_centroid_error_steps": 0.01837158203125,
+      "accuracy_used_as_gate": false,
+      "hidden_activity_used_as_gate": false,
+      "passed": true
+    },
+    {
+      "N_hidden": 1,
+      "w": 26,
+      "T": 166,
+      "artifacts_complete": true,
+      "finite": true,
+      "delays_legal": true,
+      "q0_gradient_finite_not_required_nonzero": true,
+      "q1_q5_initial_gradients_nonzero_target_directed": true,
+      "final_max_centroid_error_steps": 0.3472442626953125,
+      "accuracy_used_as_gate": false,
+      "hidden_activity_used_as_gate": false,
+      "passed": true
+    },
+    {
+      "N_hidden": 60,
+      "w": 4,
+      "T": 34,
+      "artifacts_complete": true,
+      "finite": true,
+      "delays_legal": true,
+      "q0_gradient_finite_not_required_nonzero": true,
+      "q1_q5_initial_gradients_nonzero_target_directed": true,
+      "final_max_centroid_error_steps": 0.018373489379882812,
+      "accuracy_used_as_gate": false,
+      "hidden_activity_used_as_gate": false,
+      "passed": true
+    },
+    {
+      "N_hidden": 60,
+      "w": 26,
+      "T": 166,
+      "artifacts_complete": true,
+      "finite": true,
+      "delays_legal": true,
+      "q0_gradient_finite_not_required_nonzero": true,
+      "q1_q5_initial_gradients_nonzero_target_directed": true,
+      "final_max_centroid_error_steps": 0.3212127685546875,
+      "accuracy_used_as_gate": false,
+      "hidden_activity_used_as_gate": false,
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "formal_surface_authorized_by_results": true,
+  "formal_surface_launch_still_requires_yaml_unlock": false,
+  "gradient_gate_reconciliation": "Common initialization equals q0's target. Therefore q0 must have a finite near-zero initial routing gradient; q1 through q5 must each have a nonzero target-directed initial routing gradient. Requiring all six to be nonzero would contradict the frozen initialization and objective.\n"
+}

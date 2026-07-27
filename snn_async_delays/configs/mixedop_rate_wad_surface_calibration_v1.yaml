@@ -1,0 +1,182 @@
+protocol_id: mixedop_rate_wad_surface_calibration_v1
+status: pilot_failed_full_surface_locked
+preregistered_at: 2026-07-17
+parent_result: mixedop_spatial_temporal_surface_preview_v1_K5
+study_class: exploratory_rate_encoding_rescue_calibration
+purpose: >
+  Test whether a controlled 4K-channel Poisson one-hot rate code improves
+  gradient health, late-window coverage, and worst-query reliability of the
+  shared temporal WAD model before authorizing an expanded surface.
+
+claim_boundary:
+  permitted: >
+    Descriptive rate-versus-burst rescue evidence on the paired fixed K5
+    workload, together with gradient, routing, and resource diagnostics.
+  forbidden:
+    - rate coding proves temporal multiplexing
+    - more events are free or energy-neutral
+    - a pilot-selected result is confirmatory
+    - pooled accuracy is sufficient
+    - a successful rate result isolates encoding shape from event count
+
+workloads:
+  5: [AND, OR, XOR, XNOR, NAND]
+  operation_assignment: fixed_by_query_position
+  random_operation_per_trial: false
+  operation_identity_input_cue: false
+
+surface:
+  K_values: [5]
+  total_hidden_neurons: [20, 40, 80, 120, 160, 240]
+  output_window_lengths: [2, 4, 6, 8, 12]
+  input_window_steps: 10
+  total_latency_formula: input_window_steps_plus_K_times_output_window_length
+  delay_max_formula: (K_minus_1)_times_output_window_length
+  seed: 307
+  conditions: [shared_temporal_wad]
+  full_cells: 30
+
+pilot:
+  invalid_for_publication_claims: true
+  point_semantics: four_expanded_surface_corners_plus_center
+  points:
+    - {label: lowN_lowT, total_hidden: 20, output_window_len: 2}
+    - {label: lowN_highT, total_hidden: 20, output_window_len: 12}
+    - {label: highN_lowT, total_hidden: 240, output_window_len: 2}
+    - {label: highN_highT, total_hidden: 240, output_window_len: 12}
+    - {label: center, total_hidden: 120, output_window_len: 6}
+  conditions: [shared_temporal_oracle, shared_temporal_wad]
+  cells: 10
+  optimizer_updates: 200
+
+encoding:
+  mode: binary_one_hot_rate
+  channels_per_query: 4
+  r_on_hz: 400.0
+  r_off_hz: 10.0
+  input_window_steps: 10
+  expected_events_per_query: 8.2
+  burst_parent_events_per_query: 4.0
+  event_count_matched_to_parent: false
+  selected_value_channels: 2
+  unselected_value_channels: 2
+  validation_realization: fixed_across_checkpoints
+  training_realization: resampled_each_optimizer_update
+  selected_value_channel_events: 2
+  one_hot_phase: 1.0
+  jitter_steps: 0
+
+model:
+  readout: nonspiking_mlp
+  spatial_decoder: not_used
+  temporal_decoder: one_shared_mlp_applied_to_each_output_window
+  input_channels_per_query: 4
+  hidden_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.2
+    reset_au: 0.0
+    refractory_steps: 2
+    surrogate_beta: 4.0
+  temporal_delay:
+    placement: input_to_hidden_only
+    oracle_schedule_formula: query_index_times_output_window_length
+    wad_parameterization: sigmoid
+    wad_tying: per_synapse
+    wad_init_mode: constant
+    wad_init_raw: -2.0
+    wad_backward: right_linear_historical_comparator
+  hidden_to_output_delay: not_applicable_nonspiking_decoder
+
+data:
+  dataset: marginally_balanced_fixed_operation_query
+  train_samples: 2048
+  validation_samples: 2048
+  train_seed_offset: 1000
+  validation_seed_offset: 2000
+  validation_encoding_seed_offset: 4000
+  every_query_has_each_AB_pair_count: 512
+  validation_class: sampled_joint_workload_with_fixed_rate_realization
+  test_split_opened: false
+
+optimization:
+  optimizer: Adam
+  weight_learning_rate: 0.01
+  readout_learning_rate: 0.01
+  delay_learning_rate: 0.01
+  gradient_clip_norm: 1.0
+  batch_size: 128
+  optimizer_updates: 200
+  validation_interval_updates: 20
+  loss: query_by_class_macro_balanced_BCE
+  checkpoint_selection:
+    primary: validation_worst_query_balanced_accuracy
+    tie_break_1: validation_exact_trial_accuracy
+    tie_break_2: earlier_update
+
+smoke:
+  status: authorized
+  invalid_for_claims: true
+  K_values: [5]
+  total_hidden_neurons: 120
+  output_window_length: 6
+  conditions: [shared_temporal_oracle, shared_temporal_wad]
+  optimizer_updates: 40
+  cells: 2
+  gates:
+    finite: true
+    nonzero_hidden_activity: true
+    oracle_schedule_exact: true
+    wad_total_and_per_query_delay_gradients_nonzero: true
+    delay_values_legal: true
+    final_20_not_continuously_clipped: true
+    fixed_validation_realization_reproducible: true
+    required_artifacts_complete: true
+
+pilot_decision:
+  technical_gate:
+    all_cells_complete_and_finite: true
+    all_wad_query_gradient_nonzero_fraction_minimum: 0.90
+    median_total_wad_delay_gradient_minimum: 1.0e-8
+  feasibility_gate:
+    oracle_worst_query_balanced_minimum_all_points: 0.85
+  performance_sweep_gate:
+    center_wad_worst_query_balanced_minimum: 0.60
+    wad_points_above_0_55_minimum: 3
+  routing_mechanism_gate:
+    center_minimum_activity_fraction_in_windows_2_to_4: 0.10
+    center_query_mean_delay_spearman_minimum: 0.50
+    center_query_mean_delay_spread_in_windows_minimum: 1.0
+  full_sweep_authorized_only_if:
+    - technical_gate_pass
+    - feasibility_gate_pass
+    - performance_sweep_gate_pass
+  routing_claim_requires_separate_mechanism_gate: true
+
+required_cell_artifacts:
+  - config.json
+  - best_model.pt
+  - last_model.pt
+  - update_log.csv
+  - validation_log.csv
+  - validation_results.json
+  - validation_predictions.npz
+  - resource_ledger.json
+  - plots/diagnostic_data.npz
+  - plots/diagnostic_panel.png
+  - run_complete.json
+
+execution:
+  smoke_root: runs/smoke/mixedop_rate_wad_surface_calibration_v1
+  formal_root: runs/exploratory/mixedop_rate_wad_surface_calibration_v1/pilot
+  full_root: runs/exploratory/mixedop_rate_wad_surface_calibration_v1/full_surface
+  generated_root: docs/generated/mixedop_rate_wad_surface_calibration_v1
+  device: cuda
+  completed_cells_immutable: true
+  interrupted_cells_require_audit: true
+
+authorization:
+  smoke_launch: true
+  pilot_launch: true
+  full_sweep_launch: false
+  sealed_test: false
+  publication_claim: false

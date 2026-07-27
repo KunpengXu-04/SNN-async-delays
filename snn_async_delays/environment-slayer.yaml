@@ -1,0 +1,17 @@
+name: snn_slayer
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pytorch=2.3.1
+  - torchvision=0.18.1
+  - pytorch-cuda=12.1
+  - pip:
+      - lava-dl==0.6.0
+      - PyYAML==6.0.2
+
+# Keep this environment isolated from snn_async. The exact run lock is emitted
+# by the S0 script; this file records only the deliberate top-level pin.

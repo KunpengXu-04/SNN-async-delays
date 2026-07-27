@@ -41,12 +41,39 @@ def diagnostic_artifacts_complete(run_dir: Path, metrics: dict[str, Any]) -> boo
     )
 
 
+def versioned_task_artifacts_complete(run_dir: Path) -> bool:
+    """Recognize current task cells with validation-only result bundles."""
+    completion = load_json(run_dir / "run_complete.json")
+    common = (
+        "config.json", "last_model.pt", "update_log.csv", "validation_log.csv",
+        "resource_ledger.json",
+        "plots/diagnostic_data.npz", "plots/diagnostic_panel.png",
+    )
+    standard = (
+        "validation_results.json", "best_model.pt", "validation_predictions.npz",
+    )
+    final_checkpoint = (
+        "final_validation_results.json", "descriptive_best_model.pt",
+        "final_validation_predictions.npz", "source_checkpoint_provenance.json",
+        "initial_and_perturbed_delay_vectors.json",
+    )
+    return bool(
+        completion.get("completed") is True
+        and all((run_dir / relative).exists() for relative in common)
+        and (
+            all((run_dir / relative).exists() for relative in standard)
+            or all((run_dir / relative).exists() for relative in final_checkpoint)
+        )
+    )
+
+
 def infer_status(
     relative_path: str,
     *,
     has_eval: bool,
     has_metrics: bool,
     diagnostic_complete: bool,
+    task_complete: bool = False,
 ) -> tuple[str, str]:
     """Return a conservative status and an auditable reason."""
     name = relative_path.lower()
@@ -54,12 +81,14 @@ def infer_status(
         return "archived", "legacy/pre-clean archive"
     if any(token in name for token in ("smoke", "tmp", "test_", "debug")):
         return "invalid", "smoke, test, temporary, or debug artifact"
+    if has_eval and task_complete:
+        return "exploratory", "complete versioned validation task cell"
     if not has_eval and diagnostic_complete:
         return "exploratory", "complete diagnostic unit cell; no task evaluation"
     if not has_eval and has_metrics:
         return "incomplete", "diagnostic metrics exist but required unit-cell artifacts are incomplete"
     if not has_eval:
-        return "incomplete", "missing eval_results.json and complete diagnostic metrics"
+        return "incomplete", "missing task evaluation and complete diagnostic metrics"
     if any(token in name for token in ("5epoch", "5ep", "short")):
         return "exploratory", "short-run artifact; not eligible for claim"
     return "exploratory", "historical run; not promoted by protocol v0.1"
@@ -86,18 +115,27 @@ def infer_trial_steps(cfg: dict[str, Any], ev: dict[str, Any]) -> int | None:
 
 def record(run_dir: Path) -> dict[str, Any]:
     cfg_path = run_dir / "config.json"
-    ev_path = run_dir / "eval_results.json"
+    legacy_eval_path = run_dir / "eval_results.json"
+    validation_eval_path = run_dir / "validation_results.json"
+    final_eval_path = run_dir / "final_validation_results.json"
+    ev_path = (
+        legacy_eval_path if legacy_eval_path.exists()
+        else validation_eval_path if validation_eval_path.exists()
+        else final_eval_path
+    )
     metrics_path = run_dir / "metrics.json"
     cfg = load_json(cfg_path)
     ev = load_json(ev_path)
     metrics = load_json(metrics_path)
     rel = run_dir.relative_to(RUNS).as_posix()
     diagnostic_complete = diagnostic_artifacts_complete(run_dir, metrics)
+    task_complete = versioned_task_artifacts_complete(run_dir)
     status, reason = infer_status(
         rel,
         has_eval=ev_path.exists(),
         has_metrics=metrics_path.exists(),
         diagnostic_complete=diagnostic_complete,
+        task_complete=task_complete,
     )
 
     K = ev.get("K", cfg.get("K", cfg.get("n_queries")))
@@ -115,6 +153,7 @@ def record(run_dir: Path) -> dict[str, Any]:
         "has_eval": ev_path.exists(),
         "has_metrics": metrics_path.exists(),
         "diagnostic_artifacts_complete": diagnostic_complete,
+        "versioned_task_artifacts_complete": task_complete,
         "has_checkpoint": any(run_dir.glob("*.pt")),
         "encoding_mode": cfg.get("encoding_mode", ev.get("encoding_mode")),
         "condition": ev.get("condition", cfg.get("condition")),
@@ -132,6 +171,13 @@ def record(run_dir: Path) -> dict[str, Any]:
         "seed": cfg.get("seed", ev.get("seed")),
         "config_path": cfg_path.relative_to(BASE).as_posix() if cfg_path.exists() else "",
         "eval_path": ev_path.relative_to(BASE).as_posix() if ev_path.exists() else "",
+        "eval_type": (
+            "legacy_eval" if legacy_eval_path.exists()
+            else (
+                "validation_only" if validation_eval_path.exists()
+                else ("final_checkpoint" if final_eval_path.exists() else "")
+            )
+        ),
         "metrics_path": metrics_path.relative_to(BASE).as_posix() if metrics_path.exists() else "",
     }
 
@@ -141,6 +187,8 @@ def main() -> None:
         raise SystemExit(f"Runs directory missing: {RUNS}")
     run_dirs = {p.parent for p in RUNS.rglob("config.json")}
     run_dirs.update(p.parent for p in RUNS.rglob("eval_results.json"))
+    run_dirs.update(p.parent for p in RUNS.rglob("validation_results.json"))
+    run_dirs.update(p.parent for p in RUNS.rglob("final_validation_results.json"))
     rows = sorted((record(path) for path in run_dirs), key=lambda row: row["run_path"])
 
     OUT.mkdir(parents=True, exist_ok=True)
@@ -155,8 +203,8 @@ def main() -> None:
     for row in rows:
         counts[row["status"]] = counts.get(row["status"], 0) + 1
     summary = {
-        "schema_version": "0.2",
-        "registry_policy": "Historical task runs and complete diagnostic unit cells are exploratory unless explicitly promoted.",
+        "schema_version": "0.3",
+        "registry_policy": "Historical task runs, complete versioned validation cells, and complete diagnostic unit cells are exploratory unless explicitly promoted.",
         "n_runs": len(rows),
         "status_counts": counts,
         "registry": csv_path.relative_to(BASE).as_posix(),

@@ -1,0 +1,16 @@
+{
+  "analysis_status": "posthoc_diagnostic_does_not_override_preregistered_gate",
+  "event_centroid_before_delay_steps": 8.5,
+  "centroid_delay_target_formula": "1.5 + w/2 + q*w",
+  "oracle_delay_formula": "3 + q*w",
+  "deterministic_target_separation_formula": "w/2 - 1.5",
+  "curriculum_points": [
+    {"point": "lowN_lowT", "w": 4, "registered_pass": true, "oracle_max_error": 0.3624653816, "all_packet_centroids_in_declared_windows": true},
+    {"point": "lowN_highT", "w": 12, "registered_pass": false, "oracle_max_error": 4.1049938202, "all_packet_centroids_in_declared_windows": true},
+    {"point": "highN_lowT", "w": 4, "registered_pass": true, "oracle_max_error": 0.3991889954, "all_packet_centroids_in_declared_windows": true},
+    {"point": "highN_highT", "w": 12, "registered_pass": false, "oracle_max_error": 4.1951136589, "all_packet_centroids_in_declared_windows": false},
+    {"point": "geometric_center", "w": 8, "registered_pass": false, "oracle_max_error": 2.4533672333, "all_packet_centroids_in_declared_windows": true}
+  ],
+  "registered_full_sweep_authorized": false,
+  "sealed_test_opened": false
+}

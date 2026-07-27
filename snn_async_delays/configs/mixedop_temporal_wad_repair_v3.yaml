@@ -1,0 +1,151 @@
+protocol_id: mixedop_temporal_wad_repair_v3
+status: formal_complete_centroid_arm_passed
+preregistered_at: 2026-07-17
+parent_result: mixedop_temporal_wad_repair_v2_formal
+study_class: exploratory_supervised_temporal_objective_repair
+
+question: >
+  Does replacing the schedule-inconsistent arrival-mass CE with an
+  output-window-centroid Huber objective recover a functional and schedule-valid
+  five-query temporal interface on new seeds?
+
+claim_boundary:
+  permitted:
+    - supervised query-tied delay recovery
+    - objective-alignment diagnosis
+  forbidden:
+    - autonomous temporal routing
+    - per-synapse WAD, Pareto, energy, or publication claims
+
+workloads:
+  5: [AND, OR, XOR, XNOR, NAND]
+  operation_assignment: fixed_by_query_position
+
+surface:
+  K_values: [5]
+  total_hidden_neurons: [120]
+  output_window_lengths: [4]
+  input_window_steps: 10
+  conditions: [shared_temporal_wad]
+
+encoding:
+  mode: binary_one_hot_rate
+  channels_per_query: 4
+  rate_start_step: 6
+  rate_steps: 4
+  r_on_hz: 990.0
+  r_off_hz: 10.0
+  expected_events_per_query: 8.0
+  selected_value_channel_events: 1
+  one_hot_phase: 1.0
+  jitter_steps: 0
+
+model:
+  readout: nonspiking_mlp
+  temporal_decoder: one_shared_mlp_applied_to_each_output_window
+  hidden_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.2
+    reset_au: 0.0
+    refractory_steps: 2
+    surrogate_beta: 4.0
+  temporal_delay:
+    placement: input_to_hidden_only
+    oracle_base_delay_steps: 3
+    oracle_schedule_steps: [3, 7, 11, 15, 19]
+    delay_support_margin_steps: 4
+    delay_support_steps: [0, 23]
+    wad_parameterization: sigmoid
+    wad_tying: per_query
+    wad_init_mode: constant
+    wad_init_value_steps: 3.0
+    wad_init_raw: -1.8718021769
+    wad_backward: right_linear_historical_comparator
+
+data:
+  dataset: marginally_balanced_fixed_operation_query
+  train_samples: 2048
+  validation_samples: 2048
+  train_seed_offset: 1000
+  validation_seed_offset: 2000
+  validation_encoding_seed_offset: 4000
+  test_split_opened: false
+
+optimization:
+  optimizer: Adam
+  weight_learning_rate: 0.01
+  readout_learning_rate: 0.01
+  delay_learning_rate: 0.01
+  gradient_clip_norm: 1.0
+  batch_size: 128
+  optimizer_updates: 400
+  validation_interval_updates: 20
+  loss: query_by_class_macro_balanced_BCE
+  checkpoint_selection:
+    accuracy_checkpoint: worst_query_then_exact_then_earlier
+    schedule_checkpoint: minimum_max_query_delay_error_then_worst_then_exact
+  delay_credit_mode: routing_only_for_delays
+  routing_loss_weight: 1.0
+  centroid_huber_beta_in_window_units: 0.25
+
+gradient_preflight:
+  status: authorized
+  seeds: [3507, 3513, 3533]
+  gate: all_five_raw_delay_gradients_point_toward_window_centers_in_all_seeds
+
+smoke:
+  status: authorized_after_passing_gradient_preflight
+  seed: 3549
+  optimizer_updates: 40
+  arms: [oracle, arrival_mass_ce, arrival_centroid_huber]
+  cells: 3
+  invalid_for_claims: true
+
+formal_recovery:
+  status: complete
+  seeds: [3557, 3569, 3591]
+  optimizer_updates: 400
+  arms: [oracle, arrival_mass_ce, arrival_centroid_huber]
+  cells: 9
+  gate:
+    oracle_worst_bacc_each_seed_minimum: 0.90
+    oracle_exact_each_seed_minimum: 0.80
+    learned_worst_bacc_each_seed_minimum: 0.85
+    learned_exact_each_seed_minimum: 0.70
+    each_window_activity_fraction_minimum: 0.10
+    maximum_query_delay_error_steps: 1.0
+    either_accuracy_or_schedule_checkpoint_may_jointly_pass: true
+
+withdrawal:
+  status: prerequisite_passed_new_protocol_required
+  prerequisite: centroid_arm_passes_function_and_schedule_in_all_three_seeds
+
+required_cell_artifacts:
+  - config.json
+  - best_model.pt
+  - best_schedule_model.pt
+  - last_model.pt
+  - update_log.csv
+  - validation_log.csv
+  - validation_results.json
+  - validation_predictions.npz
+  - schedule_validation_results.json
+  - schedule_validation_predictions.npz
+  - resource_ledger.json
+  - plots/diagnostic_data.npz
+  - plots/diagnostic_panel.png
+  - run_complete.json
+
+execution:
+  smoke_root: runs/smoke/mixedop_temporal_wad_repair_v3
+  formal_root: runs/exploratory/mixedop_temporal_wad_repair_v3/formal_recovery
+  generated_root: docs/generated/mixedop_temporal_wad_repair_v3
+  device: cuda
+
+authorization:
+  gradient_preflight: true
+  smoke_launch: true
+  formal_launch: true
+  withdrawal_launch: false
+  sealed_test: false
+  publication_claim: false

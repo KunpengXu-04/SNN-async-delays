@@ -129,11 +129,24 @@ current learned-delay method does not discover that schedule.*
 
 ## Generated evidence
 
+### Added pooled-accuracy view
+
+The original Fig C uses worst-query balanced accuracy and correctly exposes
+that both shared-temporal d0 and WAD leave at least one query near chance.  Two
+derived pooled-accuracy figures are now provided without replacing that
+primary diagnostic.  In the focused WAD-versus-d0 plane, WAD is slightly
+higher at some low-width cells (for example `h=4`: `.62` versus `.59`) but is
+lower at several `h=16` and `h=24` cells.  There is no consistent WAD pooled-
+accuracy advantage across the `(h,T)` surface, and pooled accuracy must not be
+used to hide the failed worst-query endpoint.
+
 - `docs/generated/spatial_vs_temporal_pareto_mlp_scaffold_v2/exploratory/cells.csv`
 - `surface_summary.csv`, `factor_effect_summary.csv`
 - `robust_feasible_points_90.csv`, `matched_90_resource_comparison.csv`
 - `temporal_mechanism_cells.csv`, `temporal_mechanism_summary.csv`
 - `figC_nhid_T_plane.png`, `figC_nhid_T_plane_worst_seed.png`
+- `figC_nhid_T_plane_pooled_accuracy.png`
+- `figC_shared_temporal_wad_vs_d0_pooled_accuracy.png`
 - `figC_exact_trial_T_plane.png`, `pareto_resource_frontiers.png`
 - `fig_matched_90_resource_comparison.png`
 - `fig_temporal_mechanism_summary.png`

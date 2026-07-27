@@ -191,6 +191,12 @@ def build_model(protocol: dict[str, Any], spec: dict[str, Any]) -> SNNSimultaneo
         delay_tying=str(spec["delay_tying"]) if learned else None,
         delay_init_mode="constant",
         delay_init_raw=float(spec["initial_raw"] if learned else -2.0),
+        delay_gradient_mode=str(
+            spec.get("delay_gradient_mode", model_cfg.get("delay_gradient_mode", "right_linear"))
+        ),
+        delay_gradient_sigma=float(
+            spec.get("delay_gradient_sigma", model_cfg.get("delay_gradient_sigma", 0.75))
+        ),
         lif_tau_m=float(hidden_cfg["tau_m_steps"]),
         lif_threshold=float(hidden_cfg["threshold_au"]),
         lif_reset=float(hidden_cfg["reset_au"]),
@@ -214,8 +220,8 @@ def build_optimizer(
 ) -> torch.optim.Optimizer:
     spec = spec or {}
     groups: list[dict[str, Any]] = []
-    weights = model.weight_params()
-    delays = model.delay_params()
+    weights = [parameter for parameter in model.weight_params() if parameter.requires_grad]
+    delays = [parameter for parameter in model.delay_params() if parameter.requires_grad]
     if weights:
         groups.append({"params": weights, "lr": float(spec.get("weight_learning_rate", protocol["optimization"]["weight_learning_rate"]))})
     if delays:
@@ -337,11 +343,41 @@ def _weight_grad_norm(parameter: torch.Tensor) -> float:
 
 
 def train_cell(
-    protocol: dict[str, Any], spec: dict[str, Any], *, device: str
+    protocol: dict[str, Any],
+    spec: dict[str, Any],
+    *,
+    device: str,
+    initial_state_dict: dict[str, torch.Tensor] | None = None,
+    functional_delay_override: float | None = None,
+    trainable_components: set[str] | None = None,
+    task_loss_weight: float = 1.0,
 ) -> tuple[SNNSimultaneousModel, dict[str, Any]]:
     set_seed(int(spec["seed"]))
     model = build_model(protocol, spec).to(device)
-    optimizer = build_optimizer(model, protocol, spec)
+    if initial_state_dict is not None:
+        model.load_state_dict(initial_state_dict)
+    if functional_delay_override is not None:
+        if not bool(spec["learned_delay"]):
+            raise ValueError("functional delay override requires a learned-delay model")
+        d_max_value = float(model.syn_ih.d_max)
+        value = float(functional_delay_override)
+        if not 0.0 < value < d_max_value:
+            raise ValueError("functional delay override must lie strictly inside (0,d_max)")
+        raw_value = np.log(value / (d_max_value - value))
+        with torch.no_grad():
+            model.syn_ih.delay_raw.fill_(float(raw_value))
+    if trainable_components is not None:
+        allowed = {"input_hidden_weights", "hidden_output_weights", "input_hidden_delays"}
+        unknown = set(trainable_components) - allowed
+        if unknown:
+            raise ValueError(f"unknown trainable components: {sorted(unknown)}")
+        for parameter in model.parameters():
+            parameter.requires_grad_(False)
+        model.syn_ih.weight.requires_grad_("input_hidden_weights" in trainable_components)
+        model.syn_ho.weight.requires_grad_("hidden_output_weights" in trainable_components)
+        model.syn_ih.delay_raw.requires_grad_("input_hidden_delays" in trainable_components)
+    trainable_parameters = [parameter for parameter in model.parameters() if parameter.requires_grad]
+    optimizer = build_optimizer(model, protocol, spec) if trainable_parameters else None
     A, B, _, labels = exact_truth_batch(device)
     spike_input = encode_exact_truth(protocol, A, B, encoding=str(spec["encoding"]), device=device)
     target_spikes = opponent_target_spike_train(
@@ -353,7 +389,11 @@ def train_cell(
         target_offset_steps=target_output_step(protocol) - int(protocol["timing"]["input_window_steps"]),
     )
     learned = bool(spec["learned_delay"])
-    delay_parameter = model.syn_ih.delay_raw if learned else None
+    delay_parameter = (
+        model.syn_ih.delay_raw
+        if learned and model.syn_ih.delay_raw.requires_grad
+        else None
+    )
     tying = str(spec["delay_tying"]) if learned else "global"
     base_traces = per_coordinate_base_traces(
         spike_input, tying=tying, hidden_neurons=int(protocol["model"]["hidden_neurons"])
@@ -382,7 +422,8 @@ def train_cell(
 
     model.train()
     for step in range(updates + 1):
-        optimizer.zero_grad(set_to_none=True)
+        if optimizer is not None:
+            optimizer.zero_grad(set_to_none=True)
         _, info = model(spike_input, return_output_spike_train=True)
         task_loss = filtered_opponent_spike_train_loss(
             info["output_spike_train"], target_spikes, labels,
@@ -392,10 +433,11 @@ def train_cell(
         arrival_loss, centroids, centroid_targets, arrivals, target_arrivals = per_parameter_arrival_loss(
             base_traces, delays, target_delay_steps=target_delay, d_max=d_max
         )
-        total_loss = task_loss + lam * arrival_loss
+        total_loss = float(task_loss_weight) * task_loss + lam * arrival_loss
         task_gradient = _parameter_gradient(task_loss, delay_parameter, retain_graph=True)
         arrival_gradient = _parameter_gradient(arrival_loss, delay_parameter, retain_graph=True)
-        total_loss.backward()
+        if optimizer is not None:
+            total_loss.backward()
         total_gradient = None if delay_parameter is None else delay_parameter.grad.detach().reshape(-1).clone()
         gradient_norms = [
             parameter.grad.detach().norm()
@@ -454,6 +496,8 @@ def train_cell(
                 "total": None if total_gradient is None else total_gradient.cpu().numpy(),
             }
         if step < updates:
+            if optimizer is None:
+                raise ValueError("positive update count requires at least one trainable parameter")
             torch.nn.utils.clip_grad_norm_(
                 [parameter for parameter in model.parameters() if parameter.requires_grad],
                 max_norm=clip_limit,

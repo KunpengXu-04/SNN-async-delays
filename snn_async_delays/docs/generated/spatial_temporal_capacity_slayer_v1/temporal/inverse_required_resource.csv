@@ -1,0 +1,7 @@
+condition,K,minimum_passing_output_budget_B,right_censored
+shared_temporal_fixed,1,24,False
+shared_temporal_fixed,2,24,False
+shared_temporal_fixed,3,24,False
+shared_temporal_fixed,4,24,False
+shared_temporal_fixed,6,48,False
+shared_temporal_fixed,8,48,False

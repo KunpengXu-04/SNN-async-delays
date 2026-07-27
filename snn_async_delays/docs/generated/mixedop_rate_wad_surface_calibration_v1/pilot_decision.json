@@ -1,0 +1,66 @@
+{
+  "protocol_id": "mixedop_rate_wad_surface_calibration_v1",
+  "stage": "pilot",
+  "cells": 10,
+  "technical_gate_pass": true,
+  "oracle_feasibility_gate_pass": false,
+  "performance_sweep_gate_pass": false,
+  "routing_mechanism_gate_pass": false,
+  "full_sweep_authorized_by_results": false,
+  "routing_claim_authorized": false,
+  "center_wad": {
+    "point_label": "center",
+    "condition": "shared_temporal_wad",
+    "N": 120,
+    "w": 6,
+    "T": 40,
+    "worst_query_balanced_accuracy": 0.5,
+    "mean_balanced_accuracy": 0.68154296875,
+    "exact_trial_accuracy": 0.17822265625,
+    "pooled_accuracy": 0.7293945550918579,
+    "per_query_balanced_accuracy": [
+      0.9596353769302368,
+      0.9466146230697632,
+      0.50146484375,
+      0.5,
+      0.5
+    ],
+    "window_activity_fraction": [
+      1.0,
+      0.9912109375,
+      0.123046875,
+      0.0,
+      0.0
+    ],
+    "delay_query_means": [
+      2.9744982719421387,
+      4.411332607269287,
+      3.003365993499756,
+      3.0226364135742188,
+      4.14401388168335
+    ],
+    "delay_schedule_mae_steps": 9.678629875183105,
+    "mean_input_events_per_query": [
+      8.2412109375,
+      8.20654296875,
+      8.224609375,
+      8.1591796875,
+      8.1435546875
+    ],
+    "median_total_delay_grad_norm": 0.10634603723883629,
+    "run_dir": "runs\\exploratory\\mixedop_rate_wad_surface_calibration_v1\\pilot\\shared_temporal_wad\\K5\\T40_N120_w6_seed307",
+    "q0_delay_grad_nonzero_fraction": 1.0,
+    "q0_median_delay_grad_norm": 0.025957469828426838,
+    "q1_delay_grad_nonzero_fraction": 1.0,
+    "q1_median_delay_grad_norm": 0.0937851332128048,
+    "q2_delay_grad_nonzero_fraction": 1.0,
+    "q2_median_delay_grad_norm": 0.01699543185532093,
+    "q3_delay_grad_nonzero_fraction": 1.0,
+    "q3_median_delay_grad_norm": 0.016504435800015926,
+    "q4_delay_grad_nonzero_fraction": 1.0,
+    "q4_median_delay_grad_norm": 0.021675412543118,
+    "query_delay_spearman": 0.39999999999999997,
+    "query_delay_spread_in_windows": 0.2394723892211914
+  },
+  "test_split_opened": false
+}

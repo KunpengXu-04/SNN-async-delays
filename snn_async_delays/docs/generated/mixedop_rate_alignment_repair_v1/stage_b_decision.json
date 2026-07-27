@@ -1,0 +1,14 @@
+{
+  "protocol_id": "mixedop_rate_alignment_repair_v1",
+  "stage": "stage_b_per_query_wad",
+  "cells": 9,
+  "arm_pass": {
+    "oracle_new_seed_control": true,
+    "task_only": false,
+    "routing_assisted": false
+  },
+  "autonomous_task_only_supported": false,
+  "routing_assisted_supported": false,
+  "stage_c_authorized_by_results": false,
+  "test_split_opened": false
+}

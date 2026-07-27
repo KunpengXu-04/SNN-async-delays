@@ -1,0 +1,13 @@
+stage,arm,seed,perturbation,artifacts_complete,provenance_valid,finite_and_legal,technical_valid,worst_query_balanced_accuracy,exact_trial_accuracy,minimum_window_activity_fraction,maximum_schedule_error_steps,schedule_error_reduction_fraction
+w1,delay_frozen,3657,,True,True,True,True,1.0,1.0,1.0,0.5003433227539062,-4.765101918382381e-07
+w1,delay_frozen,3669,,True,True,True,True,0.9990234375,0.9990234375,1.0,0.5014266967773438,9.509599465180126e-07
+w1,delay_frozen,3691,,True,True,True,True,1.0,1.0,1.0,0.5000019073486328,5.721991329275806e-06
+w1,centroid_continue,3657,,True,True,True,True,0.99853515625,0.998046875,1.0,0.512019157409668,-0.023336133624894038
+w1,centroid_continue,3669,,True,True,True,True,0.9990234375,0.99853515625,1.0,0.5098676681518555,-0.016832942013315342
+w1,centroid_continue,3691,,True,True,True,True,1.0,1.0,1.0,0.5163841247558594,-0.03275840036010399
+w1,abrupt_task_only,3657,,True,True,True,True,1.0,1.0,1.0,0.7814731597900391,-0.5618746101550993
+w1,abrupt_task_only,3669,,True,True,True,True,0.9990234375,0.99853515625,1.0,1.1137399673461914,-1.2211400298030848
+w1,abrupt_task_only,3691,,True,True,True,True,1.0,1.0,1.0,1.2802023887634277,-1.5603803598369614
+w1,annealed_joint,3657,,True,True,True,True,1.0,1.0,1.0,0.38572216033935547,0.22908465727719218
+w1,annealed_joint,3669,,True,True,True,True,0.9990234375,0.998046875,1.0,0.8967761993408203,-0.7884475483777099
+w1,annealed_joint,3691,,True,True,True,True,1.0,1.0,1.0,0.5009670257568359,-0.0019244964170797626

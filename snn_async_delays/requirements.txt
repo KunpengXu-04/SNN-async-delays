@@ -10,3 +10,6 @@ pandas>=2.0.0
 # Config / utilities
 pyyaml>=6.0
 tqdm>=4.65.0
+
+# Test runner
+pytest>=8.0,<9

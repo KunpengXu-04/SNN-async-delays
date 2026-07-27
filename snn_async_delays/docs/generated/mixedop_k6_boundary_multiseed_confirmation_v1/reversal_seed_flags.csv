@@ -1,0 +1,11 @@
+reversal_id,seed,present,T,lower_N,higher_N
+T34_N3_pass_N4_fail,4013,False,34,3,4
+T34_N3_pass_N4_fail,4027,False,34,3,4
+T34_N3_pass_N4_fail,4049,False,34,3,4
+T34_N3_pass_N4_fail,4061,False,34,3,4
+T34_N3_pass_N4_fail,4079,False,34,3,4
+T46_N2_pass_N3_fail,4013,False,46,2,3
+T46_N2_pass_N3_fail,4027,False,46,2,3
+T46_N2_pass_N3_fail,4049,False,46,2,3
+T46_N2_pass_N3_fail,4061,False,46,2,3
+T46_N2_pass_N3_fail,4079,False,46,2,3

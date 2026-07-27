@@ -1,0 +1,7 @@
+K,condition,total_hidden,T,artifacts_complete,finite,nonzero_hidden_activity,oracle_schedule_exact,wad_delay_gradient_nonzero,delays_legal,final_20_not_continuously_clipped,accuracy_used_as_gate,passed
+5,spatial_independent_d0,80,40,True,True,True,True,True,True,True,False,True
+5,shared_temporal_oracle,80,40,True,True,True,True,True,True,True,False,True
+5,shared_temporal_wad,80,40,True,True,True,True,True,True,True,False,True
+8,spatial_independent_d0,80,58,True,True,True,True,True,True,True,False,True
+8,shared_temporal_oracle,80,58,True,True,True,True,True,True,True,False,True
+8,shared_temporal_wad,80,58,True,True,True,True,True,True,True,False,True

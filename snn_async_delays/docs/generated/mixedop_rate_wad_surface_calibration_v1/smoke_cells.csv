@@ -1,0 +1,3 @@
+condition,artifacts_complete,finite,nonzero_hidden_activity,oracle_schedule_exact,wad_total_delay_gradient_nonzero,wad_all_query_delay_gradients_nonzero,delays_legal,final_20_not_continuously_clipped,fixed_validation_realization_reproducible,passed
+shared_temporal_oracle,True,True,True,True,True,True,True,True,True,True
+shared_temporal_wad,True,True,True,True,True,True,True,True,True,True

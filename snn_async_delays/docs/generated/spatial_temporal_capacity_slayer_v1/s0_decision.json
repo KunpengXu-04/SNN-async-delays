@@ -1,0 +1,26 @@
+{
+  "protocol_id": "spatial_temporal_capacity_slayer_v1",
+  "stage": "s0",
+  "invalid_for_scientific_claims": true,
+  "rows": [
+    {
+      "seed": 99501,
+      "complete": true,
+      "passed": true,
+      "cpu_cuda_forward_exact": true,
+      "cpu_cuda_gradient_close": true,
+      "full_model_cpu_cuda_passed": true
+    },
+    {
+      "seed": 99502,
+      "complete": true,
+      "passed": true,
+      "cpu_cuda_forward_exact": true,
+      "cpu_cuda_gradient_close": true,
+      "full_model_cpu_cuda_passed": true
+    }
+  ],
+  "passed": true,
+  "s1_calibration_authorized_by_results": true,
+  "s1_calibration_launch_still_requires_yaml_unlock": true
+}

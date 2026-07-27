@@ -1,5 +1,37 @@
 # Experiment log v2
 
+## 2026-07-22 — Spatial calibration launched (fixed oracle)
+
+- **Authorized:** `spatial_calibration` only: repeated XOR, `K=6`, output budget `B=48` (`T=58`), fixed-oracle current backend, hidden-width grid `{1,2,3,4,6,8,12,16,24,32}`, and calibration seeds `{5101,5113,5129,5147,5167}`.
+- **Purpose:** this 50-cell registered run selects the fixed-oracle-qualified reference width `N_ref` for the later temporal scaling study. It does not train SLAYER, open sealed test data, or constitute a learned-delay result.
+- **Integrity:** artifacts are restart-protected; no historical run, checkpoint, or result is overwritten.
+- **Infrastructure note:** the first foreground invocation reached the local two-minute command ceiling. `K6_N1_B48_seed5101` completed; the incomplete `seed5113` directory (no validation result) was preserved verbatim as `K6_N1_B48_seed5113__interrupted_20260722T162048` before the registered cell was rerun. A host-reclaimed background-launch attempt produced no new cell or result and is retained only as zero-result launcher logs; execution continued through verified foreground batches.
+- **Progress at this handoff:** 10/50 registered cells completed. `N=1` and `N=2` each have 0/5 reliability passes, so neither is eligible for `N_ref`; cells 10–49 remain pending and SLAYER has not been launched.
+
+## 2026-07-22 — Fixed-oracle threshold alignment and v2 calibration namespace
+
+- **Diagnostic:** the original fixed-oracle calibration instantiated `SNNSimultaneousModel` without a `lif_threshold` override, thereby using its default threshold `1.0`; the legacy centroid surface explicitly used threshold `0.2`. At `N=32`, the first output window had zero hidden activity and its BAcc was `.5`, so these cells are an interface diagnostic rather than capacity evidence.
+- **Change:** the protocol now freezes `tau_m=10`, hidden threshold `.2`, reset `0`, refractory `2`, and surrogate beta `4`, and materializes those values into every current-backend cell specification.
+- **Isolation:** reruns use `runs/exploratory/spatial_temporal_capacity_slayer_threshold0p2_v2/`; the threshold-`1.0` artifacts under the previous root remain untouched and are excluded from the new `N_ref` decision.
+
+## 2026-07-22 鈥?Registered boundary-screening pilot
+
+- **Purpose:** before freezing a formal K grid, screen fixed-oracle repeated XOR at `B=48`, `K={8,12,16}`, `N={3,6,12}`, and seeds `{5101,5113}` (18 cells).
+- **Scope:** only `shared_temporal_fixed`; no centroid, d0 baseline, SLAYER, sealed test, scaling fit, or claim. The pilot determines whether the final grid must extend beyond `K=8`.
+- **Outcome:** K=8 reaches a width transition (`N=12`: 2/2 pilot passes), K=12 is not exact-trial reliable at `N=12` despite both worst-query BAcc values exceeding `.90`, and K=16 fails worst-query reliability through `N=12`. The formal spatial grid is therefore extended to `K={1,2,3,4,6,8,12,16}`; the pilot remains excluded from the formal fit.
+
+## 2026-07-22 — Spatial scaling amended to three fresh seeds
+
+- **Decision:** the full spatial grid uses fresh seeds `{5209,5227,5237}` and a `3/3` reliability gate, reducing the registered work from 995 to 597 cells.
+- **Evidence boundary:** this is an exploratory three-seed scaling screen. It may identify raw transitions and candidate compression regions, but any final boundary, exponent, or compression claim requires the two withheld fresh seeds `{5251,5273}` at selected boundary points to restore a 5-seed confirmation.
+- **Unchanged:** calibration, S1/S2 trainability gates, sealed-test status, and future temporal scaling retain their registered five-seed requirements.
+
+## 2026-07-24 — Future reliability rule amended to 2/3
+
+- **Decision:** future S1/S2 confirmations and scaling cells use three fresh seeds `{5209,5227,5237}`; a cell/gate passes only after all three results are present and at least two individually pass the joint worst-query-BAcc/exact-trial rule.
+- **Scope:** completed spatial artifacts remain intact. Their exploratory summary may be recomputed with the declared 2/3 aggregation, while the original per-seed JSON remains the source record.
+- **Analysis rule:** majority aggregation does not authorize isotonic smoothing, interpolation, or repaired monotonic boundaries; raw pass fractions and raw staircases remain reported.
+
 This log begins during the July 2026 cleanup.  The historical narrative is
 preserved in `EXPERIMENT_LOG.md`; it is not retroactively edited and contains
 superseded claims and numbers.
@@ -1556,3 +1588,820 @@ Decision and next gate:
 - **Boundary:** micro-burst and K>1 remain unauthorized. The result is
   homogeneous explicit-oracle recovery, not autonomous temporal routing.
 - **Results:** `docs/RESULTS_XOR_DELAY_GRANULARITY_RESCUE_LEVEL1BR_R3.md`.
+
+## 2026-07-16 — Preregistration: dimension-aware Stage-B micro-burst rescue
+
+- **Protocol:** `xor_delay_granularity_rescue_microburst_v1`; independent of
+  and non-destructive to the original frozen 60-cell learned Stage-B matrix.
+- **Question:** whether the Level 1B-R dimension-matched homogeneous delay-4
+  teacher remains compatible with exact hard-spike XOR under consecutive input
+  events at steps `{8,9}`.
+- **Frozen model:** K=1, `4 -> 16 -> 2`, hidden/output thresholds `.2/.03` a.u.,
+  sigmoid input-hidden delays with `dmax=8`, hidden-output d0, Adam weight/delay
+  LR `.01`, 500 full-batch updates and final checkpoint only.
+- **Formal seeds:** `{2333,2351,2371,2389,2411}` with raw delay initializations
+  `-2/+2` for learned cells.
+- **Stage B0:** five fixed-d4 cells; learned stage unlocks only at 5/5 exact
+  hard-spike interface passes.
+- **Stage B1:** 40 cells: global `.01`, per-hidden dimension-matched `.16`,
+  per-synapse dimension-matched `.64`, and per-hidden task-only, each 10 cells.
+  Primary success requires global and per-hidden 10/10 after the fixed gate.
+- **Gates:** exact four-pattern spike trains, zero silence/collision, correct
+  target time, one event per trial, hidden activity 4/4, every delay within
+  `.1` step, and every initial total delay gradient nonzero and target-directed.
+- **Diagnostics:** runtime NPZ and 12-panel diagnostic, exhaustive truth table,
+  checkpoint, complete log and resource ledger are mandatory per cell.
+- **Seed hygiene:** proposed seed `2309` was consumed during implementation
+  smoke and removed before formal launch. Dedicated smoke seeds are now
+  `99xxx`; all ten smoke artifacts are invalid for claims.
+- **Claim boundary:** success is explicit-oracle micro-burst robustness only.
+  K>1, routing, WAD, compression and Pareto claims remain unauthorized.
+- **Status:** implementation-validated; only the five formal fixed controls are
+  launch-ready; no formal cell has run.
+
+## 2026-07-16 — Dimension-aware micro-burst Stage B0 complete
+
+- **Execution:** all five fixed-d4 formal controls completed on seeds
+  `{2333,2351,2371,2389,2411}`; all five contain the mandatory eight-artifact
+  bundle.
+- **Interface:** 5/5 balanced accuracy one, exact four-pattern output spike
+  trains, correct target-time rate one, zero silence/collision, one output
+  event per trial and hidden activity in all four patterns.
+- **Decision:** `fixed_d4_gate_pass=true`; `learned_stage_authorized=true`.
+  The complete 40-cell learned matrix is now launch-ready and may not be
+  subsetted.
+- **Boundary:** fixed delay is experimenter-supplied. This is feasibility
+  replication, not evidence for learned timing or dimension normalization.
+- **Results:**
+  `docs/RESULTS_XOR_DELAY_GRANULARITY_RESCUE_MICROBURST_STAGE_B0.md`.
+
+## 2026-07-16 — Dimension-aware micro-burst Stage B1 learned matrix complete
+
+- **Execution:** all 40 registered cells completed: global `.01`, per-hidden
+  `.16`, per-synapse `.64`, and per-hidden task-only, each over both raw
+  initialization sides and five seeds. Required artifact bundles are complete
+  in 40/40 cells.
+- **Oracle-supervised result:** global, per-hidden, and per-synapse each pass
+  10/10 under the exact hard-spike interface, coordinate-gradient direction,
+  and full `.1`-step delay-coverage gates. No cell clips.
+- **Task-only result:** 0/10 full and interface passes, 0/10 full-coverage and
+  all-coordinate-direction passes. Only 4/10 cells classify all four patterns;
+  only 3 of 40 pattern-level output spike trains are exact.
+- **Decision:** the bridge passes only as explicit oracle-supervised
+  homogeneous delay recovery. Task-only global schedule discovery is
+  contradicted under the registered setup. K>1 remains locked.
+- **Results:**
+  `docs/RESULTS_XOR_DELAY_GRANULARITY_RESCUE_MICROBURST_STAGE_B1.md`.
+
+## 2026-07-16 — Preregistration: task-derived timing scaffold withdrawal v1
+
+- **Protocol:** `xor_task_derived_timing_withdrawal_v1`.
+- **Question:** after an independent per-hidden `.16` teacher rebuild, can the
+  task loss retain the exact timing, and can it locally restore the schedule
+  after fixed symmetric delay perturbations to 3 or 5 steps?
+- **Stages:** W0 has five fresh foundation cells; W1 has ten no-update damage
+  controls; W2 has five retention cells plus oracle-delay-only,
+  task-delay-only, task-joint, and weight-only recovery arms at both
+  perturbations and all five seeds (45 cells). Maximum total is 60.
+- **Primary test:** task-delay-only, `lambda=0`, both weight matrices frozen.
+  It must pass 10/10 exact-interface and delay-4 coverage endpoints. Initial
+  target-directed/nonzero task-gradient fractions are mandatory mechanism
+  diagnostics but are not endpoint gates. Oracle recovery must also pass.
+- **Stage locks:** W1 materializes only after W0 passes 5/5. W2 materializes
+  only if all ten no-update controls demonstrate real interface damage.
+- **Boundary:** success is local restoration in a teacher-created basin, not
+  autonomous from-scratch discovery or temporal multiplexing.
+- **Implementation validation:** dry-run grids generate exactly `5/10/45`
+  formal cells. Dedicated seed `99503` exercised W0, W1, retention and all
+  four recovery interfaces with checkpoint inheritance, exact functional
+  delay overwrite, fresh optimizer state, runtime NPZ, 12-panel diagnostic,
+  branch provenance, resource ledger and final checkpoint. These 11 smoke
+  cells are invalid for claims. Focused tests pass 12/12; the complete pytest
+  suite passes 109/109 and the required unittest suite passes 104/104. No
+  formal withdrawal cell has run.
+
+## 2026-07-16 — Scaffold-withdrawal W0 complete
+
+- **Execution:** all five fresh formal seeds `{2503,2521,2539,2551,2579}`
+  completed the per-hidden `.16` oracle foundation. Artifact bundles are
+  complete 5/5.
+- **Interface:** every cell has balanced accuracy one, four exact target spike
+  trains at step 15, zero silence/collision, one output spike per pattern, and
+  hidden activity in all four patterns.
+- **Delay mechanism:** all 16 coordinates are within `.1` step of four in all
+  five cells. Maximum coordinate error ranges `.000115-.002032` step; initial
+  total gradients are nonzero and target-directed for every coordinate; no
+  clipping occurs. Mean task/oracle conflict fraction is `.475`.
+- **Stability audit:** four cells are exact throughout their final 100 updates;
+  seed 2539 is exact on 99/100 due to one transient hard-spike boundary change
+  at update 436, then returns to the registered exact final checkpoint. All
+  five have full delay coverage throughout the final 100 updates.
+- **Decision:** `foundation_gate_pass=true`; W1 damage controls are authorized.
+  W2 remains locked. W0 is oracle-built provenance, not task-derived timing
+  evidence.
+- **Results:** `docs/RESULTS_XOR_TASK_DERIVED_TIMING_WITHDRAWAL_W0.md`.
+
+## 2026-07-16 — Scaffold-withdrawal W1 damage controls complete
+
+- **Execution integrity:** all ten prespecified no-update cells completed.
+  Matching-seed W0 weights and all other non-delay state are bitwise unchanged;
+  trainable-component lists are empty, updates are zero, and functional delays
+  equal d3 or d5. Mandatory artifacts are complete 10/10.
+- **Damage:** exact interface passes 0/10 and correct-target-time rate is zero
+  in every cell. All 20 d3 pattern outputs occur at step 14; all 20 d5 outputs
+  occur at step 16.
+- **Important negative control:** balanced/classification accuracy remains one,
+  silence and collision remain zero, and every trial emits one spike. Thus the
+  intervention damages timing only; class accuracy cannot detect it.
+- **Decision:** `damage_gate_pass=true`; all 45 W2 cells are authorized. No W2
+  cell has run.
+- **Prospective mechanism audit:** a disclosed read-only, zero-update gradient
+  evaluation gives mean target-directed coordinate fractions `.85` at d3 and
+  `.1375` at d5, with nonzero fraction one everywhere. No registered W2 setting
+  was changed. This prospectively predicts easier early-side than late-side
+  restoration.
+- **Results:** `docs/RESULTS_XOR_TASK_DERIVED_TIMING_WITHDRAWAL_W1.md`.
+
+## 2026-07-16 — Scaffold-withdrawal W2 complete: primary failure
+
+- **Execution:** the complete frozen 45-cell matrix ran. All declared branch
+  masks, matching-seed checkpoint inheritance, fresh optimizer states, and nine
+  mandatory artifacts are valid in 45/45 cells. No gradient clipping occurs.
+- **Formal gates:** retention 5/5; oracle-delay-only 10/10; task-delay-only
+  0/10; task-joint full schedule 0/10; task-weight-only exact compensation
+  1/10. Therefore `local_restoration_protocol_pass=false` and K>1 remains
+  unauthorized.
+- **Directional endpoints:** task-delay-only d3 obtains exact interface 3/5,
+  mean target-time rate `.90`, but all-delay recovery 0/5. d5 obtains exact
+  interface 0/5, mean target-time rate `.10`, all-delay recovery 0/5, and sends
+  40/80 coordinates below `.5` or above `7.5`. Task-joint is exact 5/5 at d3
+  and 3/5 at d5 but never restores all coordinates.
+- **Interpretation:** retention is only a zero-loss stationary point. Oracle
+  success proves local optimizer viability. Functional success with wrong
+  delays proves that 16 internal coordinates are not identifiable from four
+  output patterns.
+- **Post-result mechanism audit:** with a global scalar delay and unchanged W0
+  weights, mean raw task gradient flips from `+.00408` at 4.999 to `-.00356`
+  at exactly 5.000. The current `floor(d.detach())` interpolation chooses the
+  right-hand derivative at integers, explaining wrong-directed d5 credit and
+  subsequent boundary polarization. Global tying alone does not repair it.
+- **Reproducibility:**
+  `scripts/audit_xor_withdrawal_w2_mechanism.py` deterministically reproduces
+  the 95-point seed-by-delay gradient audit and d5 saturation summary without
+  creating or modifying a formal cell.
+- **Decision:** do not tune LR/threshold/budget. Preregister a small symmetric
+  integer-boundary credit and continuous output-timing preflight before any new
+  learned-delay or K>1 experiment.
+- **Results:** `docs/RESULTS_XOR_TASK_DERIVED_TIMING_WITHDRAWAL_W2.md`.
+
+## 2026-07-16 — Integer-boundary credit repair preflight complete
+
+- **Implementation:** added versioned `right_linear`, `symmetric_integer`, and
+  `gaussian_ste` delay backward modes. The historical default and state-dict
+  format are preserved. Backward-only corrections are zero in the forward
+  pass. Focused tests pass 11/11 and the complete suite passes 120/120.
+- **P0:** all 100 registered zero-update probes completed. Full matching
+  forward records are bitwise identical. Only Gaussian STE sigma 1.00 passes
+  the aggregate global/per-hidden-mean direction rule in 10/10 probes per
+  granularity. Its d5 per-hidden coordinate-direction fraction is only `.4875`
+  (legacy `.1375`).
+- **P1:** all ten selected-estimator recovery cells completed with checkpoint,
+  NPZ, runtime diagnostic panel and provenance. Functional recovery is 2/10
+  (d3 2/5, d5 0/5); schedule identification and joint pass are 0/10.
+- **Mechanism:** the two exact d3 cells reach zero task loss after 20/27
+  updates, then freeze at non-oracle delay ranges. d5 cells split as far as
+  `.2218–7.6572`. Correct mean gradient is therefore insufficient for Adam's
+  16 independent coordinates, and exact output behaviour does not identify
+  the internal oracle vector.
+- **Decision:** the first repair fails as a full rescue. K>1 stays locked. The
+  next minimal discriminator is global one-parameter task-only recovery under
+  a new protocol; no LR/threshold/budget or post-hoc sigma sweep is allowed.
+- **Results:**
+  `docs/RESULTS_XOR_INTEGER_BOUNDARY_CREDIT_PREFLIGHT_V1.md`.
+
+## 2026-07-16 — Preregistration and stability gate: mixed-op surface preview v1
+
+- **Protocol:** `mixedop_spatial_temporal_surface_preview_v1`; explicitly
+  separate from the locked causal K>1 mechanism programme. It is a single-seed
+  supervisor-progress surface, not confirmatory evidence.
+- **Question:** for fixed K=5 and K=8 operation-by-position workloads, how does
+  validation worst-query balanced accuracy vary over total physical hidden
+  neurons and latency under independent spatial d0, a hand-scheduled shared
+  temporal oracle, and the current WAD diagnostic?
+- **Frozen workload:** K5=`AND/OR/XOR/XNOR/NAND`; K8 adds
+  `NOR/A_IMP_B/B_IMP_A`. All queries enter simultaneously as equal-event
+  binary-one-hot micro-bursts at steps 8 and 9; no operation cue or random
+  operation assignment is present.
+- **Matrix:** total hidden `[40,80,120,160]`, output windows `[4,6,8]`, giving
+  T=`[30,40,50]` for K5 and `[42,58,74]` for K8; seed 307; three conditions;
+  72 cells. Spatial uses `N/K` neurons in each independent module while each
+  temporal model uses one shared N-neuron layer.
+- **Timing treatment:** oracle `d_q=q*w`; WAD uses the identical support
+  `dmax=(K-1)w` and the versioned historical `right_linear` backward. The
+  oracle is an experimenter-scheduled upper bound, never learned routing.
+- **Optimization:** Adam, weight/readout/delay LR all `.01`, clip norm 1,
+  exactly 200 updates, batch 128, macro query-by-class BCE. The checkpoint
+  maximizes validation worst-query balanced accuracy, then exact-trial, then
+  earlier update. Train/validation are independent deterministic 2,048-sample
+  marginally balanced joint samples; the sealed test remains unopened.
+- **Resources and artifacts:** every cell must save best/last checkpoints,
+  update/validation logs, predictions NPZ, runtime diagnostic NPZ/panel and a
+  resource vector containing parameters, decoder operations, neuron updates,
+  dense MACs, measured synaptic events, delay storage and buffer memory.
+  `N_hidden*T` is labelled only as a neuron-update proxy.
+- **Smoke decision:** all six invalid 40-update cells at N=80,w=6 pass the
+  preregistered technical gates. All are finite, active, delay-legal and
+  artifact-complete; oracle tensors are exact; WAD delay gradients are nonzero;
+  no cell is continuously clipped over its last 20 updates. Accuracy was not a
+  gate. The `.01` recipe therefore remains unchanged and the complete 72-cell
+  matrix is authorized.
+- **Claim boundary:** this branch does not measure exact output-spike timing,
+  does not prove learned temporal multiplexing, omits a full shared-spatial-d0
+  control, and has no replication seed. Only the preregistered descriptive
+  width-versus-T language is admissible after aggregation.
+
+## 2026-07-16 — Mixed-op surface preview: K=5 gate complete, K=8 paused
+
+- **Execution:** all 36 K=5 cells have complete immutable artifact bundles.
+  The researcher requested a K=5-first gate after K=8 execution had begun; both
+  active K=8 processes were stopped immediately. Five already-complete and two
+  interrupted K=8 cells are explicitly excluded. The interrupted directories
+  have audit records and may not be resumed silently.
+- **Primary endpoint:** independent spatial d0 and the fixed temporal oracle
+  both score worst-query balanced accuracy and exact-trial accuracy `1.0` in
+  every one of 12 cells. WAD scores worst-query balanced accuracy `.5` in all
+  12 cells; exact-trial is `.1909–.1997`.
+- **Factor decision:** hidden marginal range and T marginal range are both zero
+  in every condition. Grid SS fractions are undefined because total primary
+  variation is zero. The registered width-more-sensitive language is not
+  allowed; neither an interaction nor a cost law can be estimated.
+- **Mechanism diagnostic:** WAD mean per-query balanced accuracy is
+  `[.9954,.9870,.5,.5,.5]`. Trial-level hidden-activity fractions by output
+  window are `[1,.967,.0145,0,0]`; WAD query-mean delays remain near half of
+  one window for all queries rather than `[0,1,2,3,4]` windows. The failure is
+  missing temporal coverage, not merely a weak classifier.
+- **Resource result:** at the smallest tested `N=40,T=30`, spatial and oracle
+  both pass perfectly with the same 1,200 hidden updates, so observed hidden
+  compression is one, not below one. Oracle has 5x dense synaptic MACs/events
+  and 17x delay-buffer elements at that point; buffer ratios rise to 25x/33x
+  for windows 6/8. `N*T` is not a scalar cost conclusion.
+- **Decision:** K=5 passes technical execution and hand-scheduled feasibility
+  but fails the useful-factor-surface and WAD-routing goals. K=8 is not
+  automatically authorized. Await an explicit researcher choice; do not use
+  the excluded partial K=8 data to influence the K=5 gate.
+- **Results:**
+  `docs/RESULTS_MIXEDOP_SPATIAL_TEMPORAL_SURFACE_PREVIEW_V1_K5.md`.
+
+## 2026-07-17 — Preregistration: K=5 rate-code WAD rescue calibration
+
+- **Protocol:** `mixedop_rate_wad_surface_calibration_v1`; an exploratory,
+  validation-only encoding rescue derived from the failed K=5 burst WAD
+  surface. It does not alter the frozen parent artifacts or unlock the causal
+  K>1 programme.
+- **Question:** does a temporally distributed rate input restore per-query
+  delay gradients, late-window activity and worst-query balanced accuracy for
+  the shared temporal WAD model?
+- **Controlled interface:** retain 4K value channels `[A0,A1,B0,B1]` per query
+  so the comparison does not gain an easier 2K binary-amplitude interface.
+  During the ten-step input window, the two selected channels use 400 Hz and
+  the two unselected channels 10 Hz. Training draws are resampled per update;
+  validation uses a fixed RNG realization across checkpoints.
+- **Declared confound:** expected input events are 8.2/query rather than the
+  parent's fixed four. Any rescue is a rate-recipe result at higher measured
+  event cost, not an isolated temporal-distribution effect.
+- **Expanded candidate surface:** total hidden
+  `[20,40,80,120,160,240]` by output-window length `[2,4,6,8,12]`, hence
+  T=`[20,30,40,50,70]`; WAD only; 30 cells. This surface is locked.
+- **Pilot:** four corners plus center `(N,w)={(20,2),(20,12),(240,2),
+  (240,12),(120,6)}`. Each point runs fixed oracle and WAD, giving ten
+  invalid-for-publication pilot cells after two invalid center smoke cells.
+- **Frozen optimization:** Adam; weight/readout/delay LR `.01`; clip 1; 200
+  updates; batch 128; macro query-by-class BCE; checkpoint by validation
+  worst-query balanced accuracy, exact-trial, then earlier update.
+- **Full-sweep gate:** every WAD query has nonzero delay gradient in at least
+  90% of updates and median total delay-gradient norm is at least `1e-8`;
+  every oracle point has worst-query balanced accuracy at least `.85`; center
+  WAD is at least `.60` and at least three of five WAD points exceed `.55`.
+  A separate center routing gate is required for any mechanism language.
+- **Artifacts:** every cell must produce checkpoint, logs, fixed validation
+  predictions and event fingerprint, NPZ, runtime diagnostic panel and full
+  resource ledger. Sealed test remains closed.
+- **Authorization:** only the two technical smoke cells are currently
+  authorized. Pilot and full surface remain mechanically locked.
+- **Protocol:** `docs/MIXEDOP_RATE_WAD_SURFACE_CALIBRATION_V1.md` and
+  `configs/mixedop_rate_wad_surface_calibration_v1.yaml`.
+
+## 2026-07-17 — Rate-code WAD stability smoke passed
+
+- Both invalid center cells are complete with checkpoints, logs, fixed
+  validation predictions, NPZ, runtime diagnostic panels and resource ledgers.
+- All numerical, activity, oracle-schedule, WAD total/per-query gradient,
+  legal-delay, non-continuous-clipping and validation-reproducibility gates
+  pass. Accuracy was not inspected for the decision.
+- The frozen ten-cell four-corners-plus-center pilot is authorized. Rates,
+  LR, threshold, update budget, seed, points and decision thresholds remain
+  unchanged. The 30-cell full surface remains locked.
+
+## 2026-07-17 — Rate-code WAD pilot failed; full surface stopped
+
+- **Completion:** all ten fixed-oracle/WAD corner-and-center cells are complete
+  with full runtime artifacts. The test split remains sealed.
+- **Technical gate:** passes. Every WAD query has nonzero delay gradient in all
+  200 updates; center median total delay-gradient norm is `.106`.
+- **Oracle feasibility:** fails. Worst-query balanced accuracy is
+  `.518,.676,.565,.769,.632` over the five points, all below `.85`.
+- **WAD performance:** fails. Worst-query balanced accuracy is exactly `.50`
+  in all five cells; center per-query values are
+  `[.960,.947,.501,.500,.500]` and exact-trial is `.178`.
+- **Routing mechanism:** fails. Center activity is
+  `[1,.991,.123,0,0]`; query-mean delays are
+  `[2.97,4.41,3.00,3.02,4.14]` rather than `[0,6,12,18,24]`; delay spread is
+  only `.239` windows and query-index Spearman is `.40`.
+- **Parent comparison:** matched burst center has the same `.50` primary score
+  and slightly better mean/exact metrics. Rate raises measured input-to-hidden
+  events from 2400 to 4917 (2.05x) and creates limited third-window activity,
+  but does not rescue reliability or late routing.
+- **Decision:** do not run the 30-cell sweep. Another rate/duration/event-budget
+  recipe would be a new calibration, not a continuation selected from this
+  failed validation pilot.
+- **Results:**
+  `docs/RESULTS_MIXEDOP_RATE_WAD_SURFACE_CALIBRATION_V1.md`.
+
+## 2026-07-17 — Preregistration: late-rate alignment and per-query-delay repair
+
+- **Protocol:** `mixedop_rate_alignment_repair_v1`; a new exploratory protocol
+  that preserves the failed full-window rate pilot.
+- **Localized design error:** the parent used rate events at steps 0--9 with
+  inherited `d_q=q*w`. Because the production buffer adds one step, only an
+  event at step 9 directly entered window
+  `[10+qw,10+(q+1)w)`. The fixed oracle was therefore not a correctly aligned
+  rate-interface control.
+- **Repair:** restrict rate events to steps 6--9 and set
+  `d_q=3+q*w`. Their arrivals are exactly steps `10+qw` through `13+qw`.
+  Candidate windows are `[4,6,8,12]`, all at least the four-step packet width.
+- **Stage A:** fixed oracle only; event budgets 4/8 expected events/query;
+  total hidden 120/240; three fresh seeds `{3301,3313,3323}`; 48 cells after
+  two invalid smoke cells. Threshold `.2`, LR `.01`, 200 updates and all other
+  interface/data/checkpoint rules remain frozen.
+- **Candidate gate:** all three seeds must have worst-query BAcc at least `.90`,
+  exact-trial at least `.80`, every window active in at least `.10` of trials,
+  and an exact oracle tensor. Select by measured events, then `N*T`, N and T.
+- **Conditional Stage B:** only one selected interface may be used. It replaces
+  per-synapse WAD by five query-tied delay parameters and compares new-seed
+  oracle, task-only and routing-assisted arms. The latter adds `.10` times a
+  differentiable query-arrival/window cross entropy and is explicitly
+  supervised, not autonomous routing.
+- **Separation of endpoints:** Stage-B WAD gates include both function and a
+  maximum error of one step for every query delay. Scaffold withdrawal stays
+  locked until the assisted arm passes both.
+- **Authorization:** only two Stage-A smoke cells are initially authorized.
+  Formal Stage A, Stage B, Stage C and the sealed test are locked.
+- **Protocol:** `docs/MIXEDOP_RATE_ALIGNMENT_REPAIR_V1.md` and
+  `configs/mixedop_rate_alignment_repair_v1.yaml`.
+
+## 2026-07-17 — Late-rate alignment smoke passed
+
+- Both invalid event4/event8 cells are complete and pass finite, activity,
+  legal-delay, exact-oracle and required-artifact checks.
+- Runtime NPZ, diagnostic panel and resource ledger were generated during each
+  run. Accuracy was not a smoke gate.
+- The unchanged 48-cell fixed-oracle Stage A is authorized. Per-query WAD,
+  routing assistance, withdrawal and sealed test remain locked.
+
+## 2026-07-17 — Late-rate alignment Stage A complete
+
+- All 48 oracle cells and required runtime artifacts are complete.
+- Event4 fails in all eight candidates: worst-query BAcc is `.890--.917`, but
+  exact-trial remains `.663--.736`. More N or w does not solve the joint
+  reliability failure.
+- Event8 passes in all eight candidates across all three seeds: minimum worst
+  BAcc `.99967`, minimum exact `.99951`, and minimum window activity `1.0`.
+- According to the frozen selection rule, equal event cost is broken by lower
+  `N*T`; `event8_N120_w4` is selected with T=30 and schedule
+  `[3,7,11,15,19]`.
+- Interpretation: alignment repairs the oracle interface, while event
+  redundancy determines reliability. The event8 code is near-deterministic and
+  must not be generalized to low-rate Poisson coding or energy efficiency.
+- The exact nine-cell Stage B is authorized on new seeds
+  `{3347,3359,3371}`. Per-synapse WAD, Stage C and test stay locked.
+- **Results:** `docs/RESULTS_MIXEDOP_RATE_ALIGNMENT_REPAIR_STAGE_A.md`.
+
+## 2026-07-17 — Per-query delay Stage B complete and failed
+
+- All nine selected-interface cells are complete with runtime artifacts.
+- New-seed fixed oracle passes 3/3 at worst BAcc, exact-trial and activity 1.0.
+- Five-parameter task-only passes 0/3: worst BAcc `.50`, exact
+  `.189--.245`, silent late windows and maximum delay error `11.93--13.46`.
+- Routing-assisted also passes 0/3: worst BAcc `.50`, exact `.170--.387`,
+  minimum window activity zero and maximum delay error `6.73--14.21`.
+- Routing loss falls from about `8.82` to `2.72--3.43` with median delay-
+  gradient norm `.44--.55`; later delays and coverage improve. The failure is
+  therefore insufficient/conflicting credit, not absent gradients.
+- q4 must move from about 2.26 toward the sigmoid boundary at 19 and reaches
+  only about 12.3 by update 200. Task loss also favours earlier schedules than
+  the arrival objective.
+- Stage C is not authorized. Do not tune routing weight, LR or budget within
+  v1. Any interior-support/affine-schedule repair requires a new protocol.
+- **Results:** `docs/RESULTS_MIXEDOP_RATE_ALIGNMENT_REPAIR_STAGE_B.md`.
+
+## 2026-07-17 — Preregistration: temporal WAD credit repair v2
+
+- **Protocol:** `mixedop_temporal_wad_repair_v2`; it preserves the failed v1
+  cells and the selected event8/N120/w4/T30 interface.
+- **Interior support:** keep oracle `[3,7,11,15,19]` but expand delay support
+  from `[0,19]` to `[0,23]`; initialize all five query delays exactly at 3.
+- **Gradient preflight:** three new seeds separately measure task and routing
+  raw-delay gradients. Define the base lambda as the median seed ratio of task
+  norm to route norm. Test only multipliers `{1,3,10}` and select the smallest
+  whose combined q1--q4 gradients are target-directed in every seed.
+- **Decoupled comparator:** independently require route-only q1--q4 gradients
+  to be target-directed. During training, weights/readout receive task BCE;
+  delay parameters receive routing loss only.
+- **Checkpoint repair:** every cell saves accuracy-best and schedule-best
+  checkpoints plus separate validation predictions. Function and coordinate
+  schedule must pass at the same checkpoint.
+- **Conditional training:** after a four-arm invalid smoke, three fresh seeds
+  compare oracle, task-only, calibrated joint and decoupled routing credit for
+  400 updates. The budget is fixed from the 3.43 raw-coordinate q4 traverse at
+  LR `.01`, not selected from v1 accuracy.
+- **Claim boundary:** both routing arms are explicitly supervised. Withdrawal,
+  per-synapse WAD, surfaces and test remain locked.
+- **Authorization:** only the zero-update gradient preflight is authorized.
+- **Protocol:** `docs/MIXEDOP_TEMPORAL_WAD_REPAIR_V2.md` and matching YAML.
+
+## 2026-07-17 — Temporal WAD v2 gradient preflight passed
+
+- Initial delays equal exactly `[3,3,3,3,3]` in all three seeds.
+- Separate route gradients are target-directed for q1--q4 in every seed;
+  route-only/decoupled training passes its directional gate.
+- Median task/route norm ratio is `.0048002`. Joint multiplier 1 fails because
+  q1 remains wrong-directed in seeds 3407/3413; multipliers 3 and 10 pass all
+  seeds. The frozen rule selects multiplier 3 and lambda `.0144006`.
+- Only the four invalid smoke arms are now authorized. Formal recovery and
+  withdrawal remain locked.
+
+## 2026-07-17 — Temporal WAD v2 smoke passed
+
+- All four invalid arms are complete and finite with legal delays.
+- Accuracy-best and schedule-best checkpoints/results/predictions, runtime
+  NPZ/panel and resource ledger are present for every cell.
+- The frozen 12-cell, three-new-seed formal recovery is authorized. Accuracy
+  was not used for smoke selection; lambda, LR, updates and seeds are unchanged.
+
+## 2026-07-17 — Temporal WAD v2 formal failed; objective mismatch identified
+
+- Oracle passes 3/3. Task-only and calibrated joint arms pass 0/3.
+- Decoupled arrival-mass supervision is functionally perfect on all three
+  seeds, but passes the joint gate 0/3 because q0 converges near delay 1 and the
+  maximum schedule error remains about 1.9--2.1 steps.
+- Accuracy-best and schedule-best checkpoints were evaluated separately; no
+  checkpoint satisfies both the registered function and one-step schedule gate.
+- The mass-ratio objective and oracle schedule are mathematically inconsistent,
+  so more updates or LR tuning is not an admissible repair.
+- Results: `RESULTS_MIXEDOP_TEMPORAL_WAD_REPAIR_V2.md`.
+
+## 2026-07-17 — Temporal WAD v3 supervised interface repair passed
+
+- V3 changes only explicit delay supervision to an event-weighted arrival-
+  centroid Huber loss aligned with output-window centers.
+- All-five gradient direction passes 3/3 zero-update seeds; three invalid smoke
+  cells pass technical gates.
+- On three new formal seeds, oracle passes 3/3, the old mass CE repeats its 0/3
+  schedule failure, and centroid Huber passes 3/3 at a single joint checkpoint.
+- Centroid accuracy-best worst BAcc/exact are essentially 1.0, all windows are
+  active, and maximum schedule error is .500/.501/.501 steps.
+- This repairs an explicitly supervised five-delay temporal interface only.
+  Autonomous task-derived routing, per-synapse WAD, K=8 and Pareto claims remain
+  unestablished. A new scaffold-withdrawal protocol is required before launch.
+- Results: `RESULTS_MIXEDOP_TEMPORAL_WAD_REPAIR_V3.md`.
+
+## 2026-07-17 — Preregistration: temporal scaffold withdrawal v1
+
+- The protocol separates scaffold reproducibility (W0), warm-start retention
+  (W1), and perturbed local restoration (W2); none is called from-scratch
+  autonomous routing.
+- W1 compares frozen delays, continued centroid credit, abrupt task-only, and a
+  fixed 100-update anneal followed by 100 task-only updates.
+- W2 freezes two perturbations before observation: uniform -2 steps and query
+  offsets `[0,-1,-2,-3,-4]`; frozen, centroid and task-only arms start from the
+  same perturbed checkpoint.
+- Final checkpoints are primary. Intermediate best checkpoints cannot rescue a
+  withdrawal failure. Function and <=1-step schedule error must coexist.
+- Only invalid implementation smoke is authorized. W0/W1/W2, K=8, surfaces and
+  sealed test remain locked.
+- Protocol: `MIXEDOP_TEMPORAL_WAD_SCAFFOLD_WITHDRAWAL_V1.md` and matching YAML.
+- The runner is implemented with strict source hashes, fresh optimizer state,
+  reversible physical-delay perturbations, separate task/routing gradient
+  logging, final-checkpoint decisions, runtime NPZ/panel and resource ledger.
+  All 135 repository tests pass; no withdrawal cell has been launched.
+
+## 2026-07-17 — Scaffold withdrawal implementation smoke passed
+
+- All four invalid seed-3649 cells are complete, finite, delay-legal and
+  artifact-complete with valid parent hashes and strict checkpoint loading.
+- No optimizer state is inherited. Abrupt task-only has nonzero delay gradient;
+  annealed-joint lambda matches the registered formula at every update.
+- Runtime diagnostic NPZ/panel and resource ledger are present for every cell.
+- Smoke accuracy is explicitly ignored and cannot support retention or recovery
+  claims. Only the frozen three-cell W0 scaffold replication is now authorized;
+  W1/W2 and sealed test remain locked.
+
+## 2026-07-17 — Scaffold withdrawal W0 passed
+
+- All three fresh-seed centroid scaffold cells pass the joint source gate.
+- Accuracy-first source checkpoints occur at updates 380/320/400. Source worst
+  BAcc is 1.000/1.000/.99951, exact is 1.000/1.000/.99951, minimum activity is
+  1.0, and maximum schedule error is .50034/.50143/.50000 steps.
+- Missing selected-update sidecar metadata was deterministically reconstructed
+  from immutable validation logs before W1; model bytes and selection are
+  unchanged, and source SHA-256 values are recorded.
+- Exactly 12 W1 retention cells are now authorized. W2 and test remain locked.
+- Results: `RESULTS_MIXEDOP_TEMPORAL_WAD_SCAFFOLD_WITHDRAWAL_W0.md`.
+
+## 2026-07-17 — Scaffold withdrawal W1 complete
+
+- Frozen and continued-centroid arms pass 3/3 final joint gates.
+- Abrupt task-only remains functionally near-perfect but passes schedule only
+  1/3; final maximum errors are .781/1.114/1.280 steps.
+- The fixed annealed arm passes 3/3 after 100 scaffold-decay updates and 100
+  fully task-only updates; final errors are .386/.897/.501 and remain below 1.5
+  throughout the task-only half.
+- This supports curriculum-assisted retention, not restoration or autonomous
+  discovery. The exact 18-cell W2 matrix is authorized; test remains locked.
+- Results: `RESULTS_MIXEDOP_TEMPORAL_WAD_SCAFFOLD_WITHDRAWAL_W1.md`.
+
+## 2026-07-17 — Scaffold withdrawal W2 complete and failed
+
+- All 18 final-checkpoint cells are technically valid with exact source
+  provenance and declared physical-space perturbations.
+- Centroid restoration passes 6/6. Task-only restoration passes 0/6.
+- Uniform task-only final errors are 1.685/1.710/1.354 steps with error change
+  -.075/.137/.119. Compressed task-only errors are 2.061/2.199/1.884 with
+  reductions .422/.448/.467, below the .50 gate.
+- Task-only classification is nevertheless essentially perfect in all cells.
+  Weights/readout compensate damage without identifying the delay schedule.
+- W1 annealing is therefore retention, not restoration. Autonomous WAD and
+  task-derived multiplexing claims remain unsupported; test stays locked.
+- Results: `RESULTS_MIXEDOP_TEMPORAL_WAD_SCAFFOLD_WITHDRAWAL_W2.md`.
+
+## 2026-07-17 — Preregistration and implementation: event8-aligned mixed-op surface v2
+
+- The frozen K=5 landmarks are `(N,w)={(20,4),(20,12),(240,4),(240,12),(80,8)}`;
+  `T=10+5w`, so they cover the registered width/latency corners and one fixed
+  center without choosing points from observed accuracy.
+- Every landmark compares five conditions: independent spatial d0, shared d0,
+  fixed event8 oracle, from-scratch task-only five-delay WAD, and an explicitly
+  curriculum-assisted five-delay temporal model.
+- The event8 packet remains at steps 6--9 and the oracle is `d_q=3+qw`, with
+  four support-margin steps. All output windows are at least four steps.
+- Ordinary arms use 400 Adam updates. The curriculum arm uses 400 centroid-
+  scaffold updates, recreates the optimizer, then performs a fixed 200-update
+  withdrawal (100 annealed and 100 task-only). This training-cost difference
+  is mandatory metadata.
+- Each cell produces checkpoints, logs, fresh validation predictions, runtime
+  diagnostic NPZ/panel, resource ledger and completion marker. Aggregate code
+  produces worst-query, exact-trial, schedule-error and accuracy-cost plots.
+- Static tests verify 5/25/120 unique smoke/landmark/full paths, exact shared-d0
+  zeros, exact oracle tensors, five query-tied WAD parameters, event8-window
+  consistency, locked budgets and launch authorization.
+- The complete repository regression suite passes 145/145 tests. The frozen
+  YAML SHA-256 at implementation handoff is
+  `C5EBAC24A1A4241D1F837FDCAF601508FE9BFC5E978E7D01E88247F31F5AA50C`.
+- Scientific boundary: the task-only arm is a diagnostic; the curriculum arm
+  uses an experimenter-provided timing target. Neither is autonomous WAD.
+- Authorization: only five invalid implementation-smoke cells are enabled.
+  Landmark, full sweep, sealed test and publication claims remain locked.
+- Protocol: `MIXEDOP_EVENT8_ALIGNED_SURFACE_V2.md`, matching YAML, and
+  `scripts/run_mixedop_event8_aligned_surface_v2.py`.
+
+## 2026-07-17 — Event8-aligned surface v2 implementation smoke passed
+
+- All five seed-3799 center cells are artifact-complete, finite and delay-legal.
+- Shared d0 is exactly zero. Oracle delays are exactly `[3,11,19,27,35]` and
+  its five output windows are active.
+- Task-only delay gradients are nonzero in all 20 updates. Its accuracy-best
+  checkpoint remains the initial `[3,3,3,3,3]` state; this is checkpoint
+  selection, not evidence of absent optimizer steps.
+- The curriculum cell executes both 20-update phases with a recreated optimizer.
+  It clips 12/40 pre-clipping global norms, but all parameters and delays remain
+  finite and legal. This is a landmark monitoring item, not a smoke failure.
+- Runtime NPZ/panels and 48-field resource ledgers exist for every cell. The
+  oracle panel covers all windows; short learned arms remain first-window-heavy.
+- Accuracy was excluded from the smoke gate. The exact 25-cell landmark pilot
+  is authorized unchanged; full surface, K=8, sealed test and claims stay locked.
+- Results: `RESULTS_MIXEDOP_EVENT8_ALIGNED_SURFACE_V2_SMOKE.md`.
+
+## 2026-07-17 — Event8-aligned surface v2 landmark complete; full grid blocked
+
+- All 25 cells are complete and technically valid. All required oracle points
+  pass. Curriculum passes the registered joint gate only at lowN/lowT and
+  highN/lowT; the required center fails and only 2/3 minimum landmarks pass.
+- `full_sweep_authorized_by_results=false`; the remaining 95 cells may not run.
+- Spatial, oracle and curriculum are essentially perfect at N=20,w=4 and
+  remain saturated. The registered landmarks cannot identify an N/T factor law
+  or hidden compression. Shared d0 is `.50` worst BAcc throughout.
+- Task-only WAD is `.50` at four landmarks. It reaches `.9243` at highN/lowT,
+  but its maximum schedule error is 14.23 steps, so function does not establish
+  the declared routing mechanism.
+- A post-run mathematical audit finds a protocol endpoint inconsistency. The
+  event-centroid loss targets `d_q=1.5+w/2+qw`, whereas the oracle-vector gate
+  targets `3+qw`; the designed separation is .5/2.5/4.5 steps at w=4/8/12.
+  The observed curriculum errors follow this scale. Registered failure remains
+  binding, but it cannot be attributed solely to optimization.
+- At the smallest matched point, temporal oracle uses 5x spatial input-hidden
+  synapses/MACs/events, about 4x parameters and 24x buffer elements while
+  neuron updates are equal. `N_hidden*T` alone is not a fair cost conclusion.
+- Results: `RESULTS_MIXEDOP_EVENT8_ALIGNED_SURFACE_V2_LANDMARK.md` and
+  `generated/mixedop_event8_aligned_surface_v2/landmark_endpoint_audit.json`.
+
+## 2026-07-17 — K=6 centroid-supervised surface preregistered and implemented
+
+- Six simultaneous fixed queries are `[AND,OR,XOR,XNOR,NAND,NOR]`; one shared
+  temporal hidden layer uses arbitrary positive total width.
+- Frozen grid: 14 widths from 1 to 60, eight windows from 4 to 26, T=`10+6w`
+  from 34 to 166; 112 formal cells at seed 3907.
+- The event8 pre-delay centroid is 8.5. Training, checkpoint eligibility and
+  evaluation all use `d_q=1.5+w/2+qw`, resolving the v2 endpoint mismatch.
+- Delays receive centroid-Huber gradients only; weights/readout receive macro-
+  balanced BCE only. This is explicitly supervised temporal routing.
+- Four extreme seed-3899 preflight cells are authorized; formal surface is
+  locked. Preflight ignores accuracy/activity but requires finite/legal runs,
+  target-directed q1--q5 initial gradients, final centroid error <=.5 and all
+  runtime checkpoint/NPZ/panel/resource artifacts.
+- q0 is exempt from nonzero-gradient gating because common initialization is
+  exactly its target. It must remain finite and is recorded.
+- The 90% boundary additionally requires worst-query BAcc >=.90 and activity
+  fraction >=.10 in all windows. No spatial or multi-seed claim is permitted.
+
+## 2026-07-17 — K=6 centroid-supervised preflight passed
+
+- All four extreme cells pass finite/legal/artifact, q1--q5 initial direction,
+  and final maximum centroid-error <=.5 gates. Errors are `.0184`, `.3472`,
+  `.0184`, and `.3212` for `(N,w)=(1,4),(1,26),(60,4),(60,26)`.
+- N=1 diagnostic worst BAcc is `.5010/.5059`; N=60 is `1.0/1.0`. Accuracy was
+  excluded from the decision, but this suggests the registered N range crosses
+  the reliability transition. It does not establish a latency effect.
+- Every runtime panel covers six labels/windows through T=166. Resource ledgers
+  contain 48 fields and separate six delay values, buffer memory, neuron
+  updates, dense MACs and events.
+- The N=60,w=26 cell clips 49/600 updates without late continuous clipping or
+  numerical failure; clipping remains a formal monitoring item.
+- The exact 112-cell seed-3907 surface is now authorized unchanged. Test,
+  additional seeds, spatial controls and claims remain locked. Results:
+  `RESULTS_MIXEDOP_K6_CENTROID_SUPERVISED_SURFACE_V1_PREFLIGHT.md`.
+
+## 2026-07-17 — K=6 centroid-supervised 112-cell surface complete
+
+- 112/112 artifacts complete; 112 mechanism-valid; 95 joint 90% passes; maximum
+  selected centroid error `.4800` step. Activity never changes a 90% decision.
+- Raw N90 over T=`[34,40,46,58,70,94,130,166]` is `[3,3,2,2,3,4,3,3]`.
+  It is non-monotonic and not L-shaped.
+- Hyperbolic fit gives `Ninf=3.817,C=-148.65,T0=-87.94,R2=.129`; negative C
+  rejects the intended decreasing time-for-width interpretation. CV of N90*T
+  is `.629`.
+- Worst-BAcc descriptive grid SS fractions are hidden `.811`, T `.013`, and
+  interaction `.176`; marginal ranges are `.486` versus `.053`. Exact-trial
+  gives `.837/.015/.148`. These are single-seed descriptions, not ANOVA.
+- N=1 fails primarily on XOR/XNOR, not routing. N>=5 is nearly saturated.
+  T=34,N=4 and T=46,N=3 are higher-width reversals, so minimum N90 is not a
+  stable capacity boundary.
+- T is coupled to w, delay targets/support, integration and buffer depth. No
+  autonomous WAD, pure latency, output-spike or spatial-Pareto claim follows.
+- Results: `RESULTS_MIXEDOP_K6_CENTROID_SUPERVISED_SURFACE_V1.md` and
+  `generated/mixedop_k6_centroid_supervised_surface_v1/surface/`.
+
+## 2026-07-20 — K=6 boundary multi-seed confirmation preregistered
+
+- New protocol `mixedop_k6_boundary_multiseed_confirmation_v1` freezes N=1--5,
+  all eight parent T values and five fresh seeds `{4013,4027,4049,4061,4079}`:
+  200 cells. Seeds 3899/3907 are excluded.
+- Cell recipe and artifact contract are inherited exactly from the completed
+  parent; no additional smoke is required. Test remains sealed.
+- Named T34 N3-pass/N4-fail and T46 N2-pass/N3-fail reversals reproduce only if
+  present in >=2/5 fresh seeds.
+- Non-monotonicity confirms only if >=3/5 fresh seed N90 curves have an observed
+  adjacent increase. `>5` comparisons remain censored, not imputed.
+- Report per-seed, robust 4/5 and strict 5/5 N90. Stable boundary additionally
+  requires per-T seed range <=1; parent seed remains a separate reference.
+- Runner: `scripts/run_mixedop_k6_boundary_multiseed_confirmation.py`; protocol:
+  `MIXEDOP_K6_BOUNDARY_MULTISEED_CONFIRMATION_V1.md`.
+
+## 2026-07-21 — K=6 boundary multi-seed confirmation complete
+
+- All 200/200 registered cells and required runtime artifacts are complete;
+  200/200 pass the centroid mechanism gate and 134/200 pass the joint 90% rule.
+  Test remains sealed and parent seed 3907 is excluded from confirmation.
+- Per-seed N90 curves are `[4,3,3,2,2,2,3,3]`, `[3,3,3,2,2,3,3,3]`,
+  `[4,3,3,3,2,2,2,2]`, `[3,3,3,3,3,3,2,3]`, and
+  `[2,2,2,2,2,2,2,2]` for seeds 4013/4027/4049/4061/4079.
+- Robust 4/5 N90 is `[4,3,3,3,2,3,3,3]`; strict 5/5 N90 is
+  `[5,3,3,3,3,3,3,3]`. The registered stability rule fails because T=34 has
+  a two-neuron seed range. The robust curve does not reproduce the parent.
+- The exact T34 N3-pass/N4-fail and T46 N2-pass/N3-fail reversals reproduce in
+  0/5 fresh seeds each. They were seed-specific, not stable width reversals.
+- Broader non-monotonicity confirms at the exact threshold: 3/5 fresh-seed
+  curves contain an adjacent N90 increase, and the robust boundary increases
+  from N=2 at T=70 to N=3 at T=94.
+- N=2 is the unstable transition: 18/40 cells pass, with pass fractions
+  `[.2,.2,.2,.6,.8,.6,.6,.4]` over T. XOR/XNOR are the worst operation in
+  36/40 N=2 cells. Since every cell routes validly, this is not a failed-delay
+  explanation.
+- Interpretation remains restricted to explicitly supervised, fixed-position,
+  MLP-decoded routing. T is confounded with window/support/integration changes.
+  No autonomous WAD, time causality, Pareto, output-spike or energy claim is
+  authorized.
+- Results: `RESULTS_MIXEDOP_K6_BOUNDARY_MULTISEED_CONFIRMATION_V1.md` and
+  `generated/mixedop_k6_boundary_multiseed_confirmation_v1/`.
+
+## 2026-07-21 — Capacity/SLAYER protocol implemented through the S1 boundary
+
+- Registered `configs/spatial_temporal_capacity_slayer_v1.yaml`; historical
+  Level 0/1 and K=6 artifacts were not changed. Scientific stages and sealed
+  test remain launch-locked.
+- Added deterministic `binary_one_hot_packet`: selected A and B value channels
+  fire at steps 6--9, producing exactly `8K` events with no RNG dependence.
+- Added the optional `slayer_native` adapter, BTC--NCT conversion, one input-
+  axonal delay per value channel, shared windowed MLP output, unified result
+  schema and axonal-delay-aware resource accounting.
+- Created isolated `snn_slayer` with `lava-dl==0.6.0`, `torch==2.3.1+cu121`
+  and `PyYAML==6.0.2`; the existing `snn_async` environment was unchanged.
+- S0 invalid smoke seeds 99501/99502 pass gradient direction, arrival, event,
+  conversion, checkpoint and full-model CPU/CUDA checks. Full-model logits and
+  hidden spikes are exact; delay gradients agree within `1e-6`. Decision:
+  `generated/spatial_temporal_capacity_slayer_v1/s0_decision.json`.
+- Implemented the next task-only S1 calibration cell runner with separate
+  weight/delay LR, validation-only checkpoint selection, common schema,
+  resource vector and no centroid/oracle timing loss. The registered 30-cell
+  manifest dry-runs successfully but remains YAML-locked.
+- Added raw spatial/temporal capacity aggregation: multi-seed cell gates,
+  staircases, inverse curves and bootstrap power fits use no smoothing or
+  censor imputation. Added current-backend d0/fixed/task-only/centroid and
+  independent-spatial cell execution with compact `4K` axonal-delay storage,
+  S1/S2 decision summaries, the 50-cell K=6 fixed-oracle N_ref calibration,
+  and deterministic N_ref selection. Every launch remains conditional on its
+  YAML flag and preceding decision artifact.
+
+## 2026-07-24 -- Spatial repeated-XOR screening complete; worst-query diagnostic added
+
+- The completed spatial screen uses three fresh seeds `{5209,5227,5237}` at
+  fixed `B=48`, `T=58`. Future cell decisions require all three artifacts and
+  at least two seed passes; completed strict 3/3 summaries remain historical.
+- Added `raw_capacity_staircase_worst_query_only.png` and its paired JSON/CSV
+  artifacts under `generated/spatial_temporal_capacity_slayer_v1/spatial/`.
+  This diagnostic uses only worst-query BAcc >= .90 with the 2/3 rule; it is
+  explicitly not the joint worst-query-plus-exact-trial primary endpoint.
+- On that diagnostic, independent spatial d0 reaches observed K values
+  `[1,1,3,2,4,8]` at N=`[6,8,12,16,24,32]`; fixed temporal reaches
+  `[6,8,8,12,12,12,16]` at N=`[4,6,8,12,16,24,32]`. The N=32,K=16 temporal
+  point is top-grid censored.
+- Interpretation: the fixed schedule gives substantial spatial compression at
+  fixed latency, but the raw staircases contain plateaus and reversals. The
+  diagnostic fit is alpha=.416 (bootstrap 95% CI [.255,.626]) for fixed
+  temporal and alpha=1.194 (CI [.760,1.659]) for independent d0. Neither is a
+  better-than-linear claim; this is a teacher-supplied schedule upper bound,
+  not autonomous WAD.
+
+## 2026-07-24 -- Spatial closeout frozen under the 2/3 joint rule
+
+- Re-aggregated completed spatial artifacts without rerunning training under
+  the future rule: all three fresh artifacts must be present and at least two
+  must jointly pass worst-query BAcc >= .90 and exact-trial accuracy >= .90.
+  The resulting `*_joint_2of3` JSON, CSV, inverse curve and PNG preserve the
+  earlier strict 3/3 artifacts rather than overwriting them.
+- Spatial is closed for the fixed-latency capacity question: do not extend the
+  N/K sweep to manufacture a smooth or superlinear curve. The next planned
+  branch is temporal scaling at the preregistered N_ref=6; its launch remains
+  locked until this choice is explicitly confirmed.
+
+## 2026-07-24 -- Temporal stage narrowed to the route-capable oracle curve
+
+- `shared_d0` is not a temporal-scaling competitor: without a delay schedule it
+  lacks a causal path from simultaneous packets to their distinct output
+  windows. It is therefore not included in the temporal capacity curve, rather
+  than being interpreted as evidence that additional time has no value.
+- The registered temporal stage now has 72 cells: fixed-oracle shared temporal
+  routing only, N_ref=6, B=`[24,48,72,96]`, K=`[1,2,3,4,6,8]`, and three fresh
+  seeds. Its primary result is the single raw C_T(B) staircase; comparison to
+  independent spatial d0 is made through the already completed inverse spatial
+  curve, not by forcing an incompatible fixed-N baseline into this stage.
+- Every temporal cell will save `diagnostic_panel.npz` from a deterministic
+  validation batch: input packet, labels/predictions/logits, hidden spike train,
+  window counts, delay values and window edges. This preserves the evidence
+  needed to plot routing/activity diagnostics after aggregation.
+- Temporal launch is now authorized for this frozen 72-cell oracle-only matrix.
+
+## 2026-07-24 -- Temporal fixed-oracle capacity screen complete
+
+- All 72 registered validation artifacts and all 72 `diagnostic_panel.npz`
+  artifacts are complete. The joint 2/3 rule gives raw temporal capacity
+  C_T(24)=4 and C_T(48)=C_T(72)=C_T(96)=8 at N_ref=6.
+- Thus, at fixed hidden width, increasing B from 24 to 48 doubles the observed
+  reliable repeated-XOR query capacity from four to eight under the supplied
+  routing schedule. This is architectural space--time exchange evidence only:
+  it neither establishes learned WAD nor assigns a scalar energy value.
+- B>=48 is top-grid censored because K=8 is the largest registered workload.
+  Only the B=24 point is uncensored, so no temporal power-law fit or exponent
+  is admissible. The raw per-cell pass pattern also contains sparse-grid
+  non-monotonicities (for example B=48,K=4 is 2/3 while K=6/8 are 3/3); retain
+  raw gates and do not smooth.
+- Results: `generated/spatial_temporal_capacity_slayer_v1/temporal/`.

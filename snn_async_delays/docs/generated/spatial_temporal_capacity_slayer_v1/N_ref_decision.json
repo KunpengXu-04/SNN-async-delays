@@ -1,0 +1,71 @@
+{
+  "protocol_id": "spatial_temporal_capacity_slayer_v1",
+  "rule": "smallest_fixed_oracle_N_passing_K6_B48_in_all_calibration_seeds",
+  "K": 6,
+  "output_budget_B": 48,
+  "candidates": [
+    {
+      "N_hidden_total": 1,
+      "seeds_observed": 5,
+      "seeds_passing": 0,
+      "passes_5_of_5": false
+    },
+    {
+      "N_hidden_total": 2,
+      "seeds_observed": 5,
+      "seeds_passing": 0,
+      "passes_5_of_5": false
+    },
+    {
+      "N_hidden_total": 3,
+      "seeds_observed": 5,
+      "seeds_passing": 1,
+      "passes_5_of_5": false
+    },
+    {
+      "N_hidden_total": 4,
+      "seeds_observed": 5,
+      "seeds_passing": 2,
+      "passes_5_of_5": false
+    },
+    {
+      "N_hidden_total": 6,
+      "seeds_observed": 5,
+      "seeds_passing": 5,
+      "passes_5_of_5": true
+    },
+    {
+      "N_hidden_total": 8,
+      "seeds_observed": 5,
+      "seeds_passing": 5,
+      "passes_5_of_5": true
+    },
+    {
+      "N_hidden_total": 12,
+      "seeds_observed": 5,
+      "seeds_passing": 5,
+      "passes_5_of_5": true
+    },
+    {
+      "N_hidden_total": 16,
+      "seeds_observed": 5,
+      "seeds_passing": 5,
+      "passes_5_of_5": true
+    },
+    {
+      "N_hidden_total": 24,
+      "seeds_observed": 5,
+      "seeds_passing": 5,
+      "passes_5_of_5": true
+    },
+    {
+      "N_hidden_total": 32,
+      "seeds_observed": 5,
+      "seeds_passing": 5,
+      "passes_5_of_5": true
+    }
+  ],
+  "passed": true,
+  "N_ref": 6,
+  "test_split_opened": false
+}

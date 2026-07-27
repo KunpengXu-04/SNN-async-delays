@@ -1,0 +1,240 @@
+protocol_id: mixedop_event8_aligned_surface_v2
+status: landmark_complete_full_blocked_endpoint_inconsistency
+preregistered_at: 2026-07-17
+parent_evidence:
+  - mixedop_rate_alignment_repair_v1_stage_a
+  - mixedop_temporal_wad_repair_v3
+  - mixedop_temporal_wad_scaffold_withdrawal_v1_w2
+study_class: exploratory_single_seed_event8_resource_surface_preview
+
+question: >
+  Under the analytically aligned event8 interface, how do total hidden width
+  and latency affect reliability for spatial, shared-d0, fixed-oracle,
+  task-only delay, and curriculum-assisted temporal models at K=5?
+
+claim_boundary:
+  permitted:
+    - single-seed descriptive landmark reliability and resource comparisons
+    - fixed-oracle architectural feasibility
+    - curriculum-assisted temporal-model performance
+    - task-only WAD as a negative or diagnostic comparator
+  forbidden:
+    - autonomous learned temporal multiplexing
+    - per-synapse WAD trainability
+    - stable, significant, universal, or publication-grade factor laws
+    - N_hidden_times_T is hardware energy
+    - more event8 spikes are free
+    - pilot-selected hyperparameter changes
+
+workloads:
+  5: [AND, OR, XOR, XNOR, NAND]
+  operation_assignment: fixed_by_query_position
+  simultaneous_queries: true
+
+surface:
+  K_values: [5]
+  total_hidden_neurons: [20, 40, 80, 120, 160, 240]
+  output_window_lengths: [4, 6, 8, 12]
+  input_window_steps: 10
+  total_latency_formula: input_window_steps_plus_K_times_output_window_length
+  total_latency_steps: [30, 40, 50, 70]
+  conditions:
+    - spatial_independent_d0
+    - shared_d0
+    - shared_temporal_oracle
+    - shared_temporal_task_only
+    - shared_temporal_annealed
+  full_grid_points: 24
+  full_cells_single_seed: 120
+
+landmark_pilot:
+  status: complete_gate_negative
+  seed: 3807
+  invalid_for_confirmatory_claims: true
+  points:
+    - {label: lowN_lowT, total_hidden: 20, output_window_len: 4}
+    - {label: lowN_highT, total_hidden: 20, output_window_len: 12}
+    - {label: highN_lowT, total_hidden: 240, output_window_len: 4}
+    - {label: highN_highT, total_hidden: 240, output_window_len: 12}
+    - {label: geometric_center, total_hidden: 80, output_window_len: 8}
+  cells: 25
+
+encoding:
+  mode: binary_one_hot_rate
+  channels_per_query: 4
+  rate_start_step: 6
+  rate_steps: 4
+  packet_support_steps: [6, 9]
+  r_on_hz: 990.0
+  r_off_hz: 10.0
+  expected_events_per_query: 8.0
+  selected_value_channel_events: 1
+  one_hot_phase: 1.0
+  jitter_steps: 0
+  validation_realization: fixed_across_checkpoints
+  training_realization: resampled_each_update
+
+model:
+  readout: nonspiking_mlp
+  temporal_decoder: one_shared_mlp_applied_to_each_output_window
+  spatial_decoder: one_shared_mlp_applied_to_each_independent_module
+  hidden_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.2
+    reset_au: 0.0
+    refractory_steps: 2
+    surrogate_beta: 4.0
+  temporal_delay:
+    placement: input_to_hidden_only
+    oracle_base_delay_steps: 3
+    oracle_schedule_formula: base_plus_query_index_times_output_window_length
+    delay_support_margin_steps: 4
+    delay_support_formula: [0, 3_plus_4w_plus_4]
+    wad_parameterization: sigmoid
+    wad_tying: per_query
+    wad_init_mode: constant
+    wad_init_value_steps: 3.0
+    wad_init_raw: -1.8718021769
+    wad_backward: right_linear_historical_comparator
+  hidden_to_output_delay: not_applicable_nonspiking_decoder
+
+data:
+  dataset: marginally_balanced_fixed_operation_query
+  train_samples: 2048
+  validation_samples: 2048
+  train_seed_offset: 1000
+  validation_seed_offset: 2000
+  validation_encoding_seed_offset: 4000
+  every_query_has_each_AB_pair_count: 512
+  test_split_opened: false
+
+optimization:
+  optimizer: Adam
+  weight_learning_rate: 0.01
+  readout_learning_rate: 0.01
+  delay_learning_rate: 0.01
+  gradient_clip_norm: 1.0
+  batch_size: 128
+  optimizer_updates: 400
+  validation_interval_updates: 20
+  loss: query_by_class_macro_balanced_BCE
+  checkpoint_selection:
+    primary: validation_worst_query_balanced_accuracy
+    tie_break_1: validation_exact_trial_accuracy
+    tie_break_2: earlier_update
+
+curriculum_assisted:
+  interpretation: explicit_timing_curriculum_not_autonomous_WAD
+  scaffold_updates: 400
+  scaffold_delay_credit: routing_only_arrival_centroid_huber
+  scaffold_weight_readout_credit: task_BCE_only
+  scaffold_source_selection: accuracy_best_if_joint_passes_else_schedule_best_diagnostic_fallback
+  withdrawal_updates: 200
+  delay_credit_formula: task_gradient_plus_lambda_times_centroid_gradient
+  lambda_schedule:
+    updates_1_to_100: linear_1_to_0_inclusive
+    updates_101_to_200: 0
+  primary_checkpoint: final_update_200
+  training_update_cost_must_be_reported: true
+
+smoke:
+  status: complete_passed_invalid_for_claims
+  seed: 3799
+  point: {label: smoke_center, total_hidden: 80, output_window_len: 8}
+  conditions:
+    - spatial_independent_d0
+    - shared_d0
+    - shared_temporal_oracle
+    - shared_temporal_task_only
+    - shared_temporal_annealed
+  ordinary_condition_updates: 20
+  curriculum_scaffold_updates: 20
+  curriculum_withdrawal_updates: 20
+  cells: 5
+  invalid_for_claims: true
+  gates:
+    - finite_loss_gradients_parameters_and_delays
+    - legal_delays
+    - shared_d0_delay_exactly_zero
+    - oracle_schedule_exact
+    - task_only_nonzero_delay_gradient
+    - curriculum_phase_transition_and_fresh_optimizer
+    - event8_packet_and_schedule_consistency
+    - runtime_npz_panel_resource_ledger_complete
+
+pilot_decision:
+  primary_metric: worst_query_balanced_accuracy
+  oracle_required_points: [geometric_center, highN_lowT, highN_highT]
+  oracle_gate_each_required_point:
+    worst_query_balanced_accuracy_minimum: 0.90
+    exact_trial_accuracy_minimum: 0.80
+    each_window_activity_fraction_minimum: 0.10
+    schedule_exact: true
+  curriculum_gate_each_passing_point:
+    scaffold_source_joint_passed: true
+    worst_query_balanced_accuracy_minimum: 0.85
+    exact_trial_accuracy_minimum: 0.70
+    each_window_activity_fraction_minimum: 0.10
+    maximum_integer_oracle_schedule_error_steps: 1.0
+  curriculum_sweep_gate:
+    geometric_center_must_pass: true
+    at_least_one_highN_point_must_pass: true
+    total_landmarks_passing_minimum: 3
+  task_only_is_diagnostic_not_a_sweep_gate: true
+  full_sweep_authorized_only_if:
+    - all_cells_technically_valid
+    - all_required_oracle_points_pass
+    - curriculum_sweep_gate_passes
+
+full_sweep:
+  status: blocked_by_landmark_gate_and_endpoint_inconsistency
+  seed: 3807
+  grid_points: 24
+  conditions: same_as_landmark
+  cells_total_including_landmarks: 120
+  new_cells_after_landmarks: 95
+  completed_landmarks_reused_immutably: true
+  no_hyperparameter_or_grid_change_after_pilot: true
+
+required_cell_artifacts:
+  - config.json
+  - best_model.pt
+  - last_model.pt
+  - update_log.csv
+  - validation_log.csv
+  - validation_results.json
+  - validation_predictions.npz
+  - resource_ledger.json
+  - plots/diagnostic_data.npz
+  - plots/diagnostic_panel.png
+  - run_complete.json
+
+required_aggregate_outputs:
+  - landmark_cells.csv
+  - landmark_decision.json
+  - landmark_worst_bacc.png
+  - landmark_exact_trial.png
+  - landmark_schedule_error.png
+  - landmark_accuracy_cost.png
+  - surface_cells.csv
+  - surface_decision.json
+  - surface_worst_bacc.png
+  - surface_exact_trial.png
+  - surface_schedule_error.png
+
+execution:
+  smoke_root: runs/smoke/mixedop_event8_aligned_surface_v2
+  formal_root: runs/exploratory/mixedop_event8_aligned_surface_v2/landmark_pilot
+  full_root: runs/exploratory/mixedop_event8_aligned_surface_v2/full_surface
+  generated_root: docs/generated/mixedop_event8_aligned_surface_v2
+  device: cuda
+  no_per_cell_chat_updates: true
+  completed_cells_immutable: true
+  interrupted_cells_require_audit: true
+
+authorization:
+  smoke_launch: true
+  landmark_launch: true
+  full_sweep_launch: false
+  sealed_test: false
+  publication_claim: false

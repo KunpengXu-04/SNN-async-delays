@@ -1,0 +1,9 @@
+{
+  "protocol_id": "xor_task_derived_timing_withdrawal_v1",
+  "stage": "w0",
+  "complete_cells": 5,
+  "foundation_passing_cells": 5,
+  "foundation_gate_pass": true,
+  "w1_authorized": true,
+  "w2_authorized": false
+}

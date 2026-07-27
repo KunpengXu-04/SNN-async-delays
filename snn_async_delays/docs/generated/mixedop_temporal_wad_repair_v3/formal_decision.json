@@ -1,0 +1,30 @@
+{
+  "protocol_id": "mixedop_temporal_wad_repair_v3",
+  "stage": "formal_recovery",
+  "cells": 9,
+  "checkpoint_rows": 18,
+  "arm_seed_pass": {
+    "oracle": {
+      "3557": true,
+      "3569": true,
+      "3591": true
+    },
+    "arrival_mass_ce": {
+      "3557": false,
+      "3569": false,
+      "3591": false
+    },
+    "arrival_centroid_huber": {
+      "3557": true,
+      "3569": true,
+      "3591": true
+    }
+  },
+  "arm_pass": {
+    "oracle": true,
+    "arrival_mass_ce": false,
+    "arrival_centroid_huber": true
+  },
+  "withdrawal_authorized_by_results": true,
+  "test_split_opened": false
+}

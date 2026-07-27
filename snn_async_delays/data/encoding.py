@@ -183,15 +183,22 @@ def encode_simultaneous_trial(
     burst_jitter_ms: int     = 1,
     one_hot_phase: float     = 1.0,
     one_hot_n_spikes: int    = 1,
+    rate_start_step: int     = 0,
+    rate_steps: int | None   = None,
+    packet_start_step: int   = 6,
+    packet_steps: int        = 4,
     **kwargs,   # absorbs op_ids/n_ops passed by Step-3-aware callers
 ) -> torch.Tensor:
     """
     Encode K queries simultaneously with dedicated input channels.
 
     The historical rate/burst modes use 2K channels laid out as
-    `[A_0,B_0,A_1,B_1,...]`. ``binary_one_hot`` uses 4K channels laid out as
-    `[A0,A1,B0,B1]` per query and emits exactly `2*one_hot_n_spikes` events per
-    query, independent of the bit values.
+    `[A_0,B_0,A_1,B_1,...]`. ``binary_one_hot`` and
+    ``binary_one_hot_packet`` and ``binary_one_hot_rate`` use 4K channels laid
+    out as `[A0,A1,B0,B1]` per query. The packet emits the selected A and B
+    channels at every declared packet step; the rate form draws a Poisson
+    (Bernoulli-per-step) train with ``r_on`` on the two selected value channels
+    and ``r_off`` on the two unselected channels.
 
     Timeline:
       [0, win_len)              : spikes from all 2K channels.
@@ -201,6 +208,8 @@ def encode_simultaneous_trial(
       "rate"         : Poisson (r_on / r_off Hz Bernoulli, default)
       "burst"        : deterministic burst at fixed phase positions
       "burst_jitter" : burst with per-sample uniform jitter ±burst_jitter_ms
+      "binary_one_hot_packet": deterministic four-channel value code (8K
+                               events for the registered four-step packet)
 
     ``binary_one_hot`` places both selected value-channel events at the same
     declared phase. It is the neutral spatial-vs-temporal Pareto input code:
@@ -208,21 +217,61 @@ def encode_simultaneous_trial(
 
     Returns
     -------
-    spike_input : [B, T, 2K]  where T = win_len + read_len
+    spike_input : [B, T, 2K] or [B, T, 4K] for binary one-hot modes
     """
     B = A_batch.shape[0]
     K = A_batch.shape[1]
     T = win_len + read_len
 
-    if encoding_mode == "binary_one_hot":
+    if encoding_mode in {
+        "binary_one_hot", "binary_one_hot_packet", "binary_one_hot_rate"
+    }:
         spike_input = torch.zeros(B, T, 4 * K, device=device)
+        batch_index = torch.arange(B, device=device)
+        if encoding_mode == "binary_one_hot_packet":
+            packet_start = int(packet_start_step)
+            packet_length = int(packet_steps)
+            if (
+                packet_start < 0 or packet_length <= 0
+                or packet_start + packet_length > win_len
+            ):
+                raise ValueError(
+                    "binary one-hot packet must be a non-empty subset of the input window"
+                )
+            for query in range(K):
+                a_channel = 4 * query + A_batch[:, query].to(device).long().clamp(0, 1)
+                b_channel = 4 * query + 2 + B_batch[:, query].to(device).long().clamp(0, 1)
+                for event_time in range(packet_start, packet_start + packet_length):
+                    spike_input[batch_index, event_time, a_channel] = 1.0
+                    spike_input[batch_index, event_time, b_channel] = 1.0
+            return spike_input
+        if encoding_mode == "binary_one_hot_rate":
+            p_on = float(r_on) * float(dt) / 1000.0
+            p_off = float(r_off) * float(dt) / 1000.0
+            if not (0.0 <= p_off <= 1.0 and 0.0 <= p_on <= 1.0):
+                raise ValueError("rate probabilities must lie in [0,1]")
+            rate_start = int(rate_start_step)
+            rate_length = win_len - rate_start if rate_steps is None else int(rate_steps)
+            if rate_start < 0 or rate_length <= 0 or rate_start + rate_length > win_len:
+                raise ValueError("rate packet must be a non-empty subset of the input window")
+            probabilities = torch.full(
+                (B, rate_length, 4 * K), p_off, device=device
+            )
+            for query in range(K):
+                a_channel = 4 * query + A_batch[:, query].to(device).long().clamp(0, 1)
+                b_channel = 4 * query + 2 + B_batch[:, query].to(device).long().clamp(0, 1)
+                probabilities[batch_index, :, a_channel] = p_on
+                probabilities[batch_index, :, b_channel] = p_on
+            spike_input[:, rate_start:rate_start + rate_length, :] = torch.bernoulli(
+                probabilities
+            )
+            return spike_input
         if int(one_hot_n_spikes) <= 0:
             raise ValueError("one_hot_n_spikes must be positive")
         event_times = _burst_times(
             True, win_len, int(one_hot_n_spikes), int(one_hot_n_spikes),
             float(one_hot_phase), float(one_hot_phase),
         )
-        batch_index = torch.arange(B, device=device)
         for query in range(K):
             a_channel = 4 * query + A_batch[:, query].to(device).long().clamp(0, 1)
             b_channel = 4 * query + 2 + B_batch[:, query].to(device).long().clamp(0, 1)

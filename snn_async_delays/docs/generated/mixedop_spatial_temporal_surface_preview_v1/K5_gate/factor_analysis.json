@@ -1,0 +1,74 @@
+{
+  "protocol_id": "mixedop_spatial_temporal_surface_preview_v1",
+  "primary_metric": "worst_query_balanced_accuracy",
+  "single_seed": true,
+  "K_values": [
+    5
+  ],
+  "inferential_statistics_permitted": false,
+  "definitions": {
+    "hidden_marginal_range": "range of T-averaged accuracy across hidden widths",
+    "T_marginal_range": "range of hidden-averaged accuracy across T",
+    "two_way_SS": "descriptive balanced-grid sums of squares without replication"
+  },
+  "decision_rule": "hidden range >= 2*T range AND hidden SS fraction >= 0.80",
+  "analyses": [
+    {
+      "K": 5,
+      "condition": "spatial_independent_d0",
+      "hidden_marginal_accuracy_range": 0.0,
+      "T_marginal_accuracy_range": 0.0,
+      "grid_mean_accuracy": 1.0,
+      "grid_has_nonzero_variation": false,
+      "hidden_to_T_range_ratio": null,
+      "SS_hidden": 0.0,
+      "SS_T": 0.0,
+      "SS_interaction": 0.0,
+      "SS_hidden_fraction": null,
+      "SS_T_fraction": null,
+      "SS_interaction_fraction": null,
+      "hidden_range_at_least_twice_T": true,
+      "hidden_SS_fraction_at_least_80_percent": false,
+      "hidden_more_valuable_language_allowed": false,
+      "interpretation": "interaction_or_insufficient_evidence"
+    },
+    {
+      "K": 5,
+      "condition": "shared_temporal_oracle",
+      "hidden_marginal_accuracy_range": 0.0,
+      "T_marginal_accuracy_range": 0.0,
+      "grid_mean_accuracy": 1.0,
+      "grid_has_nonzero_variation": false,
+      "hidden_to_T_range_ratio": null,
+      "SS_hidden": 0.0,
+      "SS_T": 0.0,
+      "SS_interaction": 0.0,
+      "SS_hidden_fraction": null,
+      "SS_T_fraction": null,
+      "SS_interaction_fraction": null,
+      "hidden_range_at_least_twice_T": true,
+      "hidden_SS_fraction_at_least_80_percent": false,
+      "hidden_more_valuable_language_allowed": false,
+      "interpretation": "interaction_or_insufficient_evidence"
+    },
+    {
+      "K": 5,
+      "condition": "shared_temporal_wad",
+      "hidden_marginal_accuracy_range": 0.0,
+      "T_marginal_accuracy_range": 0.0,
+      "grid_mean_accuracy": 0.5,
+      "grid_has_nonzero_variation": false,
+      "hidden_to_T_range_ratio": null,
+      "SS_hidden": 0.0,
+      "SS_T": 0.0,
+      "SS_interaction": 0.0,
+      "SS_hidden_fraction": null,
+      "SS_T_fraction": null,
+      "SS_interaction_fraction": null,
+      "hidden_range_at_least_twice_T": true,
+      "hidden_SS_fraction_at_least_80_percent": false,
+      "hidden_more_valuable_language_allowed": false,
+      "interpretation": "interaction_or_insufficient_evidence"
+    }
+  ]
+}

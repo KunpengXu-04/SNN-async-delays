@@ -1,0 +1,5 @@
+stage,arm,seed,perturbation,artifacts_complete,provenance_valid,finite_and_legal,technical_valid,worst_query_balanced_accuracy,exact_trial_accuracy,minimum_window_activity_fraction,maximum_schedule_error_steps,schedule_error_reduction_fraction
+smoke,centroid_continue,3649,,True,True,True,True,0.9990234375,0.99755859375,1.0,0.5109138488769531,-0.021568548933013743
+smoke,delay_frozen,3649,,True,True,True,True,0.9973958730697632,0.99560546875,1.0,0.5001230239868164,7.627459617368488e-06
+smoke,abrupt_task_only,3649,,True,True,True,True,0.99951171875,0.9990234375,1.0,0.20769119262695312,0.5847229611323727
+smoke,annealed_joint,3649,,True,True,True,True,0.9990234375,0.99755859375,1.0,0.5448155403137207,-0.08935473598501967

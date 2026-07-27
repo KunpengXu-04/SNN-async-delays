@@ -1,0 +1,132 @@
+{
+  "protocol_id": "mixedop_event8_aligned_surface_v2",
+  "stage": "smoke",
+  "passed": true,
+  "rows": [
+    {
+      "stage": "smoke",
+      "point_label": "smoke_center",
+      "condition": "spatial_independent_d0",
+      "seed": 3799,
+      "total_hidden_neurons": 80,
+      "output_window_len": 8,
+      "total_latency_steps": 50,
+      "artifacts_complete": true,
+      "finite_and_legal": true,
+      "worst_query_balanced_accuracy": 0.724609375,
+      "exact_trial_accuracy": 0.54052734375,
+      "minimum_window_activity_fraction": 0.0,
+      "maximum_schedule_error_steps": 35.0,
+      "delay_query_means": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "neuron_update_proxy_N_times_T": 4000,
+      "scaffold_source_joint_passed": null,
+      "technical_valid": true
+    },
+    {
+      "stage": "smoke",
+      "point_label": "smoke_center",
+      "condition": "shared_d0",
+      "seed": 3799,
+      "total_hidden_neurons": 80,
+      "output_window_len": 8,
+      "total_latency_steps": 50,
+      "artifacts_complete": true,
+      "finite_and_legal": true,
+      "worst_query_balanced_accuracy": 0.5,
+      "exact_trial_accuracy": 0.05615234375,
+      "minimum_window_activity_fraction": 0.0,
+      "maximum_schedule_error_steps": 0.0,
+      "delay_query_means": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "neuron_update_proxy_N_times_T": 4000,
+      "scaffold_source_joint_passed": null,
+      "technical_valid": true
+    },
+    {
+      "stage": "smoke",
+      "point_label": "smoke_center",
+      "condition": "shared_temporal_oracle",
+      "seed": 3799,
+      "total_hidden_neurons": 80,
+      "output_window_len": 8,
+      "total_latency_steps": 50,
+      "artifacts_complete": true,
+      "finite_and_legal": true,
+      "worst_query_balanced_accuracy": 0.99853515625,
+      "exact_trial_accuracy": 0.99658203125,
+      "minimum_window_activity_fraction": 1.0,
+      "maximum_schedule_error_steps": 0.0,
+      "delay_query_means": [
+        3.0,
+        11.0,
+        19.0,
+        27.0,
+        35.0
+      ],
+      "neuron_update_proxy_N_times_T": 4000,
+      "scaffold_source_joint_passed": null,
+      "technical_valid": true
+    },
+    {
+      "stage": "smoke",
+      "point_label": "smoke_center",
+      "condition": "shared_temporal_task_only",
+      "seed": 3799,
+      "total_hidden_neurons": 80,
+      "output_window_len": 8,
+      "total_latency_steps": 50,
+      "artifacts_complete": true,
+      "finite_and_legal": true,
+      "worst_query_balanced_accuracy": 0.5,
+      "exact_trial_accuracy": 0.0947265625,
+      "minimum_window_activity_fraction": 0.0,
+      "maximum_schedule_error_steps": 32.0,
+      "delay_query_means": [
+        3.0,
+        3.0,
+        3.0,
+        3.0,
+        3.0
+      ],
+      "neuron_update_proxy_N_times_T": 4000,
+      "scaffold_source_joint_passed": null,
+      "technical_valid": true
+    },
+    {
+      "stage": "smoke",
+      "point_label": "smoke_center",
+      "condition": "shared_temporal_annealed",
+      "seed": 3799,
+      "total_hidden_neurons": 80,
+      "output_window_len": 8,
+      "total_latency_steps": 50,
+      "artifacts_complete": true,
+      "finite_and_legal": true,
+      "worst_query_balanced_accuracy": 0.5,
+      "exact_trial_accuracy": 0.12353515625,
+      "minimum_window_activity_fraction": 0.0,
+      "maximum_schedule_error_steps": 30.679836750030518,
+      "delay_query_means": [
+        3.340402126312256,
+        4.34583044052124,
+        4.312003135681152,
+        4.288535118103027,
+        4.320163249969482
+      ],
+      "neuron_update_proxy_N_times_T": 4000,
+      "scaffold_source_joint_passed": false,
+      "technical_valid": true
+    }
+  ]
+}

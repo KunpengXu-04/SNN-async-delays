@@ -1,0 +1,374 @@
+{
+  "protocol_id": "spatial_temporal_capacity_slayer_v1",
+  "stage": "temporal",
+  "resource_key": "output_budget_B",
+  "raw_cells": [
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 24,
+      "K": 1,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 1.0,
+      "minimum_exact_trial_accuracy": 1.0
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 24,
+      "K": 2,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 1.0,
+      "minimum_exact_trial_accuracy": 1.0
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 24,
+      "K": 3,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.982421875,
+      "minimum_exact_trial_accuracy": 0.982421875
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 24,
+      "K": 4,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.9951171875,
+      "minimum_exact_trial_accuracy": 0.9951171875
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 24,
+      "K": 6,
+      "seeds_observed": 3,
+      "seeds_passing": 0,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": false,
+      "minimum_worst_query_balanced_accuracy": 0.78662109375,
+      "minimum_exact_trial_accuracy": 0.44775390625
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 24,
+      "K": 8,
+      "seeds_observed": 3,
+      "seeds_passing": 0,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": false,
+      "minimum_worst_query_balanced_accuracy": 0.66015625,
+      "minimum_exact_trial_accuracy": 0.19091796875
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 48,
+      "K": 1,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 1.0,
+      "minimum_exact_trial_accuracy": 1.0
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 48,
+      "K": 2,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.94189453125,
+      "minimum_exact_trial_accuracy": 0.94189453125
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 48,
+      "K": 3,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 1.0,
+      "minimum_exact_trial_accuracy": 1.0
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 48,
+      "K": 4,
+      "seeds_observed": 3,
+      "seeds_passing": 2,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.87255859375,
+      "minimum_exact_trial_accuracy": 0.78759765625
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 48,
+      "K": 6,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.982421875,
+      "minimum_exact_trial_accuracy": 0.96630859375
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 48,
+      "K": 8,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.984375,
+      "minimum_exact_trial_accuracy": 0.9677734375
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 72,
+      "K": 1,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 1.0,
+      "minimum_exact_trial_accuracy": 1.0
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 72,
+      "K": 2,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 1.0,
+      "minimum_exact_trial_accuracy": 1.0
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 72,
+      "K": 3,
+      "seeds_observed": 3,
+      "seeds_passing": 2,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.75,
+      "minimum_exact_trial_accuracy": 0.75
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 72,
+      "K": 4,
+      "seeds_observed": 3,
+      "seeds_passing": 2,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.75,
+      "minimum_exact_trial_accuracy": 0.75
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 72,
+      "K": 6,
+      "seeds_observed": 3,
+      "seeds_passing": 2,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.890625,
+      "minimum_exact_trial_accuracy": 0.77978515625
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 72,
+      "K": 8,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.9716796875,
+      "minimum_exact_trial_accuracy": 0.94580078125
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 96,
+      "K": 1,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 1.0,
+      "minimum_exact_trial_accuracy": 1.0
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 96,
+      "K": 2,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 1.0,
+      "minimum_exact_trial_accuracy": 1.0
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 96,
+      "K": 3,
+      "seeds_observed": 3,
+      "seeds_passing": 2,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.75,
+      "minimum_exact_trial_accuracy": 0.75
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 96,
+      "K": 4,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.982421875,
+      "minimum_exact_trial_accuracy": 0.9736328125
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 96,
+      "K": 6,
+      "seeds_observed": 3,
+      "seeds_passing": 3,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.984375,
+      "minimum_exact_trial_accuracy": 0.97998046875
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 96,
+      "K": 8,
+      "seeds_observed": 3,
+      "seeds_passing": 2,
+      "required_seed_passes": 2,
+      "expected_seed_count": 3,
+      "pass_reliability": true,
+      "minimum_worst_query_balanced_accuracy": 0.9326171875,
+      "minimum_exact_trial_accuracy": 0.88720703125
+    }
+  ],
+  "raw_capacity_staircases": [
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 24,
+      "capacity_observed": 4,
+      "capacity": 4,
+      "censoring": "none"
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 48,
+      "capacity_observed": 8,
+      "capacity": null,
+      "censoring": "above_tested_K"
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 72,
+      "capacity_observed": 8,
+      "capacity": null,
+      "censoring": "above_tested_K"
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "output_budget_B": 96,
+      "capacity_observed": 8,
+      "capacity": null,
+      "censoring": "above_tested_K"
+    }
+  ],
+  "inverse_required_resource": [
+    {
+      "condition": "shared_temporal_fixed",
+      "K": 1,
+      "minimum_passing_output_budget_B": 24,
+      "right_censored": false
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "K": 2,
+      "minimum_passing_output_budget_B": 24,
+      "right_censored": false
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "K": 3,
+      "minimum_passing_output_budget_B": 24,
+      "right_censored": false
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "K": 4,
+      "minimum_passing_output_budget_B": 24,
+      "right_censored": false
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "K": 6,
+      "minimum_passing_output_budget_B": 48,
+      "right_censored": false
+    },
+    {
+      "condition": "shared_temporal_fixed",
+      "K": 8,
+      "minimum_passing_output_budget_B": 48,
+      "right_censored": false
+    }
+  ],
+  "power_law_fits": {
+    "shared_temporal_fixed": {
+      "fit_performed": false,
+      "reason": "fewer_than_minimum_uncensored_points",
+      "uncensored_points": 1,
+      "minimum_points": 4
+    }
+  },
+  "reliability_endpoint": "joint",
+  "smoothing_used": false,
+  "censored_values_imputed": false
+}

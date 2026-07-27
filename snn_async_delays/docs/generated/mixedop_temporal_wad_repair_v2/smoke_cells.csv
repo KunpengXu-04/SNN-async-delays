@@ -1,0 +1,5 @@
+arm,artifacts_complete,finite,delays_legal,schedule_artifacts_present,runtime_panel_present,passed
+oracle,True,True,True,True,True,True
+task_only,True,True,True,True,True,True
+joint_calibrated,True,True,True,True,True,True
+routing_only_for_delays,True,True,True,True,True,True

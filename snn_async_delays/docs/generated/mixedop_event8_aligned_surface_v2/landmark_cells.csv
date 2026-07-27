@@ -1,0 +1,26 @@
+stage,point_label,condition,seed,total_hidden_neurons,output_window_len,total_latency_steps,artifacts_complete,finite_and_legal,worst_query_balanced_accuracy,exact_trial_accuracy,minimum_window_activity_fraction,maximum_schedule_error_steps,delay_query_means,neuron_update_proxy_N_times_T,scaffold_source_joint_passed,technical_valid
+landmark,lowN_lowT,spatial_independent_d0,3807,20,4,30,True,True,0.9993489980697632,0.9990234375,0.0,19.0,"[0.0, 0.0, 0.0, 0.0, 0.0]",600,,True
+landmark,lowN_lowT,shared_d0,3807,20,4,30,True,True,0.5,0.13671875,0.0,0.0,"[0.0, 0.0, 0.0, 0.0, 0.0]",600,,True
+landmark,lowN_lowT,shared_temporal_oracle,3807,20,4,30,True,True,0.99951171875,0.99951171875,1.0,0.0,"[3.0, 7.0, 11.0, 15.0, 19.0]",600,,True
+landmark,lowN_lowT,shared_temporal_task_only,3807,20,4,30,True,True,0.5,0.26171875,0.0,9.021954536437988,"[0.9704295992851257, 5.9762396812438965, 6.397378444671631, 5.978045463562012, 17.82621955871582]",600,,True
+landmark,lowN_lowT,shared_temporal_annealed,3807,20,4,30,True,True,0.99951171875,0.99853515625,0.9130859375,0.36246538162231445,"[3.3624653816223145, 6.950882911682129, 10.74708366394043, 14.978459358215332, 19.052331924438477]",600,True,True
+landmark,lowN_highT,spatial_independent_d0,3807,20,12,70,True,True,0.9993489980697632,0.9990234375,0.0,51.0,"[0.0, 0.0, 0.0, 0.0, 0.0]",1400,,True
+landmark,lowN_highT,shared_d0,3807,20,12,70,True,True,0.5,0.14111328125,0.0,0.0,"[0.0, 0.0, 0.0, 0.0, 0.0]",1400,,True
+landmark,lowN_highT,shared_temporal_oracle,3807,20,12,70,True,True,0.9996744394302368,0.99951171875,0.99951171875,0.0,"[3.0, 15.0, 27.0, 39.0, 51.0]",1400,,True
+landmark,lowN_highT,shared_temporal_task_only,3807,20,12,70,True,True,0.5,0.2109375,0.0,45.85170555114746,"[0.8641632795333862, 23.804269790649414, 14.326074600219727, 6.044869422912598, 5.148294448852539]",1400,,True
+landmark,lowN_highT,shared_temporal_annealed,3807,20,12,70,True,True,1.0,1.0,1.0,4.10499382019043,"[6.8281989097595215, 19.10499382019043, 28.904129028320312, 41.02511978149414, 49.726295471191406]",1400,False,True
+landmark,highN_lowT,spatial_independent_d0,3807,240,4,30,True,True,1.0,1.0,0.0,19.0,"[0.0, 0.0, 0.0, 0.0, 0.0]",7200,,True
+landmark,highN_lowT,shared_d0,3807,240,4,30,True,True,0.5,0.15234375,0.0,0.0,"[0.0, 0.0, 0.0, 0.0, 0.0]",7200,,True
+landmark,highN_lowT,shared_temporal_oracle,3807,240,4,30,True,True,1.0,1.0,1.0,0.0,"[3.0, 7.0, 11.0, 15.0, 19.0]",7200,,True
+landmark,highN_lowT,shared_temporal_task_only,3807,240,4,30,True,True,0.92431640625,0.9052734375,0.99951171875,14.230256021022797,"[0.9502065181732178, 8.022787094116211, 1.5681536197662354, 0.7697439789772034, 16.595476150512695]",7200,,True
+landmark,highN_lowT,shared_temporal_annealed,3807,240,4,30,True,True,0.99951171875,0.99951171875,1.0,0.3991889953613281,"[3.2533795833587646, 7.053913593292236, 11.081486701965332, 15.134617805480957, 19.399188995361328]",7200,True,True
+landmark,highN_highT,spatial_independent_d0,3807,240,12,70,True,True,1.0,1.0,0.0,51.0,"[0.0, 0.0, 0.0, 0.0, 0.0]",16800,,True
+landmark,highN_highT,shared_d0,3807,240,12,70,True,True,0.5,0.15234375,0.0,0.0,"[0.0, 0.0, 0.0, 0.0, 0.0]",16800,,True
+landmark,highN_highT,shared_temporal_oracle,3807,240,12,70,True,True,1.0,1.0,1.0,0.0,"[3.0, 15.0, 27.0, 39.0, 51.0]",16800,,True
+landmark,highN_highT,shared_temporal_task_only,3807,240,12,70,True,True,0.5,0.193359375,0.0,49.685158133506775,"[0.9326068758964539, 13.540675163269043, 9.60865592956543, 10.807862281799316, 1.314841866493225]",16800,,True
+landmark,highN_highT,shared_temporal_annealed,3807,240,12,70,True,True,1.0,1.0,1.0,4.195113658905029,"[7.195113658905029, 18.685588836669922, 29.77472496032715, 42.55563735961914, 49.3903694152832]",16800,False,True
+landmark,geometric_center,spatial_independent_d0,3807,80,8,50,True,True,0.99951171875,0.99951171875,0.0,35.0,"[0.0, 0.0, 0.0, 0.0, 0.0]",4000,,True
+landmark,geometric_center,shared_d0,3807,80,8,50,True,True,0.5,0.15185546875,0.0,0.0,"[0.0, 0.0, 0.0, 0.0, 0.0]",4000,,True
+landmark,geometric_center,shared_temporal_oracle,3807,80,8,50,True,True,1.0,1.0,1.0,0.0,"[3.0, 11.0, 19.0, 27.0, 35.0]",4000,,True
+landmark,geometric_center,shared_temporal_task_only,3807,80,8,50,True,True,0.5,0.32470703125,0.0,22.00141143798828,"[0.9073489904403687, 12.587059020996094, 1.2520471811294556, 4.998588562011719, 33.15585708618164]",4000,,True
+landmark,geometric_center,shared_temporal_annealed,3807,80,8,50,True,True,1.0,1.0,1.0,2.453367233276367,"[5.125273704528809, 13.453367233276367, 20.95289421081543, 28.82944107055664, 36.270538330078125]",4000,False,True

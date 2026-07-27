@@ -1,0 +1,36 @@
+{
+  "protocol_id": "mixedop_temporal_wad_repair_v3",
+  "stage": "smoke",
+  "cells": 3,
+  "invalid_for_claims": true,
+  "passed": true,
+  "rows": [
+    {
+      "arm": "oracle",
+      "artifacts_complete": true,
+      "finite": true,
+      "delays_legal": true,
+      "schedule_artifacts_present": true,
+      "runtime_panel_present": true,
+      "passed": true
+    },
+    {
+      "arm": "arrival_mass_ce",
+      "artifacts_complete": true,
+      "finite": true,
+      "delays_legal": true,
+      "schedule_artifacts_present": true,
+      "runtime_panel_present": true,
+      "passed": true
+    },
+    {
+      "arm": "arrival_centroid_huber",
+      "artifacts_complete": true,
+      "finite": true,
+      "delays_legal": true,
+      "schedule_artifacts_present": true,
+      "runtime_panel_present": true,
+      "passed": true
+    }
+  ]
+}

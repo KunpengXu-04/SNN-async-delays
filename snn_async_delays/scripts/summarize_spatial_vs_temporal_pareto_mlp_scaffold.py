@@ -90,6 +90,48 @@ def _heatmap_figure(rows: list[dict], conditions: list[str], widths: list[int],
     plt.close(fig)
 
 
+def _focused_pooled_heatmap_figure(rows: list[dict], widths: list[int],
+                                   latencies: list[int], path: Path) -> None:
+    """Side-by-side pooled-accuracy planes for the learned-delay comparison."""
+    conditions = ["shared_temporal_d0", "shared_temporal_wad"]
+    fig, axes = plt.subplots(1, 2, figsize=(10.8, 4.8), sharex=True, sharey=True)
+    image = None
+    for ax, condition in zip(axes, conditions):
+        grid = _mean_grid(
+            rows, condition, "pooled_accuracy", widths, latencies, "mean"
+        )
+        image = ax.imshow(
+            grid, origin="lower", vmin=0.5, vmax=1.0,
+            cmap="viridis", aspect="auto",
+        )
+        ax.set_title(CONDITION_TITLES[condition], fontsize=10)
+        ax.set_xticks(range(len(latencies)), latencies)
+        ax.set_yticks(range(len(widths)), widths)
+        ax.set_xlabel("total latency T (steps)")
+        for yi in range(len(widths)):
+            for xi in range(len(latencies)):
+                value = grid[yi, xi]
+                if np.isfinite(value):
+                    ax.text(
+                        xi, yi, f"{value:.2f}", ha="center", va="center",
+                        fontsize=8, color="white" if value < .72 else "black",
+                    )
+    axes[0].set_ylabel("shared hidden neurons h")
+    assert image is not None
+    fig.colorbar(
+        image, ax=axes, fraction=.035, pad=.04,
+        label="mean pooled accuracy over seeds",
+    )
+    fig.suptitle(
+        "Shared temporal WAD vs d0 — pooled accuracy\n"
+        "Exploratory MLP scaffold; pooled accuracy can hide a weak query",
+        fontsize=12,
+    )
+    fig.subplots_adjust(left=.08, right=.88, bottom=.13, top=.80, wspace=.18)
+    fig.savefig(path, dpi=190, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+
 def _frontier(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
     unique = sorted(set(points), key=lambda point: (point[0], -point[1]))
     result, best = [], -np.inf
@@ -157,6 +199,10 @@ def main() -> None:
     parser.add_argument("--root-kind", choices=["exploratory", "smoke"],
                         default="exploratory")
     parser.add_argument("--allow-incomplete", action="store_true")
+    parser.add_argument(
+        "--pooled-only", action="store_true",
+        help="generate only the added pooled-accuracy Fig-C variants",
+    )
     args = parser.parse_args()
     protocol = load_protocol()
     root = BASE / "runs" / args.root_kind / PROTOCOL
@@ -214,6 +260,27 @@ def main() -> None:
 
     if not rows:
         raise SystemExit("no complete result cells found")
+    if args.pooled_only:
+        _heatmap_figure(
+            rows, conditions, widths, latencies, "pooled_accuracy", "mean",
+            output / "figC_nhid_T_plane_pooled_accuracy.png",
+            "pooled accuracy",
+        )
+        _focused_pooled_heatmap_figure(
+            rows, widths, latencies,
+            output / "figC_shared_temporal_wad_vs_d0_pooled_accuracy.png",
+        )
+        print(json.dumps({
+            "protocol": PROTOCOL,
+            "root_kind": args.root_kind,
+            "metric": "pooled_accuracy",
+            "reduction": "mean_over_seeds",
+            "figures": [
+                str(output / "figC_nhid_T_plane_pooled_accuracy.png"),
+                str(output / "figC_shared_temporal_wad_vs_d0_pooled_accuracy.png"),
+            ],
+        }, indent=2))
+        return
     _write_csv(output / "cells.csv", rows)
 
     aggregate = []
@@ -388,6 +455,14 @@ def main() -> None:
     _heatmap_figure(
         rows, conditions, widths, latencies, "exact_trial_accuracy", "mean",
         output / "figC_exact_trial_T_plane.png", "exact-trial accuracy",
+    )
+    _heatmap_figure(
+        rows, conditions, widths, latencies, "pooled_accuracy", "mean",
+        output / "figC_nhid_T_plane_pooled_accuracy.png", "pooled accuracy",
+    )
+    _focused_pooled_heatmap_figure(
+        rows, widths, latencies,
+        output / "figC_shared_temporal_wad_vs_d0_pooled_accuracy.png",
     )
     _pareto_figure(rows, conditions, output / "pareto_resource_frontiers.png")
 

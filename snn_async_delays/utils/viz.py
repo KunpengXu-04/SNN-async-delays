@@ -1112,11 +1112,16 @@ def _extract_run_traces(model, cfg: dict, K: int, op: str, device: str,
         burst_jitter_ms=cfg.get("burst_jitter_ms", 0),
         one_hot_phase=cfg.get("one_hot_phase", 1.0),
         one_hot_n_spikes=cfg.get("one_hot_n_spikes", 1),
+        rate_start_step=cfg.get("rate_start_step", 0),
+        rate_steps=cfg.get("rate_steps"),
     )
     if dataset_override is not None:
         A, B, op_ids, labels = dataset_override
         torch.manual_seed(seed)
-        spike_input = encode_sequential_trial(
+        encoder = (encode_simultaneous_trial
+                   if cfg.get("input_schedule") == "simultaneous"
+                   else encode_sequential_trial)
+        spike_input = encoder(
             A.unsqueeze(0), B.unsqueeze(0),
             win_len=cfg["win_len"], read_len=cfg["read_len"],
             r_on=cfg["r_on"], r_off=cfg["r_off"],

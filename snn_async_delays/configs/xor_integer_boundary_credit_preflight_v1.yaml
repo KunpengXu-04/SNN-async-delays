@@ -1,0 +1,137 @@
+protocol_id: xor_integer_boundary_credit_preflight_v1
+status: complete_p1_failed
+preregistered_at: 2026-07-16
+study_class: exploratory_backward_estimator_repair_preflight
+parent_protocol: xor_task_derived_timing_withdrawal_v1
+
+question: >
+  Can a backward-only estimator remove the exact-integer one-sided delay
+  gradient pathology observed after W2 while leaving every hard-spike forward
+  trajectory bitwise unchanged?
+
+scope:
+  task: K1_XOR_consecutive_microburst
+  inherited_checkpoints: five_matching_seed_W0_oracle_foundations
+  target_delay_steps: 4.0
+  perturbations_steps: [3.0, 5.0]
+  task_loss: filtered_hard_spike_opponent_loss
+  arrival_teacher_weight: 0.0
+  training_updates_p0: 0
+  claim_class: mechanism_and_engineering_selection_only
+
+forward_contract:
+  operation: historical_floor_ceil_linear_interpolation
+  hard_spike_dynamics: unchanged
+  weights_and_thresholds: inherited_unchanged
+  required_equivalence: bitwise_equal_output_hidden_and_voltage_forward_records_across_estimators
+  historical_default: right_linear
+
+estimators:
+  - id: legacy_right_linear
+    delay_gradient_mode: right_linear
+    delay_gradient_sigma: 0.75
+    intervention_rank: 0
+  - id: symmetric_integer
+    delay_gradient_mode: symmetric_integer
+    delay_gradient_sigma: 0.75
+    intervention_rank: 1
+  - id: gaussian_ste_s0p50
+    delay_gradient_mode: gaussian_ste
+    delay_gradient_sigma: 0.50
+    intervention_rank: 2
+  - id: gaussian_ste_s0p75
+    delay_gradient_mode: gaussian_ste
+    delay_gradient_sigma: 0.75
+    intervention_rank: 3
+  - id: gaussian_ste_s1p00
+    delay_gradient_mode: gaussian_ste
+    delay_gradient_sigma: 1.00
+    intervention_rank: 4
+
+delay_granularities:
+  - id: global
+    delay_tying: global
+    independent_delay_parameters: 1
+  - id: per_hidden
+    delay_tying: post_neuron
+    independent_delay_parameters: 16
+
+p0_gradient_screen:
+  seeds: [2503, 2521, 2539, 2551, 2579]
+  probes: 100
+  grid_formula: 5_estimators_x_2_granularities_x_2_perturbations_x_5_seeds
+  metrics:
+    - raw_task_gradient_per_independent_delay
+    - target_directed_coordinate_fraction
+    - nonzero_coordinate_fraction
+    - mean_raw_gradient_target_direction
+    - exact_interface_patterns_before_update
+    - forward_record_equivalence
+  mandatory_validity_gate: all_forward_records_bitwise_equal_within_matching_seed_granularity_and_perturbation
+  candidate_eligibility:
+    global_mean_gradient_target_directed: 10_of_10_seed_side_probes
+    global_nonzero: 10_of_10_seed_side_probes
+    per_hidden_mean_gradient_target_directed: 10_of_10_seed_side_probes
+    per_hidden_nonzero_coordinate_fraction_minimum: 0.75
+    d5_per_hidden_direction_fraction_strictly_above_legacy: true
+  selection_rule: >
+    Among eligible non-legacy estimators choose the lowest intervention_rank.
+    If none is eligible, stop before P1 and repair the loss/credit path rather
+    than tuning learning rates.
+
+p1_conditional_recovery:
+  status: complete_primary_failed
+  design: selected_estimator_x_two_perturbations_x_five_seeds
+  cells: 10
+  full_batch_updates: 500
+  trainable: [input_hidden_delays]
+  weights_frozen: true
+  task_loss_weight: 1.0
+  arrival_teacher_weight: 0.0
+  separate_endpoints:
+    functional_recovery: exact_spike_train_interface_10_of_10
+    schedule_identification: all_16_delays_within_0p1_step_of_four_10_of_10
+  interpretation: >
+    Functional recovery without schedule identification isolates residual
+    non-identifiability; it is not evidence that task loss learned the oracle
+    delay vector.
+
+execution:
+  p0_runs_root: runs/exploratory/xor_integer_boundary_credit_preflight_v1/stage_p0_gradient_screen
+  p0_summary_root: docs/generated/xor_integer_boundary_credit_preflight_v1/stage_p0_gradient_screen
+  device: cuda
+  formal_runs_immutable: true
+  no_per_probe_chat_updates: true
+  test_split_opened: false
+
+authorization:
+  p0_launch: false
+  p1_launch: false
+  new_foundation_training: false
+  K_greater_than_1: false
+  pareto_or_cost_law: false
+
+observed_stage_decisions:
+  p0_complete: true
+  probes_complete: 100
+  forward_equivalence_pass: true
+  selected_estimator_id: gaussian_ste_s1p00
+  selected_delay_gradient_mode: gaussian_ste
+  selected_delay_gradient_sigma: 1.0
+  selection_rule_changed_after_observation: false
+  p1_unlocked: true
+  p1_complete: true
+  p1_functional_recovery_cells: 2
+  p1_schedule_identification_cells: 0
+  p1_joint_full_pass_cells: 0
+  p1_functional_gate_pass: false
+  p1_schedule_gate_pass: false
+  p1_protocol_repair_pass: false
+  p1_by_perturbation:
+    d3_functional_recovery_cells: 2
+    d5_functional_recovery_cells: 0
+  interpretation: >
+    The backward repair corrects aggregate exact-integer credit but not the
+    coordinate-level identifiability problem. Per-hidden task gradients still
+    split, d5 delays polarize, and exact functional cells reach zero task loss
+    at non-oracle schedules.

@@ -1,0 +1,26 @@
+{
+  "protocol_id": "xor_integer_boundary_credit_preflight_v1",
+  "stage": "stage_p1_conditional_recovery",
+  "complete": true,
+  "selected_estimator_id": "gaussian_ste_s1p00",
+  "cells": 10,
+  "functional_recovery_cells": 2,
+  "schedule_identification_cells": 0,
+  "joint_full_pass_cells": 0,
+  "functional_gate_pass": false,
+  "schedule_gate_pass": false,
+  "protocol_repair_pass": false,
+  "by_perturbation": {
+    "d3": {
+      "cells": 5,
+      "functional_recovery_cells": 2,
+      "schedule_identification_cells": 0
+    },
+    "d5": {
+      "cells": 5,
+      "functional_recovery_cells": 0,
+      "schedule_identification_cells": 0
+    }
+  },
+  "test_split_opened": false
+}

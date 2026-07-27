@@ -354,9 +354,12 @@ class SNNSimultaneousModel(nn.Module):
         fixed_delay_high: float | None = None,
         shared_delay: bool = False,
         delay_tying: str | None = None,
+        delay_group_index: List[int] | None = None,
         delay_init_mode: str = "constant",
         delay_init_raw: float = -2.0,
         delay_init_std: float = 0.25,
+        delay_gradient_mode: str = "right_linear",
+        delay_gradient_sigma: float = 0.75,
         lif_tau_m: float = 10.0,
         lif_threshold: float = 1.0,
         lif_reset: float = 0.0,
@@ -456,10 +459,12 @@ class SNNSimultaneousModel(nn.Module):
             fixed_delay_value=fixed_delay_value, train_weights=train_w, train_delays=train_d,
             fixed_delay_distribution=fixed_delay_distribution,
             fixed_delay_seed=fixed_delay_seed, shared_delay=shared_delay,
-            delay_tying=delay_tying,
+            delay_tying=delay_tying, delay_group_index=delay_group_index,
             fixed_delay_low=fixed_delay_low, fixed_delay_high=fixed_delay_high,
             delay_init_mode=delay_init_mode, delay_init_raw=delay_init_raw,
             delay_init_std=delay_init_std,
+            delay_gradient_mode=delay_gradient_mode,
+            delay_gradient_sigma=delay_gradient_sigma,
         )
 
         # ── Layer 1: input -> h1 ──
@@ -468,7 +473,11 @@ class SNNSimultaneousModel(nn.Module):
 
         # ── Layer 2 (optional): h1 -> h2 ──
         if num_hidden_layers == 2:
-            self.syn_h1h2 = DelayedSynapticLayer(h1, h2, **syn_kw)
+            hidden_syn_kw = dict(syn_kw)
+            if delay_tying == "pre_group":
+                hidden_syn_kw["delay_tying"] = "pair"
+                hidden_syn_kw["delay_group_index"] = None
+            self.syn_h1h2 = DelayedSynapticLayer(h1, h2, **hidden_syn_kw)
             self.lif_h2   = LIFNeurons(h2, **lif_kw)
 
         # ── Readout ──
@@ -902,6 +911,7 @@ class SNNSpatialParallelModel(nn.Module):
         dt: float = 1.0,
         surrogate_beta: float = 4.0,
         readout_type: str = "mlp",
+        delay_tying: str = "pair",
     ):
         super().__init__()
         if n_queries < 1 or hidden_per_query < 1:
@@ -938,6 +948,8 @@ class SNNSpatialParallelModel(nn.Module):
             fixed_delay_value=fixed_delay_value,
             train_weights=train_w,
             train_delays=train_d,
+            delay_tying=delay_tying,
+            delay_group_index=(list(range(4)) if delay_tying == "pre_group" else None),
         )
         lif_kw = dict(
             tau_m=lif_tau_m, v_threshold=lif_threshold, v_reset=lif_reset,

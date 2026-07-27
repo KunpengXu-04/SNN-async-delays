@@ -1,0 +1,287 @@
+protocol_id: xor_task_derived_timing_withdrawal_v1
+status: complete_primary_failed
+preregistered_at: 2026-07-16
+study_class: confirmatory_local_scaffold_withdrawal_audit
+parent_protocol: xor_delay_granularity_rescue_microburst_v1
+panel_label: Withdrawal v1
+
+question: >
+  After an independently rebuilt oracle-supervised per-hidden checkpoint has
+  acquired the exact K=1 XOR micro-burst interface, can hard-spike task loss
+  alone retain that schedule and locally restore it after symmetric delay
+  perturbations?
+
+hypotheses:
+  retention: >
+    Removing the arrival teacher while freezing both weight matrices preserves
+    the exact interface and all 16 delays within 0.1 step of four in 5/5 cells.
+  primary_local_restoration: >
+    From both homogeneous perturbations d=3 and d=5, task-only delay updates
+    restore the exact interface and all 16 delays to four in 10/10 cells.
+  positive_control: >
+    Oracle-only delay updates recover both perturbation directions in 10/10
+    cells, demonstrating that a failure of the primary arm is not a generic
+    delay-optimizer failure.
+  compensation_controls: >
+    Joint task updates and weight-only task updates are secondary diagnostics;
+    their success cannot substitute for task-only delay restoration.
+
+claim_boundary:
+  positive_claim: >
+    Hard-spike task supervision can locally restore a homogeneous delay-four
+    schedule inside an independently teacher-created basin.
+  explicitly_not_supported:
+    - autonomous from-scratch discovery of the schedule
+    - reversal of the prior task-only 0-of-10 global-discovery result
+    - heterogeneous delay specialization or routing
+    - K greater than one or temporal multiplexing
+    - WAD superiority, compression, energy savings, or a Pareto law
+    - held-out data or task generalization
+
+task:
+  operation: XOR
+  K: 1
+  truth_patterns: 4
+  training_batch: exhaustive_truth_table_full_batch
+  checkpoint_selection: final_only
+  test_split_opened: false
+
+model:
+  architecture: 4_to_16_to_2_class_opponent_spiking
+  hidden_neurons: 16
+  output_neurons: 2
+  input_hidden_delay_granularity: per_hidden_neuron
+  independent_delay_parameters: 16
+  d_max_steps: 8
+  input_hidden_delay_parameterization: sigmoid
+  output_delay_mode: d0
+  hidden_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.2
+    reset_au: 0.0
+    refractory_steps: 2
+  output_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.03
+    reset_au: 0.0
+    refractory_steps: 2
+  surrogate_beta: 4.0
+  dt_steps: 1.0
+  units_note: membrane_and_threshold_values_are_dimensionless_simulator_arbitrary_units
+
+timing:
+  input_window_steps: 10
+  read_window_steps: 10
+  total_steps: 20
+  target_delay_steps: 4.0
+  perturbation_delay_steps: [3.0, 5.0]
+  output_target_step: 15
+  effective_layer_delay_formula: emitted_step_plus_nominal_delay_plus_one
+
+encoding:
+  name: consecutive_microburst
+  mode: binary_one_hot
+  selected_channel_events: 2
+  event_steps: [8, 9]
+  events_per_trial: 4
+
+losses:
+  task:
+    name: filtered_hard_spike_opponent_loss
+    filter_tau_steps: 3.0
+    weight: 1.0
+  oracle_foundation_and_positive_control:
+    name: per_parameter_arrival_centroid
+    effective_lambda: 0.16
+    base_lambda: 0.01
+    parameter_count: 16
+    target_delay_steps: 4.0
+    interpretation: explicit_oracle_teacher
+  withdrawal_task_arms:
+    effective_lambda: 0.0
+    interpretation: no_arrival_teacher
+
+optimization:
+  optimizer: Adam
+  weight_learning_rate: 0.01
+  delay_learning_rate: 0.01
+  full_batch_updates: 500
+  foundation_initial_raw: -2.0
+  gradient_clip_norm: 1.0
+  formal_seeds: [2503, 2521, 2539, 2551, 2579]
+  seed_policy: fresh_and_disjoint_from_all_parent_selection_confirmation_and_smoke_seeds
+  perturbation_assignment: >
+    Before branch optimization overwrite all 16 functional delays with exactly
+    3.0 or 5.0 via the inverse-sigmoid raw value; retain inherited weights.
+  optimizer_state_policy: fresh_adam_state_for_every_branch
+
+stage_w0_foundation:
+  status: complete_5_of_5
+  cells: 5
+  condition: per_hidden_oracle_foundation
+  arrival_auxiliary_weight: 0.16
+  trainable: [input_hidden_weights, hidden_output_weights, input_hidden_delays]
+  init_raw: -2.0
+  gate: all_5_cells_pass_exact_interface_delay_coverage_and_coordinate_gradient_gates
+  failure_action: stop_protocol_and_do_not_materialize_w1_or_w2
+
+stage_w1_damage_controls:
+  status: complete_10_of_10
+  cells: 10
+  perturbations: [3.0, 5.0]
+  seeds_per_perturbation: 5
+  updates: 0
+  trainable: []
+  inherited_state: matching_seed_w0_final_checkpoint
+  gate: all_10_cells_fail_exact_target_spike_train_interface
+  rationale: recovery_is_noninformative_unless_the_prespecified_perturbation_causes_damage
+  failure_action: stop_protocol_without_posthoc_perturbation_tuning
+
+stage_w2_withdrawal_and_recovery:
+  status: complete_45_of_45
+  cells: 45
+  retention:
+    cells: 5
+    perturbation: none
+    loss: task_only_lambda_0
+    trainable: [input_hidden_delays]
+    weights_frozen: true
+    pass: all_5_exact_interface_and_full_delay_coverage
+  perturbed_branches:
+    cells: 40
+    grid:
+      perturbations: [3.0, 5.0]
+      seeds: 5
+      conditions:
+        - name: oracle_delay_only
+          role: positive_optimizer_control
+          arrival_auxiliary_weight: 0.16
+          task_loss_weight: 0.0
+          trainable: [input_hidden_delays]
+        - name: task_delay_only
+          role: primary_local_restoration
+          arrival_auxiliary_weight: 0.0
+          task_loss_weight: 1.0
+          trainable: [input_hidden_delays]
+        - name: task_joint
+          role: secondary_compensation_aware
+          arrival_auxiliary_weight: 0.0
+          task_loss_weight: 1.0
+          trainable: [input_hidden_weights, hidden_output_weights, input_hidden_delays]
+        - name: task_weight_only
+          role: secondary_weight_compensation_control
+          arrival_auxiliary_weight: 0.0
+          task_loss_weight: 1.0
+          trainable: [input_hidden_weights, hidden_output_weights]
+  positive_control_gate: oracle_delay_only_10_of_10_full_pass
+  primary_gate: task_delay_only_10_of_10_exact_interface_and_full_delay_recovery
+  gradient_interpretation: >
+    Initial coordinate directions are mandatory mechanism diagnostics but are
+    not an endpoint gate; nonlinear optimization can restore a coordinate
+    after an initially indirect step. Report them separately and never hide a
+    wrong-direction result.
+  compensation_rule: task_joint_or_weight_only_success_never_rescues_a_failed_primary_gate
+
+per_cell_gates:
+  interface:
+    balanced_accuracy: 1.0
+    exact_truth_table_completion: true
+    exact_target_spike_train_match: true
+    silent_rate: 0.0
+    collision_rate: 0.0
+    correct_target_time_rate: 1.0
+    mean_output_spikes_per_trial: 1.0
+    hidden_active_pattern_count: 4
+    early_or_extra_output_spikes_allowed: false
+  delay:
+    max_independent_delay_error_steps: 0.1
+    fraction_independent_delays_within_tolerance: 1.0
+  primary_initial_task_gradient_diagnostic:
+    correct_coordinate_fraction: 1.0
+    nonzero_coordinate_fraction: 1.0
+    evaluated_after_perturbation_before_first_update: true
+
+decision_rule:
+  protocol_pass: >
+    W0 passes 5/5, W1 demonstrates damage 10/10, retention passes 5/5,
+    oracle-delay-only passes 10/10, and primary task-delay-only passes 10/10.
+  task_credit_failure: >
+    If oracle-delay-only passes but task-delay-only fails, conclude that the
+    registered task loss lacks reliable local timing credit under this setup.
+  optimizer_or_model_failure: >
+    If oracle-delay-only fails, do not attribute task-only failure specifically
+    to task credit; diagnose implementation or local optimizer viability.
+  invalid_damage_test: >
+    If any no-update perturbation retains the exact interface, stop. Do not
+    change perturbation magnitude inside this protocol.
+
+diagnostics:
+  runtime_npz_required: true
+  runtime_panel_required: true
+  checkpoint_required: true
+  branch_provenance_required: true
+  immediate_pretraining_interface_required: true
+  plots:
+    - loss_and_exact_interface_curves
+    - delay_min_mean_max_and_coverage
+    - initial_task_gradient_direction_by_coordinate
+    - input_hidden_output_rasters
+    - output_pre_reset_voltage
+    - inherited_perturbed_final_delay_maps
+    - branchwise_recovery_summary
+  resource_vector:
+    - trainable_parameters
+    - trainable_delay_parameters
+    - delay_value_storage
+    - neuron_updates
+    - dense_synapse_macs
+    - measured_synaptic_events
+    - delay_buffer_memory
+
+execution_policy:
+  formal_runs_root: runs/exploratory/xor_task_derived_timing_withdrawal_v1
+  smoke_runs_root: runs/smoke/xor_task_derived_timing_withdrawal_v1
+  formal_cells_maximum: 60
+  smoke_seeds: [99503, 99521]
+  no_formal_subset_selection: true
+  no_resume_from_partial_cell: true
+  formal_runs_immutable: true
+  no_per_cell_chat_updates: true
+  device: cuda
+
+authorization:
+  w0_launch: false
+  w1_launch: false
+  w2_launch: false
+  K_greater_than_1: false
+  pareto_or_cost_law: false
+
+observed_stage_decisions:
+  w0_foundation_gate_pass: true
+  w1_damage_gate_pass: true
+  w1_d3_output_step: 14
+  w1_d5_output_step: 16
+  w1_classification_preserved_10_of_10: true
+  w1_exact_timing_destroyed_10_of_10: true
+  pre_w2_read_only_task_gradient_audit:
+    changes_to_registered_protocol: none
+    d3_mean_target_directed_coordinate_fraction: 0.85
+    d5_mean_target_directed_coordinate_fraction: 0.1375
+    all_cells_nonzero_coordinate_fraction: 1.0
+  w2_final_decision:
+    retention_pass: true
+    oracle_delay_only_pass: true
+    task_delay_only_pass: false
+    task_joint_full_schedule_pass: false
+    task_weight_only_pass: false
+    local_restoration_protocol_pass: false
+    K_greater_than_1_authorized: false
+  post_w2_mechanism_audit:
+    changes_to_formal_result: none
+    d3_task_delay_exact_interface_cells: 3
+    d5_task_delay_exact_interface_cells: 0
+    d5_task_delay_coordinates_near_bounds_fraction: 0.5
+    integer_boundary_global_gradient_mean_raw:
+      delay_4p999: 0.00407759
+      delay_5p000: -0.00356313
+    interpretation: right_sided_integer_delay_derivative_flips_the_late_side_credit_direction

@@ -1,0 +1,17 @@
+{
+  "protocol_id": "mixedop_spatial_temporal_surface_preview_v1",
+  "stage": "K5_gate",
+  "cells_complete": 36,
+  "technical_execution_pass": true,
+  "spatial_feasibility_pass": true,
+  "oracle_feasibility_pass": true,
+  "wad_primary_routing_pass": false,
+  "informative_width_latency_surface_pass": false,
+  "hidden_more_valuable_language_allowed": false,
+  "reason": "All primary surfaces are constant: spatial=1.0, oracle=1.0, WAD=0.5. Width/T effects and SS fractions are therefore not identifiable.",
+  "K8_automatically_authorized": false,
+  "recommended_action": "pause_for_researcher_decision",
+  "sealed_test_opened": false,
+  "K8_completed_cells_excluded": 5,
+  "K8_interrupted_cells_excluded": 2
+}

@@ -1,0 +1,17 @@
+{
+  "protocol_id": "mixedop_event8_aligned_surface_v2",
+  "stage": "landmark",
+  "cells": 25,
+  "required_oracle_points_passed": true,
+  "curriculum_landmark_pass": {
+    "lowN_lowT": true,
+    "lowN_highT": false,
+    "highN_lowT": true,
+    "highN_highT": false,
+    "geometric_center": false
+  },
+  "curriculum_landmarks_passing": 2,
+  "full_sweep_authorized_by_results": false,
+  "single_seed_exploratory": true,
+  "test_split_opened": false
+}

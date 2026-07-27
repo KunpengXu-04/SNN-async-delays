@@ -1,0 +1,36 @@
+{
+  "protocol_id": "mixedop_temporal_wad_repair_v2",
+  "stage": "formal_recovery",
+  "cells": 12,
+  "checkpoint_rows": 24,
+  "arm_seed_pass": {
+    "joint_calibrated": {
+      "3457": false,
+      "3469": false,
+      "3491": false
+    },
+    "oracle": {
+      "3457": true,
+      "3469": true,
+      "3491": true
+    },
+    "routing_only_for_delays": {
+      "3457": false,
+      "3469": false,
+      "3491": false
+    },
+    "task_only": {
+      "3457": false,
+      "3469": false,
+      "3491": false
+    }
+  },
+  "arm_pass": {
+    "joint_calibrated": false,
+    "oracle": true,
+    "routing_only_for_delays": false,
+    "task_only": false
+  },
+  "withdrawal_authorized_by_results": false,
+  "test_split_opened": false
+}

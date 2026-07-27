@@ -1,0 +1,213 @@
+protocol_id: mixedop_temporal_wad_scaffold_withdrawal_v1
+status: complete_w2_task_only_restoration_failed
+preregistered_at: 2026-07-17
+parent_result: mixedop_temporal_wad_repair_v3_formal
+study_class: exploratory_supervision_withdrawal_and_local_identifiability
+
+question: >
+  After an explicit arrival-centroid scaffold has established a functional
+  five-query schedule, can task BCE retain that schedule and restore it after
+  prespecified perturbations when timing supervision is removed?
+
+claim_boundary:
+  permitted:
+    - scaffolded schedule retention under task-only continuation
+    - local task-derived schedule restoration from declared perturbations
+    - evidence for or against local delay identifiability
+  forbidden:
+    - autonomous routing from scratch
+    - per-synapse WAD or general temporal multiplexing
+    - K=8, Pareto, hardware energy, or publication claims
+
+fixed_interface:
+  K: 5
+  operations: [AND, OR, XOR, XNOR, NAND]
+  total_hidden_neurons: 120
+  output_window_length_steps: 4
+  total_horizon_steps: 30
+  input_window_steps: 10
+  encoding: binary_one_hot_rate_event8
+  rate_packet_steps: [6, 7, 8, 9]
+  r_on_hz: 990.0
+  r_off_hz: 10.0
+  readout: one_shared_nonspiking_mlp_per_output_window
+  delay_tying: per_query
+  delay_support_steps: [0, 23]
+  integer_oracle_schedule_steps: [3, 7, 11, 15, 19]
+  centroid_solution_steps: [3.5, 7.5, 11.5, 15.5, 19.5]
+  hidden_threshold_au: 0.2
+
+data:
+  dataset: marginally_balanced_fixed_operation_query
+  train_samples: 2048
+  validation_samples: 2048
+  train_seed_offset: 1000
+  validation_seed_offset: 2000
+  validation_encoding_seed_offset: 4000
+  operation_assignment: fixed_by_query_position
+  test_split_opened: false
+
+optimization:
+  optimizer: Adam
+  weight_learning_rate: 0.01
+  readout_learning_rate: 0.01
+  delay_learning_rate: 0.01
+  gradient_clip_norm: 1.0
+  batch_size: 128
+  validation_interval_updates: 20
+  task_loss: query_by_class_macro_balanced_BCE
+  routing_loss: arrival_centroid_huber
+  routing_huber_beta_in_window_units: 0.25
+  checkpoint_policy:
+    w0_scaffold_source: first_of_accuracy_best_then_schedule_best_that_jointly_passes
+    withdrawal_primary: last_checkpoint_only
+    intermediate_best: descriptive_only
+
+technical_smoke:
+  status: complete_passed
+  seed: 3649
+  optimizer_updates: 20
+  invalid_for_claims: true
+  arms:
+    - centroid_continue
+    - delay_frozen
+    - abrupt_task_only
+    - annealed_joint
+  gates:
+    - finite_loss_gradients_parameters_and_delays
+    - legal_delays
+    - parent_checkpoint_load_exact
+    - optimizer_state_is_new_and_declared
+    - runtime_npz_panel_resource_ledger_complete
+    - abrupt_task_only_has_nonzero_delay_gradient
+    - annealed_joint_lambda_matches_registered_schedule
+
+w0_scaffold_replication:
+  status: complete_passed_all_three_seeds
+  seeds: [3657, 3669, 3691]
+  optimizer_updates: 400
+  cells: 3
+  initialization_delay_steps: [3, 3, 3, 3, 3]
+  delay_credit: routing_only_arrival_centroid_huber
+  weight_and_readout_credit: task_bce_only
+  gate_each_seed:
+    worst_query_balanced_accuracy_minimum: 0.85
+    exact_trial_accuracy_minimum: 0.70
+    each_window_activity_fraction_minimum: 0.10
+    maximum_integer_oracle_schedule_error_steps: 1.0
+  stop_rule: stop_entire_protocol_if_any_seed_has_no_jointly_passing_checkpoint
+
+w1_retention_withdrawal:
+  status: complete_annealed_passed_abrupt_failed
+  source: corresponding_seed_w0_jointly_passing_checkpoint
+  seeds: [3657, 3669, 3691]
+  optimizer_updates: 200
+  cells: 12
+  reset_optimizer_state: true
+  arms:
+    delay_frozen:
+      delay_credit: none
+      interpretation: readout_weight_adaptation_control
+    centroid_continue:
+      delay_credit: routing_only_arrival_centroid_huber
+      interpretation: positive_scaffold_control
+    abrupt_task_only:
+      delay_credit: task_bce_only_from_update_1
+      interpretation: task_only_retention_not_discovery
+    annealed_joint:
+      delay_credit_formula: task_gradient_plus_lambda_times_centroid_gradient
+      lambda_schedule:
+        updates_1_to_100: linear_1_to_0_inclusive
+        updates_101_to_200: 0
+      interpretation: curriculum_with_final_100_updates_task_only
+  primary_readout_time: final_update_200
+  gate_each_seed:
+    worst_query_balanced_accuracy_minimum: 0.85
+    exact_trial_accuracy_minimum: 0.70
+    each_window_activity_fraction_minimum: 0.10
+    maximum_integer_oracle_schedule_error_steps: 1.0
+  retention_pass_rule:
+    abrupt: abrupt_task_only_passes_all_metrics_in_all_three_seeds_at_final_update
+    annealed: >-
+      annealed_joint passes all metrics in all seeds at final update and maximum
+      schedule error never exceeds 1.5 during updates 101 to 200
+
+w2_local_restoration:
+  status: complete_centroid_6_of_6_task_only_0_of_6
+  source: corresponding_seed_w0_jointly_passing_checkpoint_before_w1
+  seeds: [3657, 3669, 3691]
+  optimizer_updates: 200
+  reset_optimizer_state: true
+  perturb_in_physical_delay_space_before_optimizer_creation: true
+  perturbations:
+    uniform_early_2_steps:
+      formula: d_perturbed_q = d_scaffold_q - 2
+      purpose: preserve query spacing while breaking absolute alignment
+    compressed_spacing:
+      offsets_steps_by_query: [0, -1, -2, -3, -4]
+      purpose: break late-query spacing and coverage
+  arms:
+    - delay_frozen
+    - centroid_restore
+    - task_only_restore
+  cells: 18
+  primary_readout_time: final_update_200
+  gate_each_seed_and_perturbation:
+    positive_centroid_control_must_pass_joint_gate: true
+    task_only_worst_query_balanced_accuracy_minimum: 0.85
+    task_only_exact_trial_accuracy_minimum: 0.70
+    task_only_each_window_activity_fraction_minimum: 0.10
+    task_only_maximum_integer_oracle_schedule_error_steps: 1.0
+    task_only_schedule_error_reduction_from_perturbed_initial_minimum_fraction: 0.50
+  local_restoration_pass_rule: >-
+    task_only_restore passes every metric for both perturbations in all three
+    seeds at final update; no best-intermediate checkpoint substitution
+
+required_artifacts:
+  - config.json
+  - source_checkpoint_provenance.json
+  - initial_and_perturbed_delay_vectors.json
+  - last_model.pt
+  - descriptive_best_model.pt
+  - update_log.csv
+  - validation_log.csv
+  - final_validation_results.json
+  - final_validation_predictions.npz
+  - resource_ledger.json
+  - plots/diagnostic_data.npz
+  - plots/diagnostic_panel.png
+  - run_complete.json
+
+diagnostics:
+  required_trajectories:
+    - task_loss
+    - routing_loss
+    - per_query_physical_delay
+    - per_query_raw_delay_gradient_task_component
+    - per_query_raw_delay_gradient_routing_component
+    - gradient_cosine_task_vs_routing
+    - per_window_hidden_activity_fraction
+    - per_query_balanced_accuracy
+    - exact_trial_accuracy
+  required_endpoint_checks:
+    - source_checkpoint_hash
+    - delay_vector_before_and_after_perturbation
+    - final_schedule_error_per_query
+    - final_function_and_schedule_same_checkpoint
+
+execution:
+  smoke_root: runs/smoke/mixedop_temporal_wad_scaffold_withdrawal_v1
+  w0_root: runs/exploratory/mixedop_temporal_wad_scaffold_withdrawal_v1/w0_scaffold
+  w1_root: runs/exploratory/mixedop_temporal_wad_scaffold_withdrawal_v1/w1_retention
+  w2_root: runs/exploratory/mixedop_temporal_wad_scaffold_withdrawal_v1/w2_restoration
+  generated_root: docs/generated/mixedop_temporal_wad_scaffold_withdrawal_v1
+  device: cuda
+
+authorization:
+  implementation_smoke_launch: true
+  w0_launch: true
+  w1_launch: true
+  w2_launch: true
+  sealed_test: false
+  k8_or_surface: false
+  publication_claim: false

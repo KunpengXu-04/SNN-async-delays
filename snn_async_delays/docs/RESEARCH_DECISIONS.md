@@ -187,3 +187,138 @@ recipes confirm, so the registered lower-complexity priority selects
 per-hidden-neuron (16 independent delay parameters) over per-synapse (64).
 Level 1B-R is complete. This result does not unlock micro-burst or K>1 by
 itself; a downstream experiment requires a new explicit decision and protocol.
+
+## 13. Dimension-aware micro-burst rescue decision (2026-07-16)
+
+Do not run the original frozen 60 learned Stage-B cells as the main rescue:
+they retain the already diagnosed `1/P` teacher dilution. Preserve them as an
+unrun historical protocol. The independent replacement is
+`xor_delay_granularity_rescue_microburst_v1`.
+
+The new bridge retains the exact hard-spike model, thresholds, LRs, 500-update
+budget, d0 hidden-output delay and delay-4 target. It changes only the encoding
+to consecutive events at steps 8 and 9 and transfers the confirmed analytic
+weights `.01/.16/.64`. The primary candidate is per-hidden, because sealed R3
+selected it over per-synapse on parameter count. Per-synapse remains a
+secondary complexity control and per-hidden task-only is diagnostic.
+
+Stage B0 contains five fresh-seed fixed-d4 cells and must pass 5/5 before the
+40 learned cells unlock. Formal seeds are `{2333,2351,2371,2389,2411}`. Seed
+`2309` was used accidentally during implementation smoke, permanently removed
+from the formal set and retained only as invalid smoke provenance. All future
+smoke runs use dedicated `99xxx` seeds. No outcome in this protocol directly
+authorizes K>1; a full pass authorizes only a newly preregistered
+scaffold-withdrawal/task-derived timing test.
+
+Stage B0 is complete. Fixed d4 passes all five fresh formal seeds with exact
+four-pattern spike trains at step 15, zero silence/collision, one output event
+per trial and complete runtime artifacts. This is a feasibility replication,
+not learned-delay evidence. Its mechanical decision unlocks the entire
+40-cell learned matrix; no condition or seed may be omitted.
+
+The learned matrix is also complete. Global `.01`, dimension-matched
+per-hidden `.16`, and dimension-matched per-synapse `.64` pass all ten cells
+each. Per-hidden task-only passes zero of ten. This is a clean separation:
+the hard-spike interface and high-dimensional delay parameterizations are
+trainable when an explicit coordinate-wise timing teacher is present, but the
+registered task loss does not reliably discover the schedule globally.
+
+## 14. Scaffold-withdrawal decision (2026-07-16)
+
+Do not call another task-only from-scratch run “scaffold withdrawal”: that
+question has already failed 0/10. Withdrawal must start from an independently
+recreated teacher-built per-hidden checkpoint and remove the teacher without
+changing the task, interface, optimizer, or training budget.
+
+The next protocol therefore separates retention from restoration. Retention
+keeps the exact checkpoint, freezes both weight matrices, sets `lambda=0`, and
+updates delays only. Restoration overwrites all 16 functional delays with a
+prespecified symmetric perturbation, either 3 or 5 steps. No-update controls
+must first show that each perturbation breaks the exact spike interface;
+otherwise recovery in that direction is non-informative and remains locked.
+Oracle-delay-only recovery is the optimizer positive control. Task-delay-only
+recovery is the primary causal test. Task-joint and weight-only branches test
+whether apparent recovery is instead compensation by synaptic weights.
+
+Even a 10/10 primary pass supports only local task-derived restoration within
+a teacher-created basin. It cannot reverse the 0/10 global-discovery result,
+and it cannot authorize heterogeneous schedules, K>1 temporal multiplexing,
+compression, or Pareto claims.
+
+W0 is now complete. All five fresh foundations reproduce the exact interface
+and all-coordinate delay-four solution. The largest maximum coordinate error
+is `.002032` step; no cell clips and all artifact bundles are complete. This
+does not add task-derived evidence. It only satisfies the provenance gate for
+the ten prespecified no-update d3/d5 damage controls. W2 remains locked.
+
+W1 is complete and satisfies the damage gate. The intervention is clean:
+non-delay state is bitwise unchanged, functional delays are exactly three or
+five, no component is trainable, and no optimizer update occurs. All d3 cells
+emit the correct class at step 14; all d5 cells emit it at step 16. Therefore
+classification remains perfect but exact timing fails 10/10. This is precisely
+why W2 must retain the exact-spike endpoint rather than use accuracy alone.
+
+Before W2, a declared read-only task-gradient audit found mean target-directed
+coordinate fractions `.85` at d3 and `.1375` at d5; all coordinates are
+nonzero. This predicts asymmetric restoration and exposes the likely weakness
+of the task loss on the late side. It does not alter any W2 arm, seed, LR,
+budget, endpoint, or decision rule.
+
+W2 is complete and the formal local-restoration claim fails. Retention passes
+5/5 and the oracle delay-only positive control passes 10/10, ruling out generic
+optimizer incapacity. Task-delay-only passes 0/10: d3 recovers exact function
+in 3/5 but the complete delay schedule in 0/5; d5 recovers neither in 0/5 and
+polarizes half its coordinates near the delay bounds. Task-joint exact function
+in 8/10 with delay recovery 0/10 is compensation/non-identifiability, not delay
+restoration.
+
+Do not respond by tuning LR, threshold, training length, or seeds. The
+production interpolation uses `floor(d.detach())`, so an exact integer receives
+the right-hand derivative. With globally tied delay and the same W0 weights,
+the mean task gradient is `+.00408` at 4.999 but `-.00356` at 5.000; descent
+therefore moves the registered d5 condition later. Parameter tying alone does
+not fix this. The next method decision must compare symmetric/central or smooth
+delay credit and continuous output-level timing losses in a small gradient-field
+preflight. K>1 remains locked.
+
+That registered preflight is now complete. Read
+`docs/RESULTS_XOR_INTEGER_BOUNDARY_CREDIT_PREFLIGHT_V1.md`. Gaussian STE sigma
+1.00 fixes aggregate exact-integer direction without changing forward records,
+but per-hidden P1 passes exact function only 2/10 and schedule identification
+0/10. Never infer coordinate recovery from mean gradient or exact output
+behaviour. The next allowed discriminator is globally tied one-delay task-only
+recovery under a new frozen protocol. Only a successful global anchor may
+motivate target-free consensus or low-rank per-hidden tying; a failed global
+anchor instead requires a continuous task-timing credit redesign. K>1 and
+Pareto experiments remain unauthorized.
+
+## 15. Separate capacity from autonomous trainability (2026-07-21)
+
+Close the K=6 centroid-supervised surface as an assisted capacity branch. Its
+unstable fresh-seed boundary is not a basis for further K=6 expansion, an
+L-shaped law, or autonomous delay claims. Preserve all historical artifacts.
+
+Use two sequential evidence chains. Fixed schedules and selected explicit-
+centroid checks answer architectural capacity; task-only SLAYER asks whether
+the schedule is learnable without a timing teacher. Learned-delay scaling is
+forbidden unless SLAYER passes the registered K=1 and K=2 gates. A failed K=2
+gate is a negative trainability result and stops that surface.
+
+Use repeated XOR so K changes query load without changing operation difficulty.
+Use deterministic four-step binary one-hot packets so input count is exactly
+`8K` and cannot grow with T. Retain the shared windowed MLP for the main
+capacity comparison; shared opponent spikes are a separately reported,
+conditional follow-up.
+
+SLAYER is an optional backend, not a replacement simulator. Put one
+`slayer.axon.Delay` per input value channel (`4K`) before a dense CUBA block and
+keep Lava-DL in a pinned environment. On this host, record the pure-PyTorch
+fallback for Lava-DL's optional JIT CUDA kernels because MSVC is unavailable;
+the SLAYER delay autograd and CUBA model remain in use.
+
+S0 passes both invalid smoke seeds, including full-model CPU/CUDA parity and
+checkpoint recovery. This satisfies the technical prerequisite but does not
+launch S1: calibration stays locked in YAML. After validated S1/S2 decisions,
+freeze N_ref from fixed-oracle results before temporal scanning. Analysis must
+retain raw non-monotonic rows, never use isotonic repair, never convert censored
+K to a number, and never call a single resource scalar “energy.”

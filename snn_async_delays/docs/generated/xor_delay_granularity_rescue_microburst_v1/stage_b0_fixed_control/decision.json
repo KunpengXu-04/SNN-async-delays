@@ -1,0 +1,12 @@
+{
+  "protocol_id": "xor_delay_granularity_rescue_microburst_v1",
+  "stage": "stage_b0_fixed_control",
+  "expected_cells": 5,
+  "complete_cells": 5,
+  "all_cells_complete": true,
+  "fixed_d4_interface_passing_cells": 5,
+  "fixed_d4_gate_pass": true,
+  "learned_stage_authorized": true,
+  "K_greater_than_one_authorized": false,
+  "test_split_opened": false
+}

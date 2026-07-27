@@ -1,0 +1,33 @@
+{
+  "protocol_id": "mixedop_rate_alignment_repair_v1",
+  "stage": "smoke",
+  "invalid_for_claims": true,
+  "cells": 2,
+  "passed": true,
+  "rows": [
+    {
+      "event_budget_label": "event4",
+      "artifacts_complete": true,
+      "finite": true,
+      "nonzero_hidden_activity": true,
+      "oracle_schedule_exact": true,
+      "delays_legal": true,
+      "runtime_panel_present": true,
+      "runtime_npz_present": true,
+      "resource_ledger_present": true,
+      "passed": true
+    },
+    {
+      "event_budget_label": "event8",
+      "artifacts_complete": true,
+      "finite": true,
+      "nonzero_hidden_activity": true,
+      "oracle_schedule_exact": true,
+      "delays_legal": true,
+      "runtime_panel_present": true,
+      "runtime_npz_present": true,
+      "resource_ledger_present": true,
+      "passed": true
+    }
+  ]
+}

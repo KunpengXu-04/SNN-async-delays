@@ -690,10 +690,113 @@ Execute in this order:
     higher-dimensional recipes confirm and the preregistered lower-parameter
     priority selects per-hidden-neuron. Level 1B-R is complete, while
     micro-burst, K>1 and routing claims remain outside its authorization.
+18. `xor_delay_granularity_rescue_microburst_v1` is preregistered and
+    implementation-validated as the independent dimension-aware Stage-B
+    rescue. It does not modify the frozen original 60-cell learned matrix. The
+    new protocol uses consecutive events at steps 8 and 9, exact output at
+    step 15, fresh formal seeds `{2333,2351,2371,2389,2411}`, and unchanged
+    `.01` weight/delay LRs with 500 updates. Five fixed-d4 cells must pass
+    before 40 learned cells materialize. Learned candidates are global
+    `lambda=.01`, selected per-hidden `lambda=.16`, secondary per-synapse
+    `lambda=.64`, and diagnostic per-hidden task-only. Primary success requires
+    fixed d4 5/5 plus global and per-hidden 10/10 under the full exact-interface
+    and coordinate-delay gates. Ten implementation smoke cells are invalid;
+    proposed seed `2309` was consumed by smoke and replaced before formal
+    launch. The five formal fixed-d4 controls are complete and pass 5/5 with
+    exact step-15 outputs, so the complete 40-cell learned matrix is now
+    launch-ready. The complete learned matrix has now run. Global `.01`,
+    per-hidden `.16`, and per-synapse `.64` each pass 10/10; per-hidden
+    task-only passes 0/10. The result establishes an oracle-supervised
+    micro-burst bridge but simultaneously rejects reliable task-only global
+    discovery under this loss and optimizer. The next authorized experiment is
+    a fresh scaffold-withdrawal protocol that separates (i) retention after
+    teacher removal from (ii) local restoration after symmetric delay
+    perturbations. It does not authorize K>1 or Pareto work.
+19. `xor_task_derived_timing_withdrawal_v1` is the next preregistered causal
+    audit. Five fresh-seed per-hidden `.16` foundation cells must first recreate
+    exact teacher-built checkpoints. Ten no-update controls then set every
+    independent delay to either 3 or 5 steps; both perturbation directions must
+    destroy the exact interface before recovery arms unlock. The primary arm
+    freezes both weight matrices, removes the arrival teacher (`lambda=0`), and
+    asks whether task loss alone restores all 16 delays to 4 and the exact
+    spike train. Oracle-delay-only is the positive optimizer control;
+    task-joint and weight-only are compensation controls; unperturbed
+    task-delay-only retention is reported separately. A positive result means
+    local task-derived restoration inside a teacher-created basin, never
+    from-scratch discovery, heterogeneous routing, K>1, or a Pareto advantage.
+    W0 is complete: all five fresh foundations pass the exact interface and
+    coordinate-delay gates, with maximum error `.002032` step and complete
+    artifacts. This opens only the ten no-update d3/d5 damage controls in W1;
+    all 45 W2 cells remain mechanically locked.
+    W1 is now complete and passes 10/10: d3 shifts every output to step 14 and
+    d5 shifts every output to step 16 while preserving classification accuracy
+    one. W2 is authorized. A disclosed no-training gradient audit predicts a
+    major directional asymmetry (`.85` target-directed coordinates at d3 versus
+    `.1375` at d5); the frozen 45-cell matrix must nevertheless run unchanged.
+    W2 is complete and the primary protocol fails. Retention passes 5/5 and
+    oracle-delay-only passes 10/10, but task-delay-only passes 0/10. Functional
+    recovery is asymmetric (d3 3/5 exact, d5 0/5) and no task-only cell
+    recovers all 16 delays. Joint training reaches the exact interface in 8/10
+    but never the oracle schedule, demonstrating compensation/non-identifiability.
+    A post-result audit localizes the late-side failure to the integer boundary:
+    the globally tied mean gradient flips from `+.00408` at `d=4.999` to
+    `-.00356` at `d=5.000` because the current interpolation backward selects
+    the right-hand interval. K>1 remains locked. The next admissible work is a
+    small preregistered integer-boundary temporal-credit preflight, not an LR,
+    threshold, budget, or seed sweep.
+20. `xor_integer_boundary_credit_preflight_v1` is complete. P0 evaluates 100
+    zero-update probes over five W0 foundations, d3/d5, global/per-hidden
+    tying, and five backward estimators. All forward records are bitwise
+    identical. Gaussian STE sigma 1.00 alone passes the registered aggregate
+    direction rule (global and per-hidden mean 10/10); it raises d5
+    coordinate-direction fraction from `.1375` to `.4875`, still below a
+    coordinate-majority guarantee. Conditional P1 then freezes weights and
+    runs ten per-hidden task-only recovery cells. It fails: exact interface
+    2/10 (both d3), full 16-delay recovery 0/10, and d5 exact interface 0/5.
+    Exact cells reach zero task loss at non-oracle schedules, while d5 delays
+    split toward the bounds. The integer derivative was a real but incomplete
+    cause. K>1 remains locked. The next admissible causal discriminator is a
+    new preregistered globally tied one-delay recovery anchor using the selected
+    backward. If that succeeds, compare target-free consensus/low-rank delay
+    parameterizations; if it fails, redesign continuous task timing credit.
+    Do not tune LR, threshold, update budget, sigma, or seeds using P1.
 
 All are validation-only pilots. No test split is opened. The optimization audit
 must not use the simultaneous pilots as an additional hyperparameter search;
 the WAD configuration is frozen before those tasks run.
+
+## 15A. Deadline-driven mixed-operation surface preview (non-confirmatory)
+
+At the researcher's explicit request, `mixedop_spatial_temporal_surface_preview_v1`
+is a separate progress-visualization branch and an exception to the causal
+programme's normal K>1 sequencing. It does not alter the publication gates.
+The frozen single-seed grid compares an independent spatial d0 architecture, a
+hand-scheduled temporal oracle and the current WAD diagnostic at K=5/8 over
+four total hidden widths and three latencies. All learning rates are `.01`.
+Six invalid technical cells passed the preregistered stability gate without
+using accuracy, authorizing the unchanged 72-cell matrix.
+
+The researcher subsequently introduced a K=5-first decision gate. All 36 K=5
+cells are complete; K=8 is on hold. K=5 does not produce an informative factor
+surface: spatial and fixed oracle are 1.0 everywhere, while WAD is .5
+everywhere on worst-query balanced accuracy. Width/T marginal ranges are zero
+and SS fractions are undefined. WAD has activity in essentially only its first
+two output windows and does not learn the query-spaced delay schedule. At the
+smallest tested N/T, spatial and oracle are both perfect, while oracle carries
+5x dense MAC/event cost and 17x delay-buffer storage. This branch therefore
+does not currently supply a cost law or learned routing result. Read
+`RESULTS_MIXEDOP_SPATIAL_TEMPORAL_SURFACE_PREVIEW_V1_K5.md`; do not resume K=8
+without an explicit research decision.
+
+The only potentially admissible conclusion is a descriptive statement about
+width-versus-latency sensitivity in this exact workload, and only under the
+registered marginal-range and balanced-grid-SS thresholds. The surface cannot
+establish temporal credit, internal-schedule identification, WAD superiority,
+output-spike timing, general mixed-operation routing, or hardware energy. A
+positive oracle surface is architectural feasibility under experimenter timing;
+a positive WAD surface remains compatible with shared representation and
+alignment. These results must be displayed alongside the failed causal timing
+programme, not used to erase it.
 
 ## 16. Decisions that still require the researcher
 
@@ -709,3 +812,280 @@ Before Phase 2 is locked, record:
 
 These decisions affect scope and cost modelling, but they do not block the
 immediate calibration and causal-control work.
+
+## 17. Gated rate-code rescue calibration
+
+`mixedop_rate_wad_surface_calibration_v1` is a versioned exploratory response
+to the K=5 WAD floor. It keeps the 4K value-channel interface and changes the
+micro-burst into stochastic one-hot rate trains. This tests whether distributed
+input events improve optimization and output-window coverage, but it is not
+event matched: 8.2 expected events/query replace four. Resource reporting must
+therefore accompany every accuracy comparison.
+
+Only four expanded-surface corners and the center are evaluated first, each
+with a fixed-oracle feasibility control and WAD. The 30-cell WAD surface stays
+locked unless the preregistered gradient, oracle and WAD performance gates all
+pass. Even then, a positive surface is descriptive unless the separate routing
+gate passes. Failure stops this branch; it does not authorize rate, threshold,
+LR or grid tuning on the same validation workload. Read
+`MIXEDOP_RATE_WAD_SURFACE_CALIBRATION_V1.md` before execution.
+
+## 18. Rate-alignment repair outcome
+
+The versioned late-rate repair confirms that analytical packet alignment and
+event redundancy can make the fixed K=5 oracle perfect. Stage A selects the
+near-deterministic event8/N120/w4 interface; event4 never reaches the exact-
+trial gate. Stage B then rejects both autonomous and `.10` routing-assisted
+five-parameter delay learning: oracle passes 3/3, while both learned arms have
+worst-query `.50` in all seeds and fail the internal schedule.
+
+Assisted gradients are large, routing loss falls and later-window coverage
+partially grows, so this is not gradient disappearance. The remaining design
+risks are conflict between task and routing credit, a late target at the
+sigmoid support boundary, and insufficient schedule identifiability. Scaffold
+withdrawal, per-synapse WAD and full surfaces remain closed. A further repair,
+if pursued, must be a separately preregistered method test with interior target
+support and explicit gradient-scale calibration; it cannot be an undisclosed
+increase in routing weight, LR or updates.
+
+The pilot is now complete and fails. Its technical gradient gate passes, but
+all five oracle controls fail the `.85` feasibility floor and WAD remains at
+`.50` worst-query balanced accuracy throughout. Rate coding adds limited third-
+window activity and approximately doubles measured input-to-hidden events at
+the matched center, without improving the primary endpoint; the last two
+windows remain silent and learned query delays overlap. The full surface is
+therefore closed. This result shifts the bottleneck from literal gradient
+absence to credit quality/schedule identifiability under the shared model.
+
+### 17A. Versioned rate-alignment repair
+
+The failed rate pilot exposed an inherited burst-schedule mismatch: a ten-step
+rate packet with `d_q=q*w` was not placed inside its output window. The new
+`mixedop_rate_alignment_repair_v1` protocol tests a four-step late packet and
+the analytically aligned schedule `d_q=3+q*w`. Fixed-oracle feasibility is a
+hard prerequisite. Only if one event/N/w candidate passes three fresh seeds may
+the project test a five-parameter per-query delay model. Task-only and explicit
+routing-supervision arms remain distinct, with separate function and internal-
+schedule gates. Per-synapse WAD, full surfaces and Pareto claims remain locked.
+
+### 18A. Supervised temporal-interface repair outcome
+
+The v2 formal recovery separates functional success from schedule recovery.
+Its decoupled arrival-mass arm is perfect on classification but fails the
+one-step schedule gate in all seeds because that objective drives q0 earlier
+than the registered oracle. V3 preregisters the diagnosis and changes only the
+explicit timing objective to output-window-centroid Huber. On three new seeds,
+the matched mass-CE comparator again fails 0/3, while centroid Huber passes
+function, activity and schedule jointly 3/3.
+
+This is a valid supervised-interface repair, not learned temporal multiplexing:
+delay parameters receive a query-to-window teaching signal. The next gate is a
+new scaffold-withdrawal protocol (reduce/remove timing supervision while
+preserving the same seeds policy and joint endpoint). K=8, per-synapse WAD,
+sealed test and resource-Pareto surfaces remain closed until task-derived
+routing survives withdrawal.
+
+### 18B. Registered scaffold-withdrawal gate
+
+`mixedop_temporal_wad_scaffold_withdrawal_v1` is the only authorized path from
+the supervised V3 result toward task-derived timing. It first replicates the
+scaffold on new seeds, then distinguishes frozen retention, abrupt task-only
+retention, fixed auxiliary annealing, and local restoration after two declared
+delay perturbations. Final checkpoints, not intermediate best checkpoints, are
+the primary endpoints.
+
+Success in W1 is only warm-start maintenance. A narrow local-identifiability
+claim requires task-only W2 to restore both perturbations in all seeds while
+meeting function, activity and schedule gates. Even that would not establish
+from-scratch autonomous routing. Only implementation smoke is currently
+authorized; all scientific stages remain locked behind their predecessor.
+
+Smoke and W0 have now passed their gates. W0 reproduces the explicitly
+supervised scaffold in all three new seeds and freezes accuracy-first source
+checkpoints at updates 380/320/400. The 12-cell W1 matrix is authorized without
+changing LR, update budget, source policy or endpoints. W2 remains conditional
+on final-checkpoint retention in all seeds; no Pareto or K=8 work is unlocked.
+
+W1 is now complete. Abrupt removal retains near-perfect classification but
+fails the coordinate-schedule gate in two of three seeds, whereas the frozen
+annealing curriculum passes all three after its final 100 task-only updates.
+This authorizes the exact W2 local-restoration matrix, but establishes only
+curriculum-dependent warm-start retention. W2 must start from untouched W0
+sources; no K=8, Pareto, per-synapse or sealed-test work is unlocked.
+
+W2 is now complete and rejects local task-only schedule restoration. The
+centroid positive control restores both declared perturbations in all six
+seed/perturbation cells, while task-only passes 0/6 despite near-perfect
+classification. This establishes an identifiability problem, not a generic
+optimizer or forward-interface failure. The withdrawal branch is closed; the
+sealed test remains locked.
+
+A future event8 N/T surface may still be useful as a supervisor-preview branch,
+but its learned condition must be labelled curriculum-assisted. It must include
+shared-d0 and fixed-oracle controls and cannot be used as evidence for
+autonomous WAD, task-derived routing or learned temporal multiplexing. A paper-
+level learned-delay claim now requires a new method that makes timing
+identifiable, rather than a larger sweep of the same task BCE.
+
+### 18C. Event8-aligned five-landmark surface v2
+
+The descriptive supervisor-preview branch is now frozen as
+`mixedop_event8_aligned_surface_v2`. Its five points are `(20,4)`, `(20,12)`,
+`(240,4)`, `(240,12)`, and `(80,8)`, where `w` determines `T=10+5w`.
+Every point contains independent spatial d0, shared d0, fixed event8 oracle,
+task-only five-delay WAD, and a curriculum-assisted five-delay model. This
+exposes ordinary shared representation and hand-scheduled routing alternatives
+that were missing or conflated in earlier previews.
+
+The curriculum arm costs 600 training updates versus 400 for ordinary arms;
+that difference must be disclosed even though inference-resource comparisons
+remain separate. Its timing scaffold is explicit supervision, and W2 already
+shows that current task BCE cannot locally restore the schedule. Therefore a
+positive curriculum surface is an assisted architectural result only. A
+technical five-cell smoke is the sole authorized run. The 25-cell landmark is
+conditional on smoke, and the 120-cell full grid is conditional on registered
+oracle and curriculum landmark gates. Neither stage opens sealed test or
+supports publication-grade factor laws.
+
+The five invalid implementation-smoke cells pass their technical gate. This
+changes execution authorization only: the frozen 25-cell landmark may run.
+It does not add scientific evidence, relax the curriculum label, or unlock the
+full surface. Landmark logs must report clipping as well as function, activity
+and schedule endpoints.
+
+The landmark gate is now negative and closes v2 expansion. More importantly,
+the curriculum loss and oracle-vector endpoint diverge systematically as w
+grows, so the result cannot isolate optimization from endpoint definition.
+The remaining registered grid is also above the reliability transition:
+spatial, oracle and assisted models already saturate at N=20. The next
+publication-relevant protocol must first reconcile exact schedule, centroid
+and packet-containment endpoints, then sample widths below 20. Re-running v2
+with a post-hoc gate or completing its larger-N surface is inadmissible.
+
+### 18D. K=6 explicitly centroid-supervised surface
+
+`mixedop_k6_centroid_supervised_surface_v1` is a separate single-seed
+supervisor-preview branch. It uses the same arrival-centroid definition for
+training, checkpoint eligibility and the mechanism-valid boundary, covering
+N=1--60 and T=34--166 for six fixed basic logic operations. Delays receive
+only explicit centroid gradients; weights/readout receive only task BCE. Any
+positive curve is assisted architectural feasibility, not autonomous WAD.
+
+Only four extreme preflight cells are authorized. The 112-cell surface is
+implemented but YAML-locked until all preflight final states reach maximum
+centroid error <=0.5 step and pass technical/artifact gates. Accuracy and
+activity are excluded from preflight. Formal boundary points additionally
+require worst-query BAcc >=.90 and activity in all six windows. With no
+spatial/shared-d0/oracle comparator, this protocol cannot support a Pareto claim.
+
+The four-cell preflight is complete and passes. Final maximum centroid errors
+are 0.018--0.347 step, all artifacts and numerical gates pass, and the exact
+112-cell surface is authorized. Diagnostic accuracy spans near-chance at N=1
+to perfect at N=60 for both latency extremes, suggesting the width grid crosses
+a transition. This observation is not preflight evidence and does not yet
+identify a T effect. Formal execution must remain single-seed, validation-only
+and unchanged.
+
+The complete 112-cell surface is now available and rejects the proposed
+L-shaped time--width law. All cells are mechanism-valid, but raw N90 is
+`[3,3,2,2,3,4,3,3]`; the hyperbolic fit has the wrong sign (`C<0`) and low
+`R2=.129`. Descriptively, hidden width accounts for .811 of worst-BAcc grid SS,
+T only .013 and residual interaction .176. This supports only a narrow single-
+seed statement that width dominates this explicitly supervised fixed workload.
+Two higher-width reversals show the boundary is not stable. Do not enlarge the
+surface. The next admissible gate is a versioned multi-seed confirmation near
+N=1--5, followed separately by operation-position counterbalancing and selected
+spatial/shared controls.
+
+### 18E. K=6 boundary-region fresh-seed confirmation
+
+`mixedop_k6_boundary_multiseed_confirmation_v1` is preregistered and
+implemented to distinguish a seed-3907 artifact from a reproducible boundary.
+It freezes N=1--5, all eight parent T values and fresh seeds
+`{4013,4027,4049,4061,4079}` for 200 cells. The parent seed is never pooled.
+All training, mechanism and checkpoint settings are inherited exactly.
+
+Primary decisions are frozen before execution: each named reversal requires at
+least 2/5 fresh seeds to reproduce; overall non-monotonicity requires at least
+3/5 non-monotonic seed curves. Robust 4/5 and strict 5/5 N90 are reported
+without smoothing or censor imputation. Boundary stability additionally
+requires a per-T seed range <=1. This is still explicitly supervised and cannot
+unlock autonomous-WAD or Pareto claims.
+
+The 200-cell confirmation is complete. Both named parent reversals occur in
+0/5 fresh seeds and therefore do not reproduce. Nevertheless, raw N90 is
+non-monotone in 3/5 fresh seeds, exactly meeting the registered confirmation
+threshold, and the robust 4/5 boundary `[4,3,3,3,2,3,3,3]` contains one
+increase. The boundary-stability gate fails because T=34 spans N90=2--4 across
+seeds, and the robust curve differs from the parent at five of eight T values.
+All cells remain centroid-mechanism-valid; the unstable N=2 transition is
+driven mainly by XOR/XNOR classification. This closes the uncounterbalanced
+surface branch without a time--width law. The next scientific gate is a new
+operation-window counterbalancing protocol, followed separately by selected
+matched spatial/shared-d0/oracle controls; neither is yet preregistered.
+
+### 18F. Spatial/temporal capacity and SLAYER trainability
+
+The K=6 centroid surface and fresh-seed confirmation are now a closed explicit-
+supervision branch. They show capacity when a schedule is supplied, not that
+task loss learns delays, and must not be enlarged or fit with a time--width law.
+
+The replacement `spatial_temporal_capacity_slayer_v1` separates two evidence
+chains: fixed-oracle/explicit-centroid architectural capacity and task-only
+SLAYER trainability. The main workload is repeated XOR at
+`K={1,2,3,4,6,8}` with deterministic `binary_one_hot_packet` input: four value
+channels per query and exactly `8K` events independent of K, B and T. The main
+endpoint is one shared MLP reused over disjoint hidden-count windows. Opponent
+spiking output is conditional follow-up evidence and is never pooled with the
+MLP scaling fit.
+
+Lava-DL 0.6.0 is isolated in `D:/anaconda3/envs/snn_slayer` with Torch
+2.3.1+cu121. One `slayer.axon.Delay` precedes the dense CUBA block, giving
+exactly `4K` input-axonal delays. Because this Windows host lacks the MSVC
+compiler used by Lava-DL's optional JIT CUDA kernels, the adapter records and
+uses pure-PyTorch implementations of the same integer shift, time convolution
+and CUBA recurrence on CPU and CUDA.
+
+S0 is complete and permanently invalid for scientific claims. Seeds 99501 and
+99502 pass early/late gradient direction, fixed arrival, event preservation,
+BTC--NCT round trip, checkpoint recovery, and full CUBA CPU/CUDA parity. Logits
+and hidden spikes are exact; maximum delay-gradient differences are `2.17e-7`
+and `6.29e-8`. This authorizes S1 calibration by result only. Its YAML launch
+remains locked; no calibration, confirmation, capacity surface or sealed test
+has run.
+
+After S1 and S2 pass, spatial capacity fixes B=48/T=58 and scans total hidden
+width. Temporal capacity freezes the smallest 5/5 K=6 fixed-oracle width and
+scans B={24,48,72,96}. Raw staircases, inverse required-resource curves and
+power fits prohibit smoothing and censor imputation. “Better than linear”
+requires at least four uncensored points and a bootstrap exponent CI whose
+lower bound exceeds one.
+
+### 18G. Deferred capacity-figure refinement TODO (postponed)
+
+The completed spatial and temporal screens establish only the narrow
+fixed-oracle architectural exchange result. Do not resume these extensions
+until other active tasks are complete; they require a new preregistered grid
+and retain the frozen three-seed / at-least-two joint reliability rule,
+deterministic packet encoding, validation-only checkpoint selection, raw
+staircases, censoring markers, and full resource ledgers.
+
+1. **Spatial refinement.** Extend K above the present boundary only at the
+   high-N transition region (principally N=24 and N=32), with enough K values
+   to resolve whether the independent and fixed-oracle curves continue, plateau
+   or are censored. Preserve the current B=48/T=58 and keep the independent
+   spatial d0 versus shared fixed-oracle comparison. The aim is a denser
+   inverse-N-versus-K compression curve, not smoothing or manufacturing an
+   exponent.
+2. **Temporal refinement.** Extend K above 8 for B>=48, where the completed
+   screen is top-grid censored, and preregister B/K combinations whose windows
+   are integral. Add intermediate B only if needed to resolve the observed
+   B=24,K=4 to B=48,K=8 transition. The sole capacity curve remains the
+   route-capable shared fixed-oracle condition at frozen N_ref=6; d0 is not a
+   competing temporal-rate curve because it lacks a route to distinct output
+   windows.
+3. **Diagnostics and interpretation.** Retain one `diagnostic_panel.npz` per
+   new temporal cell. Plot raw pass fractions, per-query accuracy/activity and
+   delay-to-window alignment alongside capacity; never fit a temporal exponent
+   until at least four uncensored B points exist. These remain supplied-schedule
+   upper-bound results unless a later task-only SLAYER gate independently passes.

@@ -1,0 +1,245 @@
+protocol_id: xor_delay_granularity_rescue_microburst_v1
+status: complete
+preregistered_at: 2026-07-16
+study_class: confirmatory_dimension_aware_microburst_bridge
+parent_protocols:
+  - xor_delay_granularity_level1b_v1
+  - xor_delay_granularity_rescue_level1br_v1
+panel_label: Level 1B-RB
+
+question: >
+  Does the dimension-matched oracle timing recipe confirmed on single-event
+  K=1 XOR retain exact hard-spike operation and coordinate-wise delay recovery
+  under a consecutive micro-burst with twice the event load?
+
+hypotheses:
+  primary: >
+    The selected per-hidden-neuron recipe with lambda=.01P=.16 passes all ten
+    cells from both delay-initialization directions after a same-seed fixed-d4
+    feasibility replication passes five of five.
+  anchor: >
+    The global lambda=.01 recipe passes all ten learned cells.
+  secondary_complexity: >
+    Per-synapse lambda=.64 is evaluated as a higher-complexity control but is
+    not preferred over a passing per-hidden recipe.
+  diagnostic_task_only: >
+    Per-hidden task-only training is retained as a prespecified diagnostic and
+    is not required for protocol success.
+
+claim_boundary:
+  positive_claim: >
+    Explicit dimension-matched homogeneous delay-4 supervision remains
+    compatible with an exact K=1 XOR hard-spike interface under the declared
+    consecutive micro-burst.
+  explicitly_not_supported:
+    - autonomous task-derived discovery of delay 4
+    - heterogeneous delay specialization or routing
+    - K greater than one or temporal multiplexing
+    - WAD superiority
+    - compression, energy savings, or a Pareto law
+    - held-out data or task generalization
+
+task:
+  operation: XOR
+  K: 1
+  truth_patterns: 4
+  training_batch: exhaustive_truth_table_full_batch
+  checkpoint_selection: final_only
+  test_split_opened: false
+
+model:
+  architecture: 4_to_16_to_2_class_opponent_spiking
+  hidden_neurons: 16
+  output_neurons: 2
+  d_max_steps: 8
+  input_hidden_delay_parameterization: sigmoid
+  delay_granularities:
+    - name: global
+      tying: global
+      independent_delay_parameters: 1
+    - name: per_hidden_neuron
+      tying: post_neuron
+      independent_delay_parameters: 16
+    - name: per_synapse
+      tying: pair
+      independent_delay_parameters: 64
+  output_delay_mode: d0
+  hidden_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.2
+    reset_au: 0.0
+    refractory_steps: 2
+  output_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.03
+    reset_au: 0.0
+    refractory_steps: 2
+  surrogate_beta: 4.0
+  dt_steps: 1.0
+  units_note: membrane_and_threshold_values_are_dimensionless_simulator_arbitrary_units
+
+timing:
+  input_window_steps: 10
+  read_window_steps: 10
+  total_steps: 20
+  target_delay_steps: 4.0
+  output_target_step: 15
+  effective_layer_delay_formula: emitted_step_plus_nominal_delay_plus_one
+
+encodings:
+  consecutive_microburst:
+    mode: binary_one_hot
+    selected_channel_events: 2
+    event_steps: [8, 9]
+    events_per_trial: 4
+
+losses:
+  filtered_hard_spike:
+    weight: 1.0
+    filter_tau_steps: 3.0
+  per_parameter_arrival_centroid:
+    base_lambda: 0.01
+    mean_formula: half_mean_squared_error_over_independent_parameter_arrival_centroids
+    dimension_matched_formula: base_lambda_times_P_times_mean_loss
+    equivalent_formula: base_lambda_times_sum_of_per_coordinate_half_squared_errors
+    target_delay_steps: 4.0
+    interpretation: explicit_oracle_timing_teacher_not_task_derived_routing
+  total_formula: filtered_hard_spike_plus_effective_lambda_times_mean_arrival_centroid_loss
+
+optimization:
+  optimizer: Adam
+  weight_learning_rate: 0.01
+  delay_learning_rate: 0.01
+  full_batch_updates: 500
+  learned_delay_initial_raw_values: [-2.0, 2.0]
+  gradient_clip_norm: 1.0
+  fresh_microburst_seeds: [2333, 2351, 2371, 2389, 2411]
+  seed_policy: disjoint_from_level1a_level1b_level1br_and_all_rescue_selection_seeds
+
+stage_b0_fixed_oracle_replication:
+  status: complete_5_of_5
+  role: same_seed_interface_feasibility_gate
+  condition:
+    name: fixed_oracle_d4_replication
+    granularity: fixed_pair_storage
+    tying: pair
+    independent_delay_parameters: 64
+    fixed_input_hidden_delay_steps: 4.0
+  grid:
+    seeds: 5
+    deterministic_cells: 5
+  gate: all_5_cells_pass_exact_interface
+  failure_action: keep_learned_stage_locked_and_diagnose_environment_or_interface
+
+stage_b1_learned_rescue:
+  status: complete_40_of_40
+  role: dimension_aware_microburst_confirmation
+  conditions:
+    - name: global_anchor
+      granularity: global
+      tying: global
+      independent_delay_parameters: 1
+      normalization_factor: 1.0
+      effective_lambda: 0.01
+      selection_role: required_anchor
+    - name: per_hidden_dimension_matched
+      granularity: per_hidden_neuron
+      tying: post_neuron
+      independent_delay_parameters: 16
+      normalization_factor: 16.0
+      effective_lambda: 0.16
+      selection_role: primary_selected_recipe
+    - name: per_synapse_dimension_matched
+      granularity: per_synapse
+      tying: pair
+      independent_delay_parameters: 64
+      normalization_factor: 64.0
+      effective_lambda: 0.64
+      selection_role: secondary_complexity_control
+    - name: per_hidden_task_only
+      granularity: per_hidden_neuron
+      tying: post_neuron
+      independent_delay_parameters: 16
+      normalization_factor: 0.0
+      effective_lambda: 0.0
+      selection_role: diagnostic_not_required_to_pass
+  grid:
+    conditions: 4
+    initial_raw_values: 2
+    seeds: 5
+    deterministic_cells: 40
+  candidate_definition: same_named_condition_across_both_initial_directions_and_all_five_seeds
+  candidate_pass: all_10_cells_pass_interface_delay_coverage_and_coordinate_gradient_gates
+  primary_protocol_pass: fixed_d4_5_of_5_and_global_10_of_10_and_per_hidden_dimension_matched_10_of_10
+  per_synapse_role: secondary_only_and_never_preferred_over_passing_per_hidden
+  task_only_role: diagnostic_only_and_not_required_for_success
+
+per_cell_gates:
+  interface:
+    balanced_accuracy: 1.0
+    exact_truth_table_completion: true
+    exact_target_spike_train_match: true
+    silent_rate: 0.0
+    collision_rate: 0.0
+    correct_target_time_rate: 1.0
+    mean_output_spikes_per_trial: 1.0
+    hidden_active_pattern_count: 4
+    early_or_extra_output_spikes_allowed: false
+  learned_delay:
+    max_independent_delay_error_steps: 0.1
+    fraction_independent_delays_within_tolerance: 1.0
+    initial_total_gradient_correct_coordinate_fraction: 1.0
+    initial_total_gradient_nonzero_coordinate_fraction: 1.0
+
+mechanism_diagnostics:
+  required:
+    - unweighted_and_weighted_arrival_gradient_per_coordinate
+    - task_and_total_gradient_per_coordinate
+    - task_arrival_gradient_conflict_fraction
+    - global_preclip_gradient_norm
+    - gradient_clip_coefficient
+    - delay_min_mean_max_std_and_full_coverage
+    - exact_input_hidden_output_rasters
+    - output_pre_reset_voltage
+    - initial_final_target_arrival_centroids
+  analytic_prediction: weighted_arrival_gradient_per_coordinate_matches_global_under_P_scaling
+  clipping_failure_flag: any_cell_clip_coefficient_below_0.999
+
+diagnostics:
+  runtime_npz_required: true
+  runtime_panel_required: true
+  resource_vector:
+    - trainable_parameters
+    - trainable_delay_parameters
+    - delay_value_storage
+    - neuron_updates
+    - dense_synapse_macs
+    - measured_synaptic_events
+    - delay_buffer_memory
+
+execution_policy:
+  fixed_control_must_complete_before_learned_materialization: true
+  formal_subsets_within_a_candidate_forbidden: true
+  failed_seeds_remain_failures: true
+  no_best_epoch_selection: true
+  no_test_split_access: true
+  no_K_greater_than_one: true
+  original_level1b_stage_b_matrix_immutable_and_unrun: true
+  level1br_r1_r3_seeds_forbidden_for_tuning: true
+  success_does_not_authorize_routing_or_pareto_claims: true
+
+implementation_validation:
+  status: complete_before_formal_launch
+  structural_tests_passed: 7
+  full_project_tests_passed: 104
+  smoke_cells: 10
+  smoke_artifact_complete_cells: 10
+  smoke_role: implementation_only_invalid_for_claims
+  seed_hygiene_note: proposed_seed_2309_was_consumed_by_smoke_and_removed_before_formal_launch
+  formal_cells_launched: 45
+  formal_control_cells_complete: 5
+  formal_control_artifact_complete_cells: 5
+  fixed_control_decision: learned_stage_authorized
+  formal_learned_cells_complete: 40
+  formal_learned_artifact_complete_cells: 40
+  final_decision: dimension_aware_microburst_bridge_pass_per_hidden_selected

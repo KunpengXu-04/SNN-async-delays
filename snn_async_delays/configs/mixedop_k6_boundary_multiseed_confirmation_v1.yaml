@@ -1,0 +1,126 @@
+protocol_id: mixedop_k6_boundary_multiseed_confirmation_v1
+status: preregistered_implemented_launch_authorized
+preregistered_at: 2026-07-20
+parent_protocol: mixedop_k6_centroid_supervised_surface_v1
+parent_config_sha256: 976D2B5DB9E26C8CCBBF12BF0B2AA680CCA1273ABA090AA307B6CBDC050255D1
+study_class: exploratory_five_fresh_seed_boundary_confirmation
+
+question: >
+  Are the two higher-width reversals and the non-monotonic N90 curve from the
+  seed-3907 K=6 explicitly centroid-supervised surface reproducible across
+  five fresh full-pipeline seeds in the N=1--5 boundary region?
+
+claim_boundary:
+  permitted:
+    - multi-seed stability of the observed explicitly supervised boundary
+    - reproducibility or non-reproducibility of the two registered reversals
+    - descriptive fresh-seed pass fractions and N90 distributions
+  forbidden:
+    - autonomous WAD or task-derived routing
+    - pure causal effect of T
+    - spatial-versus-temporal Pareto superiority
+    - output-spike timing or hardware energy claims
+    - pooling parent seed 3907 as an independent confirmation seed
+
+frozen_grid:
+  K: 6
+  operations: [AND, OR, XOR, XNOR, NAND, NOR]
+  total_hidden_neurons: [1, 2, 3, 4, 5]
+  output_window_lengths: [4, 5, 6, 8, 10, 14, 20, 26]
+  total_latency_steps: [34, 40, 46, 58, 70, 94, 130, 166]
+  fresh_seeds: [4013, 4027, 4049, 4061, 4079]
+  excluded_parent_seed: 3907
+  excluded_preflight_seed: 3899
+  cells: 200
+
+inherited_recipe:
+  exact_parent_recipe_except_grid_seed_and_output_roots: true
+  delays: six_per_query_tied_continuous
+  delay_credit: arrival_centroid_huber_only
+  weight_readout_credit: macro_balanced_task_BCE_only
+  optimizer: Adam
+  learning_rates: {weight: 0.01, readout: 0.01, delay: 0.01}
+  gradient_clip_norm: 1.0
+  batch_size: 128
+  optimizer_updates: 600
+  validation_interval_updates: 25
+  threshold_au: 0.2
+  readout: windowed_shared_MLP_logits
+  train_samples: 2048
+  validation_samples: 2048
+  test_split_opened: false
+
+cell_pass_rule:
+  worst_query_balanced_accuracy_minimum: 0.90
+  maximum_centroid_error_steps: 0.5
+  every_window_hidden_activity_fraction_minimum: 0.10
+
+boundary_estimands:
+  per_seed_N90: minimum_observed_passing_N_at_each_T
+  no_pass_censor: greater_than_5
+  robust_N90: minimum_N_with_at_least_4_of_5_fresh_seeds_passing
+  strict_N90: minimum_N_with_all_5_fresh_seeds_passing
+  parent_seed_boundary_reported_separately: [3, 3, 2, 2, 3, 4, 3, 3]
+  no_isotonic_repair_or_smoothing: true
+
+registered_reversals:
+  - id: T34_N3_pass_N4_fail
+    T: 34
+    lower_N: 3
+    higher_N: 4
+  - id: T46_N2_pass_N3_fail
+    T: 46
+    lower_N: 2
+    higher_N: 3
+reversal_reproduced_if_fresh_seeds_minimum: 2
+
+nonmonotonicity_decision:
+  per_seed_nonmonotonic: at_least_one_adjacent_increase_in_raw_N90_as_T_increases
+  confirmed_if_fresh_seeds_nonmonotonic_minimum: 3
+  robust_boundary_nonmonotonic_reported_separately: true
+  censored_boundary_comparisons_reported_not_silently_imputed: true
+
+stability_decision:
+  boundary_stable_if:
+    - robust_N90_defined_at_all_eight_T
+    - per_T_fresh_seed_N90_range_at_most_1
+  original_boundary_confirmed_if:
+    - robust_N90_matches_parent_seed_at_all_eight_T
+  exploratory_not_inferential: true
+
+required_cell_artifacts:
+  - config.json
+  - best_model.pt
+  - last_model.pt
+  - update_log.csv
+  - validation_log.csv
+  - validation_results.json
+  - validation_predictions.npz
+  - resource_ledger.json
+  - plots/diagnostic_data.npz
+  - plots/diagnostic_panel.png
+  - run_complete.json
+
+required_aggregate_outputs:
+  - confirmation_cells.csv
+  - per_seed_N90.csv
+  - boundary_confirmation_decision.json
+  - K6_fresh_seed_mean_worst_bacc.png
+  - K6_fresh_seed_pass_fraction.png
+  - K6_per_seed_N90.png
+  - K6_robust_strict_parent_N90.png
+  - K6_reversal_reproduction.png
+  - K6_boundary_variability.png
+
+execution:
+  formal_root: runs/exploratory/mixedop_k6_boundary_multiseed_confirmation_v1/confirmation
+  generated_root: docs/generated/mixedop_k6_boundary_multiseed_confirmation_v1
+  device: cuda
+  no_per_cell_chat_updates: true
+  completed_cells_immutable: true
+
+authorization:
+  confirmation_launch: true
+  sealed_test: false
+  additional_seeds: false
+  publication_claim: false

@@ -1,0 +1,66 @@
+{
+  "stage": "smoke",
+  "passed": true,
+  "rows": [
+    {
+      "stage": "smoke",
+      "arm": "centroid_continue",
+      "seed": 3649,
+      "perturbation": null,
+      "artifacts_complete": true,
+      "provenance_valid": true,
+      "finite_and_legal": true,
+      "technical_valid": true,
+      "worst_query_balanced_accuracy": 0.9990234375,
+      "exact_trial_accuracy": 0.99755859375,
+      "minimum_window_activity_fraction": 1.0,
+      "maximum_schedule_error_steps": 0.5109138488769531,
+      "schedule_error_reduction_fraction": -0.021568548933013743
+    },
+    {
+      "stage": "smoke",
+      "arm": "delay_frozen",
+      "seed": 3649,
+      "perturbation": null,
+      "artifacts_complete": true,
+      "provenance_valid": true,
+      "finite_and_legal": true,
+      "technical_valid": true,
+      "worst_query_balanced_accuracy": 0.9973958730697632,
+      "exact_trial_accuracy": 0.99560546875,
+      "minimum_window_activity_fraction": 1.0,
+      "maximum_schedule_error_steps": 0.5001230239868164,
+      "schedule_error_reduction_fraction": 7.627459617368488e-06
+    },
+    {
+      "stage": "smoke",
+      "arm": "abrupt_task_only",
+      "seed": 3649,
+      "perturbation": null,
+      "artifacts_complete": true,
+      "provenance_valid": true,
+      "finite_and_legal": true,
+      "technical_valid": true,
+      "worst_query_balanced_accuracy": 0.99951171875,
+      "exact_trial_accuracy": 0.9990234375,
+      "minimum_window_activity_fraction": 1.0,
+      "maximum_schedule_error_steps": 0.20769119262695312,
+      "schedule_error_reduction_fraction": 0.5847229611323727
+    },
+    {
+      "stage": "smoke",
+      "arm": "annealed_joint",
+      "seed": 3649,
+      "perturbation": null,
+      "artifacts_complete": true,
+      "provenance_valid": true,
+      "finite_and_legal": true,
+      "technical_valid": true,
+      "worst_query_balanced_accuracy": 0.9990234375,
+      "exact_trial_accuracy": 0.99755859375,
+      "minimum_window_activity_fraction": 1.0,
+      "maximum_schedule_error_steps": 0.5448155403137207,
+      "schedule_error_reduction_fraction": -0.08935473598501967
+    }
+  ]
+}

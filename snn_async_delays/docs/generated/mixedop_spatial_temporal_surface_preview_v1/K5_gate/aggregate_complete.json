@@ -1,0 +1,19 @@
+{
+  "protocol_id": "mixedop_spatial_temporal_surface_preview_v1",
+  "stage": "k5",
+  "cells": 36,
+  "K_values": [
+    5
+  ],
+  "figures": [
+    "K5_T_total_hidden_plane.png",
+    "K5_exact_trial_plane.png",
+    "accuracy_cost_pareto.png",
+    "factor_value_summary.png",
+    "hidden_window_activity.png",
+    "per_query_accuracy_heatmap.png",
+    "resource_scaling.png",
+    "routing_heatmaps.png"
+  ],
+  "test_split_opened": false
+}

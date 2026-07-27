@@ -1,0 +1,35 @@
+{
+  "protocol_id": "mixedop_rate_wad_surface_calibration_v1",
+  "stage": "smoke",
+  "cells": 2,
+  "invalid_for_claims": true,
+  "passed": true,
+  "rows": [
+    {
+      "condition": "shared_temporal_oracle",
+      "artifacts_complete": true,
+      "finite": true,
+      "nonzero_hidden_activity": true,
+      "oracle_schedule_exact": true,
+      "wad_total_delay_gradient_nonzero": true,
+      "wad_all_query_delay_gradients_nonzero": true,
+      "delays_legal": true,
+      "final_20_not_continuously_clipped": true,
+      "fixed_validation_realization_reproducible": true,
+      "passed": true
+    },
+    {
+      "condition": "shared_temporal_wad",
+      "artifacts_complete": true,
+      "finite": true,
+      "nonzero_hidden_activity": true,
+      "oracle_schedule_exact": true,
+      "wad_total_delay_gradient_nonzero": true,
+      "wad_all_query_delay_gradients_nonzero": true,
+      "delays_legal": true,
+      "final_20_not_continuously_clipped": true,
+      "fixed_validation_realization_reproducible": true,
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+arm,artifacts_complete,finite,delays_legal,schedule_artifacts_present,runtime_panel_present,passed
+oracle,True,True,True,True,True,True
+arrival_mass_ce,True,True,True,True,True,True
+arrival_centroid_huber,True,True,True,True,True,True

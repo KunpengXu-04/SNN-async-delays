@@ -14,8 +14,9 @@ Gradient through delays
 Continuous delay: d_cont = d_max * sigmoid(d_raw) in [0, d_max]
 Forward uses linear interpolation between floor and ceil indices:
     s_delayed = (1-alpha)*buf[floor] + alpha*buf[ceil]
-This gives a smooth gradient through d_cont (and hence d_raw) whenever
-the spike trains at floor and ceil differ.
+The historical ``right_linear`` backward therefore takes the right-hand
+slope at exact integer delays.  Optional backward-only estimators can replace
+that ambiguous integer subgradient without changing the forward computation.
 """
 
 import math
@@ -52,9 +53,12 @@ class DelayedSynapticLayer(nn.Module):
         fixed_delay_high: float | None = None,
         shared_delay: bool = False,
         delay_tying: str | None = None,
+        delay_group_index: list[int] | torch.Tensor | None = None,
         delay_init_mode: str = "constant",
         delay_init_raw: float = -2.0,
         delay_init_std: float = 0.25,
+        delay_gradient_mode: str = "right_linear",
+        delay_gradient_sigma: float = 0.75,
         train_weights: bool = True,
         train_delays: bool = True,
     ):
@@ -68,17 +72,47 @@ class DelayedSynapticLayer(nn.Module):
         self.fixed_delay_distribution = fixed_delay_distribution
         if delay_tying is None:
             delay_tying = "global" if shared_delay else "pair"
-        if delay_tying not in {"global", "post_neuron", "pair"}:
-            raise ValueError("delay_tying must be global, post_neuron, or pair")
+        if delay_tying not in {"global", "post_neuron", "pre_group", "pair"}:
+            raise ValueError(
+                "delay_tying must be global, post_neuron, pre_group, or pair"
+            )
         if shared_delay and delay_tying != "global":
             raise ValueError("legacy shared_delay=True is compatible only with global tying")
         self.delay_tying = str(delay_tying)
         self.shared_delay = self.delay_tying == "global"
+        if self.delay_tying == "pre_group":
+            if delay_group_index is None:
+                raise ValueError("pre_group tying requires delay_group_index")
+            group_index = torch.as_tensor(delay_group_index, dtype=torch.long)
+            if group_index.ndim != 1 or group_index.numel() != n_pre:
+                raise ValueError("delay_group_index must contain one group per pre neuron")
+            if int(group_index.min().item()) < 0:
+                raise ValueError("delay groups must be non-negative")
+            unique = torch.unique(group_index, sorted=True)
+            expected = torch.arange(unique.numel(), dtype=torch.long)
+            if not torch.equal(unique, expected):
+                raise ValueError("delay groups must be contiguous from zero")
+            self.register_buffer("delay_group_index", group_index)
+            self.delay_group_count = int(unique.numel())
+        else:
+            if delay_group_index is not None:
+                raise ValueError("delay_group_index is valid only for pre_group tying")
+            self.register_buffer("delay_group_index", None)
+            self.delay_group_count = 0
         self.train_delays = train_delays
+        if delay_gradient_mode not in {"right_linear", "symmetric_integer", "gaussian_ste"}:
+            raise ValueError(
+                "delay_gradient_mode must be right_linear, symmetric_integer, or gaussian_ste"
+            )
+        if float(delay_gradient_sigma) <= 0.0:
+            raise ValueError("delay_gradient_sigma must be positive")
+        self.delay_gradient_mode = str(delay_gradient_mode)
+        self.delay_gradient_sigma = float(delay_gradient_sigma)
         if delay_init_mode not in {"constant", "scalar_noise"}:
             raise ValueError("delay_init_mode must be 'constant' or 'scalar_noise'")
-        if self.delay_tying != "pair" and not train_delays:
-            raise ValueError("tied delays are defined only for trainable delays")
+        # Compact tied layouts are also valid for frozen d0/fixed controls.
+        # Their stored delay degrees of freedom must match trainable arms even
+        # when requires_grad=False.
         if fixed_delay_distribution not in {None, "uniform"}:
             raise ValueError("fixed_delay_distribution must be None or 'uniform'")
         if train_delays and fixed_delay_distribution is not None:
@@ -96,6 +130,7 @@ class DelayedSynapticLayer(nn.Module):
         tying_shape = {
             "global": (1, 1),
             "post_neuron": (1, n_post),
+            "pre_group": (self.delay_group_count, 1),
             "pair": (n_pre, n_post),
         }[self.delay_tying]
         d_shape = (0,) if fixed_delay_distribution is not None else tying_shape
@@ -130,11 +165,11 @@ class DelayedSynapticLayer(nn.Module):
         if self.delay_param_type == "sigmoid":
             d_cont = self.d_max * torch.sigmoid(self.delay_raw)
             d_cont = torch.clamp(d_cont, 0.0, float(self.d_max))
-            return d_cont.expand(self.n_pre, self.n_post) if self.delay_tying != "pair" else d_cont
+            return self._expand_tied_delays(d_cont)
 
         if self.delay_param_type == "direct":
             d_cont = torch.clamp(self.delay_raw, 0.0, float(self.d_max))
-            return d_cont.expand(self.n_pre, self.n_post) if self.delay_tying != "pair" else d_cont
+            return self._expand_tied_delays(d_cont)
 
         if self.delay_param_type == "quantized":
             d_cont = self.d_max * torch.sigmoid(self.delay_raw)
@@ -144,9 +179,18 @@ class DelayedSynapticLayer(nn.Module):
             # backward behaves like identity on d_cont.
             d_ste = d_cont + (d_quant - d_cont).detach()
             d_ste = torch.clamp(d_ste, 0.0, float(self.d_max))
-            return d_ste.expand(self.n_pre, self.n_post) if self.delay_tying != "pair" else d_ste
+            return self._expand_tied_delays(d_ste)
 
         raise ValueError(f"Unsupported delay_param_type: {self.delay_param_type}")
+
+    def _expand_tied_delays(self, values: torch.Tensor) -> torch.Tensor:
+        if self.delay_tying == "pair":
+            return values
+        if self.delay_tying == "pre_group":
+            return values.index_select(0, self.delay_group_index).expand(
+                self.n_pre, self.n_post
+            )
+        return values.expand(self.n_pre, self.n_post)
 
     # ------------------------------------------------------------------
     def forward(
@@ -191,6 +235,57 @@ class DelayedSynapticLayer(nn.Module):
         s_f   = torch.gather(buf_t, 2, idx_f)                           # [B, N_pre, N_post]
         s_c   = torch.gather(buf_t, 2, idx_c)
         s_del = (1.0 - alpha) * s_f + alpha * s_c                       # broadcast over B
+
+        # Keep the historical hard/linear forward exactly unchanged while
+        # optionally replacing only d(s_del)/d(d_cont).  The correction is
+        # zero-valued in the forward pass, but its derivative is one.
+        if self.delay_gradient_mode != "right_linear":
+            legacy_slope = s_c - s_f
+
+            if self.delay_gradient_mode == "symmetric_integer":
+                d_prev = torch.clamp(d_floor - 1, 0, self.d_max)
+                d_next = torch.clamp(d_floor + 1, 0, self.d_max)
+                if buf_ptr is not None:
+                    idx_prev = ((buf_ptr - 1 - d_prev) % (self.d_max + 1)).unsqueeze(0).expand(B, -1, -1)
+                    idx_next = ((buf_ptr - 1 - d_next) % (self.d_max + 1)).unsqueeze(0).expand(B, -1, -1)
+                else:
+                    idx_prev = d_prev.unsqueeze(0).expand(B, -1, -1)
+                    idx_next = d_next.unsqueeze(0).expand(B, -1, -1)
+                s_prev = torch.gather(buf_t, 2, idx_prev)
+                s_next = torch.gather(buf_t, 2, idx_next)
+                denominator = (d_next - d_prev).clamp_min(1).to(s_next.dtype)
+                central_slope = (s_next - s_prev) / denominator
+                at_integer = alpha.detach().abs() <= 1e-6
+                desired_slope = torch.where(at_integer.unsqueeze(0), central_slope, legacy_slope)
+            else:  # gaussian_ste
+                taps = torch.arange(
+                    self.d_max + 1,
+                    device=d_cont.device,
+                    dtype=d_cont.dtype,
+                )
+                distance = taps.view(1, 1, -1) - d_cont.unsqueeze(-1)
+                soft_weights = torch.softmax(
+                    -0.5 * (distance / self.delay_gradient_sigma).square(),
+                    dim=-1,
+                )
+                mean_tap = (soft_weights * taps.view(1, 1, -1)).sum(dim=-1, keepdim=True)
+                weight_derivative = soft_weights * (
+                    taps.view(1, 1, -1) - mean_tap
+                ) / (self.delay_gradient_sigma ** 2)
+                if buf_ptr is not None:
+                    physical_taps = (buf_ptr - 1 - taps.long()) % (self.d_max + 1)
+                    logical_buf = buf_t.index_select(2, physical_taps)
+                else:
+                    logical_buf = buf_t
+                desired_slope = torch.einsum(
+                    "bpd,pod->bpo",
+                    logical_buf,
+                    weight_derivative,
+                )
+
+            s_del = s_del + (
+                d_cont - d_cont.detach()
+            ).unsqueeze(0) * (desired_slope - legacy_slope).detach()
 
         # weighted sum over N_pre  →  [B, N_post]
         I_syn = (s_del * self.weight).sum(dim=1)

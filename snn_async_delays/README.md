@@ -120,6 +120,113 @@ strength that grows with delay dimension; it is not autonomous routing. See
 `docs/RESULTS_XOR_DELAY_GRANULARITY_RESCUE_LEVEL1BR_R1.md` and
 `docs/RESULTS_XOR_DELAY_GRANULARITY_RESCUE_LEVEL1BR_R3.md`.
 
+The completed independent bridge is
+`xor_delay_granularity_rescue_microburst_v1`. It transfers the confirmed
+dimension-matched oracle weights to the consecutive `{8,9}` micro-burst using
+five fresh formal seeds. Its fixed-d4 replication passes 5/5 and all 40 learned
+cells are complete. The selected primary candidate is
+per-hidden `lambda=.16`; global `.01`, per-synapse `.64` and per-hidden
+task-only are prespecified controls. The three oracle-supervised conditions
+pass 10/10; task-only passes 0/10. Read
+`docs/XOR_DELAY_GRANULARITY_RESCUE_MICROBURST_V1.md` and
+`docs/RESULTS_XOR_DELAY_GRANULARITY_RESCUE_MICROBURST_STAGE_B0.md`, then
+`docs/RESULTS_XOR_DELAY_GRANULARITY_RESCUE_MICROBURST_STAGE_B1.md`.
+
+The next preregistered causal audit is
+`xor_task_derived_timing_withdrawal_v1`. It does not repeat failed task-only
+global discovery. It independently rebuilds five per-hidden scaffolded
+foundations, verifies that fixed d3/d5 perturbations genuinely break the exact
+interface in ten no-update controls, and only then runs retention plus
+oracle-delay-only, task-delay-only, task-joint, and weight-only recovery arms.
+The primary claim freezes both weight matrices and asks task loss alone to
+restore delays locally. Even success is local basin restoration, not K>1
+routing. W0 passes 5/5 and W1 passes 10/10. The d3/d5 interventions preserve
+classification but move every output to step 14/16, so W2 is now authorized.
+The full 45-cell W2 matrix remains frozen. Read
+`docs/XOR_TASK_DERIVED_TIMING_WITHDRAWAL_V1.md`,
+`docs/RESULTS_XOR_TASK_DERIVED_TIMING_WITHDRAWAL_W0.md`,
+`docs/RESULTS_XOR_TASK_DERIVED_TIMING_WITHDRAWAL_W1.md`, and the config.
+
+W2 is now complete. Retention passes 5/5 and oracle-delay-only passes 10/10,
+but task-delay-only passes 0/10; the formal local-restoration protocol fails.
+d3 regains exact function in 3/5 task-delay cells without recovering the delay
+vector, while d5 is exact in 0/5 and polarizes delays toward the bounds. The
+integer-boundary audit shows a gradient sign flip between 4.999 and 5.000 under
+the current right-sided interpolation backward. K>1 remains locked. Read
+`docs/RESULTS_XOR_TASK_DERIVED_TIMING_WITHDRAWAL_W2.md` before proposing any
+credit repair; do not begin with LR, threshold, epoch, or seed tuning.
+
+The registered first credit repair,
+`xor_integer_boundary_credit_preflight_v1`, is now complete. A versioned
+backward-only Gaussian estimator (sigma 1.00) preserves every tested forward
+record bitwise and corrects the aggregate d3/d5 gradient direction, but the
+conditional per-hidden recovery still fails: exact interface 2/10, all-delay
+schedule recovery 0/10, and d5 exact interface 0/5. This rules out the
+one-sided integer derivative as the sole cause. Independent-coordinate credit
+and internal-schedule non-identifiability remain. Read
+`docs/RESULTS_XOR_INTEGER_BOUNDARY_CREDIT_PREFLIGHT_V1.md`. K>1 remains locked;
+the next minimal discriminator is a preregistered one-parameter globally tied
+task-only recovery anchor, not an LR/threshold/budget sweep.
+
+For the 2026-07-16 supervisor deadline, a separate non-confirmatory branch is
+registered as `mixedop_spatial_temporal_surface_preview_v1`. It uses an MLP
+decoder to plot validation accuracy over total hidden neurons and latency for
+fixed K=5/8 mixed-operation workloads. Its spatial baseline, hand-scheduled
+oracle, and WAD diagnostic must not be interpreted as proof of learned temporal
+multiplexing. All six invalid LR=.01 stability cells passed; the unchanged
+single-seed grid was initially authorized. See
+`docs/MIXEDOP_SPATIAL_TEMPORAL_SURFACE_PREVIEW_V1.md` and the matching YAML.
+
+The researcher then requested a K=5-first gate. All 36 K=5 cells are complete
+and K=8 is on hold. Spatial and fixed oracle score 1.0 throughout the K=5
+grid, while WAD remains at .5 worst-query balanced accuracy throughout and has
+no activity in its last two windows. The constant surfaces cannot identify a
+width or latency effect, and the smallest point already saturates both passing
+conditions. Read
+`docs/RESULTS_MIXEDOP_SPATIAL_TEMPORAL_SURFACE_PREVIEW_V1_K5.md`; do not resume
+K=8 without explicit authorization.
+
+The follow-up `mixedop_rate_wad_surface_calibration_v1` pilot is also complete.
+A controlled 4K-channel 400/10 Hz rate code gives nonzero WAD delay gradients
+for every query but leaves worst-query balanced accuracy at `.50` at all five
+corner/center points, with its final two windows silent. All fixed-oracle
+controls also miss the registered feasibility floor. At the matched center,
+rate input approximately doubles measured synaptic events without improving
+the primary endpoint. The full 30-cell surface is locked. Read
+`docs/RESULTS_MIXEDOP_RATE_WAD_SURFACE_CALIBRATION_V1.md`.
+
+The subsequent `mixedop_rate_alignment_repair_v1` identifies and fixes the
+packet/window mismatch. Event8 fixed oracle is perfect across the selected and
+new seeds, but five query-tied task-only and routing-assisted delay learning
+both fail 0/3 at `.50` worst-query BAcc. Assistance moves later delays and
+reduces routing loss but never reaches the final window or full schedule.
+Stage C and larger WAD surfaces remain locked. Read
+`docs/RESULTS_MIXEDOP_RATE_ALIGNMENT_REPAIR_STAGE_A.md` and
+`docs/RESULTS_MIXEDOP_RATE_ALIGNMENT_REPAIR_STAGE_B.md`.
+
+The supervised temporal-interface repair is now complete. V2 showed that the
+old arrival-mass routing loss can yield perfect classification while learning
+the wrong registered schedule. V3 replaces it with a window-centroid Huber
+objective: oracle and centroid supervision pass 3/3 new seeds, while the
+matched old loss fails 0/3. This repairs a five-parameter, explicitly supervised
+interface only; autonomous WAD and Pareto claims remain locked. Read
+`docs/RESULTS_MIXEDOP_TEMPORAL_WAD_REPAIR_V2.md` and
+`docs/RESULTS_MIXEDOP_TEMPORAL_WAD_REPAIR_V3.md`.
+
+The next registered gate is
+`mixedop_temporal_wad_scaffold_withdrawal_v1`. It asks separately whether task
+BCE can retain a correct warm-start schedule and whether it can restore two
+prespecified perturbations after explicit timing supervision is removed. It
+does not call either result autonomous discovery. The four invalid
+implementation smoke cells pass; only the three-cell W0 scaffold replication
+then passes all three new seeds. The frozen 12-cell W1 retention matrix is now
+complete: abrupt task-only passes schedule only 1/3, while fixed annealing
+followed by 100 task-only updates passes 3/3. The 18-cell W2 restoration matrix
+is now complete: centroid restores 6/6, but task-only restores 0/6 despite
+near-perfect classification. The current Boolean task loss does not identify
+the delay schedule. Read
+`docs/MIXEDOP_TEMPORAL_WAD_SCAFFOLD_WITHDRAWAL_V1.md`.
+
 ## Source of truth
 
 - [`docs/PUBLICATION_ROADMAP.md`](docs/PUBLICATION_ROADMAP.md): authoritative
@@ -153,3 +260,56 @@ while WAD delay shuffling reveals strong within-checkpoint co-adaptation. Read
 `docs/RESULTS_XOR_DELAY_CONTROL_MATRIX_V1.md`. Do not open the sealed test set
 or add a large K/N sweep; the next protocol must separate timing, distribution,
 placement, and co-adaptation.
+
+The event8-aligned K=5 resource preview is preregistered and implemented as
+`mixedop_event8_aligned_surface_v2`. It freezes four corner landmarks plus one
+center and includes the missing shared-d0 control. Its learned conditions are
+separated into a task-only diagnostic and an explicitly curriculum-assisted
+model; neither may be reported as autonomous temporal multiplexing. Only five
+invalid technical smoke cells are authorized. The 25-cell landmark pilot and
+the 120-cell full grid remain locked pending their machine-readable gates. See
+`docs/MIXEDOP_EVENT8_ALIGNED_SURFACE_V2.md` and the matching YAML.
+
+The five invalid event8-aligned implementation-smoke cells now pass their
+technical gate. They verify exact shared-d0/oracle delays, nonzero task-only
+delay gradients, curriculum phase switching, diagnostic panels and resource
+ledgers. Their accuracy is not evidence. The unchanged 25-cell landmark pilot
+is authorized; the full surface remains locked. See
+`docs/RESULTS_MIXEDOP_EVENT8_ALIGNED_SURFACE_V2_SMOKE.md`.
+
+The 25-cell landmark is complete but does not authorize the full surface.
+Spatial d0, fixed oracle and curriculum-assisted temporal models already
+saturate at the smallest N=20 point; task-only WAD passes function at only one
+point and has a 14.23-step schedule error there. The post-run mechanism audit
+also exposes an endpoint mismatch: centroid supervision targets
+`1.5+w/2+qw`, while the gate compares against `3+qw`. The full grid remains
+locked, and these failures must not be reported as a clean WAD optimization
+result. See `docs/RESULTS_MIXEDOP_EVENT8_ALIGNED_SURFACE_V2_LANDMARK.md`.
+
+The next supervisor-preview is `mixedop_k6_centroid_supervised_surface_v1`:
+six basic logic queries, explicit arrival-centroid supervision, and a
+descriptive N=1--60, T=34--166 grid. Only four invalid preflight cells are
+authorized; the 112-cell surface remains locked. This is explicitly supervised
+temporal routing, not autonomous WAD or a Pareto result. See
+`docs/MIXEDOP_K6_CENTROID_SUPERVISED_SURFACE_V1.md`.
+
+Its four extreme preflight cells now pass all technical and final-centroid
+gates. The exact 112-cell seed-3907 surface is authorized, while test, extra
+seeds and spatial/Pareto claims remain locked. See
+`docs/RESULTS_MIXEDOP_K6_CENTROID_SUPERVISED_SURFACE_V1_PREFLIGHT.md`.
+
+The complete 112-cell surface does not show an L-shaped tradeoff. All delay
+mechanisms are valid, but N90 is non-monotonic and the hyperbolic fit has the
+wrong sign. Width dominates the single-seed descriptive grid variance; T has a
+small marginal contribution and is confounded with window/support changes.
+Read `docs/RESULTS_MIXEDOP_K6_CENTROID_SUPERVISED_SURFACE_V1.md`. Do not call
+this autonomous WAD or spatial-temporal Pareto evidence.
+
+The versioned follow-up `mixedop_k6_boundary_multiseed_confirmation_v1` is
+complete (200/200). Neither exact parent reversal reproduces (0/5 each), but
+the broader N90 non-monotonicity meets its registered 3/5-seed threshold. The
+robust boundary `[4,3,3,3,2,3,3,3]` is not stable at T=34 and does not match
+the parent. All mechanisms are valid; low-width failures remain dominated by
+XOR/XNOR. This closes the fixed-position surface without a time--width law or
+autonomous-WAD/Pareto claim. See
+`docs/RESULTS_MIXEDOP_K6_BOUNDARY_MULTISEED_CONFIRMATION_V1.md`.

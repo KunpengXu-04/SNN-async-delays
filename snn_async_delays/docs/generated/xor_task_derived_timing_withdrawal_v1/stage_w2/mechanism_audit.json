@@ -1,0 +1,180 @@
+{
+  "protocol_id": "xor_task_derived_timing_withdrawal_v1",
+  "audit_class": "post_result_read_only_non_formal_mechanism_audit",
+  "formal_result_changed": false,
+  "seeds": [
+    2503,
+    2521,
+    2539,
+    2551,
+    2579
+  ],
+  "global_scalar_gradient_field": [
+    {
+      "delay_steps": 2.5,
+      "mean_raw_task_gradient": -0.011297496035695076,
+      "minimum_raw_task_gradient": -0.016564656049013138,
+      "maximum_raw_task_gradient": -0.004519350826740265,
+      "target_directed_cells": 5,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 2.75,
+      "mean_raw_task_gradient": -0.012544757314026355,
+      "minimum_raw_task_gradient": -0.016715874895453453,
+      "maximum_raw_task_gradient": -0.010460217483341694,
+      "target_directed_cells": 5,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 3.0,
+      "mean_raw_task_gradient": -0.01127026453614235,
+      "minimum_raw_task_gradient": -0.013927876949310303,
+      "maximum_raw_task_gradient": -0.010091695934534073,
+      "target_directed_cells": 5,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 3.25,
+      "mean_raw_task_gradient": -0.003523262939415872,
+      "minimum_raw_task_gradient": -0.00850655511021614,
+      "maximum_raw_task_gradient": 0.0034891606774181128,
+      "target_directed_cells": 3,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 3.5,
+      "mean_raw_task_gradient": 0.0015591012313961982,
+      "minimum_raw_task_gradient": 0.0,
+      "maximum_raw_task_gradient": 0.007795506156980991,
+      "target_directed_cells": 0,
+      "nonzero_cells": 1
+    },
+    {
+      "delay_steps": 3.75,
+      "mean_raw_task_gradient": 0.0,
+      "minimum_raw_task_gradient": 0.0,
+      "maximum_raw_task_gradient": 0.0,
+      "target_directed_cells": 0,
+      "nonzero_cells": 0
+    },
+    {
+      "delay_steps": 4.0,
+      "mean_raw_task_gradient": 0.0,
+      "minimum_raw_task_gradient": 0.0,
+      "maximum_raw_task_gradient": 0.0,
+      "target_directed_cells": 0,
+      "nonzero_cells": 0
+    },
+    {
+      "delay_steps": 4.25,
+      "mean_raw_task_gradient": 0.00548935744445771,
+      "minimum_raw_task_gradient": 0.0011438921792432666,
+      "maximum_raw_task_gradient": 0.011364944279193878,
+      "target_directed_cells": 5,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 4.5,
+      "mean_raw_task_gradient": 0.0057475625071674585,
+      "minimum_raw_task_gradient": 0.0034144774544984102,
+      "maximum_raw_task_gradient": 0.010815913788974285,
+      "target_directed_cells": 5,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 4.75,
+      "mean_raw_task_gradient": 0.004300974635407328,
+      "minimum_raw_task_gradient": 0.00311351683922112,
+      "maximum_raw_task_gradient": 0.005915195681154728,
+      "target_directed_cells": 5,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 4.9,
+      "mean_raw_task_gradient": 0.004245253326371312,
+      "minimum_raw_task_gradient": 0.003253405215218663,
+      "maximum_raw_task_gradient": 0.006023483816534281,
+      "target_directed_cells": 5,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 4.99,
+      "mean_raw_task_gradient": 0.004080628370866179,
+      "minimum_raw_task_gradient": 0.0031412653625011444,
+      "maximum_raw_task_gradient": 0.005572200287133455,
+      "target_directed_cells": 5,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 4.999,
+      "mean_raw_task_gradient": 0.004077590070664883,
+      "minimum_raw_task_gradient": 0.00314665911719203,
+      "maximum_raw_task_gradient": 0.00557351391762495,
+      "target_directed_cells": 5,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 5.0,
+      "mean_raw_task_gradient": -0.003563128598034382,
+      "minimum_raw_task_gradient": -0.003958317916840315,
+      "maximum_raw_task_gradient": -0.003279339987784624,
+      "target_directed_cells": 0,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 5.001,
+      "mean_raw_task_gradient": -0.0035651161801069976,
+      "minimum_raw_task_gradient": -0.003959603141993284,
+      "maximum_raw_task_gradient": -0.003281258512288332,
+      "target_directed_cells": 0,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 5.01,
+      "mean_raw_task_gradient": -0.0034397713374346496,
+      "minimum_raw_task_gradient": -0.003679252928122878,
+      "maximum_raw_task_gradient": -0.0032954176422208548,
+      "target_directed_cells": 0,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 5.1,
+      "mean_raw_task_gradient": -0.0025189627427607774,
+      "minimum_raw_task_gradient": -0.004942157305777073,
+      "maximum_raw_task_gradient": 0.0043730963952839375,
+      "target_directed_cells": 1,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 5.25,
+      "mean_raw_task_gradient": -0.000855986587703228,
+      "minimum_raw_task_gradient": -0.004361303523182869,
+      "maximum_raw_task_gradient": 0.004033196251839399,
+      "target_directed_cells": 2,
+      "nonzero_cells": 5
+    },
+    {
+      "delay_steps": 5.5,
+      "mean_raw_task_gradient": -0.0012799236690625548,
+      "minimum_raw_task_gradient": -0.0024894988164305687,
+      "maximum_raw_task_gradient": 0.002370682777836919,
+      "target_directed_cells": 1,
+      "nonzero_cells": 5
+    }
+  ],
+  "d5_per_hidden_task_delay_saturation": {
+    "coordinates": 80,
+    "below_0p5": 16,
+    "above_7p5": 24,
+    "near_either_bound": 40,
+    "near_either_bound_fraction": 0.5,
+    "minimum_delay_steps": 0.21374458074569702,
+    "maximum_delay_steps": 7.868307113647461
+  },
+  "integer_boundary_comparison": {
+    "delay_4p999_mean_raw_gradient": 0.004077590070664883,
+    "delay_5p000_mean_raw_gradient": -0.003563128598034382,
+    "interpretation": "gradient_sign_flips_at_exact_integer_under_right_sided_floor_detach_backward"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "protocol_id": "mixedop_temporal_wad_repair_v2",
+  "stage": "smoke",
+  "cells": 4,
+  "invalid_for_claims": true,
+  "passed": true,
+  "rows": [
+    {
+      "arm": "oracle",
+      "artifacts_complete": true,
+      "finite": true,
+      "delays_legal": true,
+      "schedule_artifacts_present": true,
+      "runtime_panel_present": true,
+      "passed": true
+    },
+    {
+      "arm": "task_only",
+      "artifacts_complete": true,
+      "finite": true,
+      "delays_legal": true,
+      "schedule_artifacts_present": true,
+      "runtime_panel_present": true,
+      "passed": true
+    },
+    {
+      "arm": "joint_calibrated",
+      "artifacts_complete": true,
+      "finite": true,
+      "delays_legal": true,
+      "schedule_artifacts_present": true,
+      "runtime_panel_present": true,
+      "passed": true
+    },
+    {
+      "arm": "routing_only_for_delays",
+      "artifacts_complete": true,
+      "finite": true,
+      "delays_legal": true,
+      "schedule_artifacts_present": true,
+      "runtime_panel_present": true,
+      "passed": true
+    }
+  ]
+}

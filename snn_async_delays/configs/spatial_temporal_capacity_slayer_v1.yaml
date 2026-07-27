@@ -1,0 +1,215 @@
+protocol_id: spatial_temporal_capacity_slayer_v1
+status: future_reliability_three_seed_majority_rule
+preregistered_at: 2026-07-21
+study_class: gated_capacity_scaling_and_task_only_slayer_trainability
+
+questions:
+  capacity: >
+    Under a deterministic equal-event repeated-XOR workload, how does the
+    maximum reliable query load scale with total hidden neurons and total
+    output-time budget when the temporal schedule is supplied?
+  trainability: >
+    Can a task-only Lava-DL SLAYER model learn delay-dependent routing without
+    an explicit centroid or oracle schedule teacher?
+
+claim_boundary:
+  permitted:
+    - fixed-oracle architectural capacity and resource scaling
+    - task-only SLAYER trainability after its registered gates pass
+    - raw uncensored spatial and temporal capacity staircases
+  forbidden:
+    - treating explicit centroid supervision as autonomous delay learning
+    - pooling MLP and spiking-output endpoints in one scaling fit
+    - smoothing or isotonic repair of capacity boundaries
+    - interpreting N_times_T or spike count as hardware energy
+    - opening sealed test before every method and grid is frozen
+
+workload:
+  operation: XOR
+  repeated_operation: true
+  K_values: [1, 2, 3, 4, 6, 8]
+  input_window_steps: 10
+  channels_per_query: 4
+  operation_position_counterbalancing_is_separate: true
+
+encoding:
+  mode: binary_one_hot_packet
+  packet_start_step: 6
+  packet_steps: 4
+  packet_support_steps: [6, 9]
+  expected_input_events_per_query: 8
+  stochastic: false
+
+interfaces:
+  primary_output: windowed_shared_mlp
+  conditional_output: shared_opponent_spikes
+  primary_decoder_shared_across_queries: true
+  slayer_tensor_layout: NCT
+  repository_tensor_layout: BTC
+
+model:
+  hidden_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.2
+    reset_au: 0.0
+    refractory_steps: 2
+    surrogate_beta: 4.0
+
+delay_methods:
+  - d0
+  - fixed
+  - explicit_centroid
+  - task_only_current
+  - task_only_slayer
+delay_granularity: input_axon_per_channel
+slayer:
+  package: lava-dl
+  pinned_version: 0.6.0
+  isolated_environment: D:/anaconda3/envs/snn_slayer
+  backend_name: slayer_native
+  neuron_family: cuba
+  explicit_timing_teacher_forbidden_in_task_only: true
+
+gates:
+  reliability:
+    worst_query_balanced_accuracy_minimum: 0.90
+    exact_trial_accuracy_minimum: 0.90
+  s0:
+    seeds: [99501, 99502]
+    invalid_for_scientific_claims: true
+    require_bidirectional_nonzero_target_directed_delay_gradient: true
+    require_cpu_checkpoint_roundtrip: true
+    require_cuda_parity_when_available: true
+  s1:
+    K: 1
+    calibration_seeds: [5101, 5113, 5129, 5147, 5167]
+    confirmation_seeds: [5209, 5227, 5237]
+    fixed_interface_required_passes: 2
+    task_only_slayer_required_passes: 2
+    explicit_centroid_forbidden_for_slayer: true
+  s2:
+    K: 2
+    confirmation_seeds: [5209, 5227, 5237]
+    task_only_slayer_required_passes: 2
+    require_activity_in_every_window: true
+    intervention_required_degrading_seeds: 2
+    intervention_mean_degradation_minimum: 0.05
+
+spatial_scaling:
+  total_output_budget_B: 48
+  total_latency_T: 58
+  hidden_neurons_total: [1, 2, 3, 4, 6, 8, 12, 16, 24, 32]
+  K_values: [1, 2, 3, 4, 6, 8, 12, 16]
+  formal_seeds: [5209, 5227, 5237]
+  evidence_class: exploratory_three_seed_screening
+  window_width_formula: B_divided_by_K
+  conditions:
+    - independent_spatial_d0
+    - shared_d0
+    - shared_temporal_fixed
+    - shared_temporal_explicit_centroid_selected_points
+    - shared_temporal_task_only_slayer_if_s2_passes
+
+boundary_screening:
+  purpose: >
+    Exploratory fixed-oracle screen to choose a non-saturated K range before
+    freezing the formal spatial-scaling grid. Invalid for scaling fits, claims,
+    or N_ref selection.
+  output_budget_B: 48
+  K_values: [8, 12, 16]
+  hidden_neurons_total: [3, 6, 12]
+  seeds: [5101, 5113]
+  condition: shared_temporal_fixed
+  cells: 18
+  test_split_opened: false
+
+temporal_scaling:
+  output_budgets_B: [24, 48, 72, 96]
+  total_latency_formula: 10_plus_B
+  K_values: [1, 2, 3, 4, 6, 8]
+  N_ref_rule: smallest_fixed_oracle_N_passing_K6_B48_in_all_calibration_seeds
+  same_N_ref_for_every_method: true
+  conditions: [shared_temporal_fixed]
+  diagnostic_panel_artifact: diagnostic_panel.npz
+
+counterbalance:
+  operations: [AND, OR, XOR, XNOR, NAND, NOR]
+  cyclic_rotations: 6
+  hidden_neurons_total: [2, 3]
+  total_latency_steps: [34, 70]
+  seeds: [5303, 5323, 5347, 5369, 5381]
+  primary_method: explicit_centroid
+  controls_after_primary: [independent_spatial_d0, shared_d0, fixed_oracle]
+
+scaling_analysis:
+  spatial_formula: C_S_equals_a_times_N_to_alpha_S
+  temporal_formula: C_T_equals_b_times_B_to_alpha_T
+  minimum_uncensored_points_for_fit: 4
+  bootstrap_confidence_level: 0.95
+  superlinear_only_if_confidence_interval_lower_bound_above: 1.0
+  report_inverse_required_resource_curves: true
+  no_censor_imputation: true
+  no_smoothing: true
+  expected_seed_count_per_cell: 3
+  required_seed_passes_per_cell: 2
+  spatial_expected_seed_count_per_cell: 3
+  spatial_required_seed_passes_per_cell: 2
+
+data:
+  train_samples: 2048
+  validation_samples: 2048
+  test_split_opened: false
+
+optimization:
+  batch_size: 128
+  optimizer_updates: 600
+  validation_interval_updates: 25
+  gradient_clip_norm: 1.0
+  slayer_calibration:
+    weight_learning_rates: [0.001, 0.01]
+    delay_learning_rates: [0.001, 0.01, 0.05]
+    selected_only_on_K1_validation: true
+
+artifacts:
+  schema_version: capacity_scaling_result_v1
+  required_metadata:
+    - model_backend
+    - delay_method
+    - delay_granularity
+    - encoding_mode
+    - output_interface
+    - K
+    - N_hidden_total
+    - output_budget_B
+    - window_width
+    - T
+    - input_events_expected
+    - input_events_measured
+    - delay_parameter_count
+    - delay_storage_count
+    - worst_query_balanced_accuracy
+    - exact_trial_accuracy
+    - per_query_balanced_accuracy
+    - per_window_activity
+    - delay_intervention_metrics
+    - resource_ledger
+
+execution:
+  smoke_root: runs/smoke/spatial_temporal_capacity_slayer_v1
+  exploratory_root: runs/exploratory/spatial_temporal_capacity_slayer_threshold0p2_v2
+  generated_root: docs/generated/spatial_temporal_capacity_slayer_v1
+  completed_cells_immutable: true
+
+authorization:
+  s0_launch: true
+  s1_calibration_launch: false
+  s1_confirmation_launch: false
+  s2_launch: false
+  spatial_calibration_launch: true
+  boundary_screening_launch: true
+  spatial_scaling_launch: true
+  centroid_validation_launch: false
+  temporal_scaling_launch: true
+  counterbalance_launch: false
+  spiking_output_launch: false
+  sealed_test: false

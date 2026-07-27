@@ -1,0 +1,5 @@
+N_hidden,w,T,artifacts_complete,finite,delays_legal,q0_gradient_finite_not_required_nonzero,q1_q5_initial_gradients_nonzero_target_directed,final_max_centroid_error_steps,accuracy_used_as_gate,hidden_activity_used_as_gate,passed
+1,4,34,True,True,True,True,True,0.01837158203125,False,False,True
+1,26,166,True,True,True,True,True,0.3472442626953125,False,False,True
+60,4,34,True,True,True,True,True,0.018373489379882812,False,False,True
+60,26,166,True,True,True,True,True,0.3212127685546875,False,False,True

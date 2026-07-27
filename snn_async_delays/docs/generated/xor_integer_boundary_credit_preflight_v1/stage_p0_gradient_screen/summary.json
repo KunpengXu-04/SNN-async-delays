@@ -1,0 +1,121 @@
+{
+  "protocol_id": "xor_integer_boundary_credit_preflight_v1",
+  "stage": "stage_p0_gradient_screen",
+  "complete": true,
+  "probe_count": 100,
+  "expected_probe_count": 100,
+  "forward_equivalence_pass": true,
+  "forward_equivalence_mismatches": [],
+  "legacy_d5_per_hidden_mean_direction_fraction": 0.1375,
+  "estimator_results": [
+    {
+      "estimator_id": "legacy_right_linear",
+      "delay_gradient_mode": "right_linear",
+      "delay_gradient_sigma": 0.75,
+      "intervention_rank": 0,
+      "global_target_directed_probes": 5,
+      "global_probes": 10,
+      "per_hidden_mean_target_directed_probes": 5,
+      "per_hidden_probes": 10,
+      "per_hidden_min_nonzero_coordinate_fraction": 1.0,
+      "d3_per_hidden_mean_direction_fraction": 0.85,
+      "d5_per_hidden_mean_direction_fraction": 0.1375,
+      "eligibility_checks": {
+        "global_mean_direction_all": false,
+        "global_nonzero_all": true,
+        "per_hidden_mean_direction_all": false,
+        "per_hidden_nonzero_min_ge_0p75": true,
+        "d5_direction_fraction_above_legacy": false
+      },
+      "eligible": false
+    },
+    {
+      "estimator_id": "symmetric_integer",
+      "delay_gradient_mode": "symmetric_integer",
+      "delay_gradient_sigma": 0.75,
+      "intervention_rank": 1,
+      "global_target_directed_probes": 9,
+      "global_probes": 10,
+      "per_hidden_mean_target_directed_probes": 9,
+      "per_hidden_probes": 10,
+      "per_hidden_min_nonzero_coordinate_fraction": 1.0,
+      "d3_per_hidden_mean_direction_fraction": 0.8375,
+      "d5_per_hidden_mean_direction_fraction": 0.4625,
+      "eligibility_checks": {
+        "global_mean_direction_all": false,
+        "global_nonzero_all": true,
+        "per_hidden_mean_direction_all": false,
+        "per_hidden_nonzero_min_ge_0p75": true,
+        "d5_direction_fraction_above_legacy": true
+      },
+      "eligible": false
+    },
+    {
+      "estimator_id": "gaussian_ste_s0p50",
+      "delay_gradient_mode": "gaussian_ste",
+      "delay_gradient_sigma": 0.5,
+      "intervention_rank": 2,
+      "global_target_directed_probes": 9,
+      "global_probes": 10,
+      "per_hidden_mean_target_directed_probes": 9,
+      "per_hidden_probes": 10,
+      "per_hidden_min_nonzero_coordinate_fraction": 1.0,
+      "d3_per_hidden_mean_direction_fraction": 0.8375,
+      "d5_per_hidden_mean_direction_fraction": 0.475,
+      "eligibility_checks": {
+        "global_mean_direction_all": false,
+        "global_nonzero_all": true,
+        "per_hidden_mean_direction_all": false,
+        "per_hidden_nonzero_min_ge_0p75": true,
+        "d5_direction_fraction_above_legacy": true
+      },
+      "eligible": false
+    },
+    {
+      "estimator_id": "gaussian_ste_s0p75",
+      "delay_gradient_mode": "gaussian_ste",
+      "delay_gradient_sigma": 0.75,
+      "intervention_rank": 3,
+      "global_target_directed_probes": 9,
+      "global_probes": 10,
+      "per_hidden_mean_target_directed_probes": 9,
+      "per_hidden_probes": 10,
+      "per_hidden_min_nonzero_coordinate_fraction": 1.0,
+      "d3_per_hidden_mean_direction_fraction": 0.8375,
+      "d5_per_hidden_mean_direction_fraction": 0.475,
+      "eligibility_checks": {
+        "global_mean_direction_all": false,
+        "global_nonzero_all": true,
+        "per_hidden_mean_direction_all": false,
+        "per_hidden_nonzero_min_ge_0p75": true,
+        "d5_direction_fraction_above_legacy": true
+      },
+      "eligible": false
+    },
+    {
+      "estimator_id": "gaussian_ste_s1p00",
+      "delay_gradient_mode": "gaussian_ste",
+      "delay_gradient_sigma": 1.0,
+      "intervention_rank": 4,
+      "global_target_directed_probes": 10,
+      "global_probes": 10,
+      "per_hidden_mean_target_directed_probes": 10,
+      "per_hidden_probes": 10,
+      "per_hidden_min_nonzero_coordinate_fraction": 1.0,
+      "d3_per_hidden_mean_direction_fraction": 0.8375,
+      "d5_per_hidden_mean_direction_fraction": 0.4875,
+      "eligibility_checks": {
+        "global_mean_direction_all": true,
+        "global_nonzero_all": true,
+        "per_hidden_mean_direction_all": true,
+        "per_hidden_nonzero_min_ge_0p75": true,
+        "d5_direction_fraction_above_legacy": true
+      },
+      "eligible": true
+    }
+  ],
+  "selected_estimator_id": "gaussian_ste_s1p00",
+  "p1_unlocked_by_rule": true,
+  "test_split_opened": false,
+  "claim_boundary": "exploratory_mechanism_and_engineering_selection_only"
+}

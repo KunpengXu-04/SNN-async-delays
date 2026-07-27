@@ -1,0 +1,159 @@
+protocol_id: mixedop_temporal_wad_repair_v2
+status: formal_complete_all_learned_arms_failed_joint_gate
+preregistered_at: 2026-07-17
+parent_result: mixedop_rate_alignment_repair_v1_stage_b
+study_class: exploratory_supervised_temporal_credit_repair
+
+question: >
+  Can interior delay support plus calibrated or parameter-decoupled routing
+  credit recover the five query-tied delays without changing the selected
+  event8/N120/w4 interface?
+
+claim_boundary:
+  permitted:
+    - supervised per-query schedule recovery
+    - task-versus-routing gradient conflict diagnosis
+  forbidden:
+    - autonomous routing for assisted arms
+    - per-synapse WAD or Pareto claims
+    - energy claims
+    - post-hoc tuning of candidate multipliers, LR, updates or seeds
+
+workloads:
+  5: [AND, OR, XOR, XNOR, NAND]
+  operation_assignment: fixed_by_query_position
+
+surface:
+  K_values: [5]
+  total_hidden_neurons: [120]
+  output_window_lengths: [4]
+  input_window_steps: 10
+  seed: 3407
+  conditions: [shared_temporal_wad]
+
+encoding:
+  mode: binary_one_hot_rate
+  channels_per_query: 4
+  rate_start_step: 6
+  rate_steps: 4
+  r_on_hz: 990.0
+  r_off_hz: 10.0
+  expected_events_per_query: 8.0
+  selected_value_channel_events: 1
+  one_hot_phase: 1.0
+  jitter_steps: 0
+
+model:
+  readout: nonspiking_mlp
+  temporal_decoder: one_shared_mlp_applied_to_each_output_window
+  hidden_lif:
+    tau_m_steps: 10.0
+    threshold_au: 0.2
+    reset_au: 0.0
+    refractory_steps: 2
+    surrogate_beta: 4.0
+  temporal_delay:
+    placement: input_to_hidden_only
+    oracle_base_delay_steps: 3
+    oracle_schedule_formula: base_plus_query_index_times_output_window_length
+    oracle_schedule_steps: [3, 7, 11, 15, 19]
+    delay_support_margin_steps: 4
+    delay_support_steps: [0, 23]
+    wad_parameterization: sigmoid
+    wad_tying: per_query
+    wad_init_mode: constant
+    wad_init_value_steps: 3.0
+    wad_init_raw: -1.8718021769
+    wad_backward: right_linear_historical_comparator
+
+data:
+  dataset: marginally_balanced_fixed_operation_query
+  train_samples: 2048
+  validation_samples: 2048
+  train_seed_offset: 1000
+  validation_seed_offset: 2000
+  validation_encoding_seed_offset: 4000
+  test_split_opened: false
+
+optimization:
+  optimizer: Adam
+  weight_learning_rate: 0.01
+  readout_learning_rate: 0.01
+  delay_learning_rate: 0.01
+  gradient_clip_norm: 1.0
+  batch_size: 128
+  optimizer_updates: 400
+  validation_interval_updates: 20
+  loss: query_by_class_macro_balanced_BCE
+  checkpoint_selection:
+    accuracy_checkpoint: worst_query_then_exact_then_earlier
+    schedule_checkpoint: minimum_max_query_delay_error_then_worst_then_exact
+
+gradient_preflight:
+  status: authorized
+  seeds: [3407, 3413, 3433]
+  balanced_lambda_formula: median_seed_norm_task_over_norm_route
+  joint_multipliers: [1.0, 3.0, 10.0]
+  joint_selection: smallest_multiplier_with_target_directed_combined_gradient_for_q1_to_q4_in_all_seeds
+  decoupled_gate: route_only_gradient_target_directed_for_q1_to_q4_in_all_seeds
+  q0_excluded_from_direction_gate: target_equals_initial_delay
+  formal_authorized_if_either_joint_or_decoupled_gate_passes: true
+
+smoke:
+  status: locked_until_gradient_preflight_passes
+  seed: 3449
+  optimizer_updates: 40
+  arms: [oracle, task_only, joint_calibrated, routing_only_for_delays]
+  cells_if_joint_selected: 4
+  invalid_for_claims: true
+
+formal_recovery:
+  status: complete
+  seeds: [3457, 3469, 3491]
+  optimizer_updates: 400
+  arms: [oracle, task_only, joint_calibrated, routing_only_for_delays]
+  cells_if_joint_selected: 12
+  assisted_joint_interpretation: explicit_routing_supervision
+  assisted_decoupled_interpretation: delay_updates_use_only_explicit_routing_supervision
+  gate:
+    oracle_worst_bacc_each_seed_minimum: 0.90
+    oracle_exact_each_seed_minimum: 0.80
+    learned_worst_bacc_each_seed_minimum: 0.85
+    learned_exact_each_seed_minimum: 0.70
+    each_window_activity_fraction_minimum: 0.10
+    maximum_query_delay_error_steps: 1.0
+    either_accuracy_or_schedule_checkpoint_may_jointly_pass: true
+
+withdrawal:
+  status: locked_after_formal_failure
+  prerequisite: one_assisted_arm_passes_function_and_schedule_in_all_three_seeds
+
+required_cell_artifacts:
+  - config.json
+  - best_model.pt
+  - best_schedule_model.pt
+  - last_model.pt
+  - update_log.csv
+  - validation_log.csv
+  - validation_results.json
+  - validation_predictions.npz
+  - schedule_validation_results.json
+  - schedule_validation_predictions.npz
+  - resource_ledger.json
+  - plots/diagnostic_data.npz
+  - plots/diagnostic_panel.png
+  - run_complete.json
+
+execution:
+  smoke_root: runs/smoke/mixedop_temporal_wad_repair_v2
+  formal_root: runs/exploratory/mixedop_temporal_wad_repair_v2/formal_recovery
+  generated_root: docs/generated/mixedop_temporal_wad_repair_v2
+  device: cuda
+
+authorization:
+  gradient_preflight: true
+  smoke_launch: true
+  formal_launch: true
+  withdrawal_launch: false
+  sealed_test: false
+  publication_claim: false
